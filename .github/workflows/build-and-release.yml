@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - 'trae/**'
     paths:
       - 'textgame/**'
       - '.github/workflows/**'
@@ -33,7 +34,6 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     outputs:
-      apk_path: ${{ steps.upload_apk.outputs.apk_path }}
       version_name: ${{ steps.get_version.outputs.version_name }}
     steps:
       - name: Checkout code
@@ -44,42 +44,43 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+
+      - name: Make gradlew executable
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: chmod +x gradlew
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          cmdline-tools-version: ${{ env.ANDROID_SDK_TOOLS }}
-          packages: >
-            platforms;android-${{ env.ANDROID_COMPILE_SDK }}
-            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
-            platform-tools
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('textgame/**/*.gradle*', 'textgame/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Grant gradle execute permission
         run: |
-          if [ -f "${{ env.PROJECT_DIR }}/gradlew" ]; then
-            chmod +x ${{ env.PROJECT_DIR }}/gradlew
-          fi
-
-      - name: Generate Gradle Wrapper (if missing)
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          if [ ! -f "gradlew" ]; then
-            echo "Gradle wrapper not found, generating..."
-            gradle wrapper --gradle-version 7.6.4
-            chmod +x gradlew
-          fi
-          ls -la gradlew 2>/dev/null || echo "gradlew still missing"
+          echo "Installing Android SDK..."
+          
+          # Create SDK directory
+          export ANDROID_HOME=$HOME/android-sdk
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          
+          # Download command line tools
+          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-${{ env.ANDROID_SDK_TOOLS }}_latest.zip" -O cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          rm cmdline-tools.zip
+          
+          # Add to PATH
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
+          
+          # Accept licenses and install required components
+          yes | sdkmanager --licenses > /dev/null 2>&1
+          sdkmanager "platforms;android-${{ env.ANDROID_COMPILE_SDK }}" \
+                     "build-tools;${{ env.ANDROID_BUILD_TOOLS }}" \
+                     "platform-tools"
+          
+          echo "Android SDK setup complete"
 
       - name: Get app version
         id: get_version
@@ -93,13 +94,11 @@ jobs:
 
       - name: Build Debug APK
         working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Build Release APK
         working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          ./gradlew assembleRelease --stacktrace --no-daemon
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
         continue-on-error: true
 
       - name: Find APK files
