@@ -21,6 +21,31 @@ class AIService(
 ) {
     private val gson = Gson()
 
+    /**
+     * 为NPC列表分配唯一ID（如果尚未分配）
+     * 格式：npc_001, npc_002, ...
+     */
+    fun assignNpcIds(npcs: List<NPC>): List<NPC> {
+        var counter = 1
+        return npcs.map { npc ->
+            if (npc.npcId.isBlank()) {
+                npc.copy(npcId = "npc_${counter++.toString().padStart(3, '0')}")
+            } else {
+                npc
+            }
+        }
+    }
+
+    /**
+     * 为单个NPC生成下一个可用的ID
+     */
+    fun generateNextNpcId(existingNpcs: List<NPC>): String {
+        val maxNum = existingNpcs.mapNotNull {
+            it.npcId.removePrefix("npc_").toIntOrNull()
+        }.maxOrNull() ?: 0
+        return "npc_${(maxNum + 1).toString().padStart(3, '0')}"
+    }
+
     suspend fun generateDialogueResponse(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting,
@@ -112,6 +137,8 @@ class AIService(
                   "appearance": "外貌描述"
                 }
               ]
+              
+            NPC的ID会自动分配为npc_001, npc_002等格式，你不需要在JSON中提供npcId字段
             }
 
             重要规则：
@@ -214,7 +241,8 @@ class AIService(
         if (npcs.isNotEmpty()) {
             appendLine("【在场NPC】")
             npcs.forEach { npc ->
-                appendLine("${npc.name}（${npc.role}）")
+                val displayId = npc.npcId.ifBlank { "未分配" }
+                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
                 appendLine("  情绪：${npc.mood}")
                 if (npc.awareness.isNotEmpty()) {
                     appendLine("  认知：${npc.awareness}")
@@ -260,6 +288,14 @@ class AIService(
             appendLine("${index + 1}. $dialogue")
         }
         appendLine()
+        if (npcs.isNotEmpty()) {
+            appendLine("【NPC状态】")
+            npcs.forEach { npc ->
+                val displayId = npc.npcId.ifBlank { "未分配" }
+                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）- 情绪: ${npc.mood}")
+            }
+            appendLine()
+        }
         appendLine("【主角状态】")
         appendLine("姓名：${protagonist.name}")
         appendLine("位置：${protagonist.location}")
@@ -294,13 +330,14 @@ class AIService(
               "location_change": "新位置"
             },
             "npc": {
-              "已存在的NPC名称": {
+              "已存在NPC的ID（如npc_001）": {
                 "mood": "新情绪",
                 "awareness": "新的认知更新",
                 "attribute_changes": {"属性名": 数值}
               },
-              "新NPC名称（新出现的角色）": {
+              "新NPC的ID（新出现的角色，格式如npc_003）": {
                 "is_new": true,
+                "name": "NPC名称",
                 "role": "角色身份（如：旅店老板、神秘剑客等）",
                 "appearance": "外貌详细描述",
                 "personality": "性格特点",
@@ -331,9 +368,10 @@ class AIService(
         10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么
         11. 选项应该多样化，可以是对话选项、行动选项、调查选项等
         12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态
-        13. 【重要】当剧情中出现新NPC时，必须在state_changes.npc中以"新NPC名称"作为key，并且is_new必须设为true，同时提供role、appearance、personality、backstory、mood、awareness字段
-        14. 已经在场的NPC不要重复设置is_new，只更新mood/awareness等
-        15. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
+        13. 【重要】每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增，如已有npc_001和npc_002，新NPC就是npc_003），并且is_new必须设为true，同时提供name、role、appearance、personality、backstory、mood、awareness字段
+        14. 已经在场的NPC不要重复设置is_new，只更新mood/awareness等，key用其ID
+        15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId
+        16. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
@@ -392,7 +430,7 @@ class AIService(
                 }
             }
 
-            val npcs = mutableListOf<NPC>()
+            var npcs = mutableListOf<NPC>()
             if (json.has("npcs")) {
                 json.getAsJsonArray("npcs").forEach { elem ->
                     val obj = elem.asJsonObject
@@ -409,6 +447,7 @@ class AIService(
                     )
                 }
             }
+            npcs = assignNpcIds(npcs).toMutableList()
 
             GeneratedWorldResult(
                 gameName = json.get("gameName")?.asString ?: "",

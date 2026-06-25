@@ -107,6 +107,10 @@ class GameRepositoryImpl(
         return npcDao.getNPCByName(sessionId, name)?.toDomain()
     }
 
+    override suspend fun getNPCByNpcId(sessionId: Long, npcId: String): NPC? {
+        return npcDao.getNPCByNpcId(sessionId, npcId)?.toDomain()
+    }
+
     override suspend fun saveNPC(npc: NPC): Long {
         return if (npc.id == 0L) {
             npcDao.insertNPC(npc.toEntity())

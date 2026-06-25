@@ -23,16 +23,24 @@ class UpdateStateUseCase(
         }
 
         if (stateChanges?.npc != null) {
-            stateChanges.npc.forEach { (npcName, npcChanges) ->
-                val existingNpc = gameRepository.getNPCByName(sessionId, npcName)
+            val existingNpcs = gameRepository.getNPCsBySession(sessionId)
+            var maxNpcNumber = existingNpcs.mapNotNull {
+                it.npcId.removePrefix("npc_").toIntOrNull()
+            }.maxOrNull() ?: 0
+
+            stateChanges.npc.forEach { (npcId, npcChanges) ->
+                // 尝试用 npcId 查找已有NPC
+                val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
                 if (existingNpc != null) {
                     val updatedNpc = updateNPC(existingNpc, npcChanges, now)
                     gameRepository.updateNPC(updatedNpc)
                 } else {
-                    // 新NPC：插入数据库
+                    // 新NPC：分配新ID并插入数据库
+                    maxNpcNumber++
                     val newNpc = NPC(
                         sessionId = sessionId,
-                        name = npcName,
+                        npcId = npcId,
+                        name = npcChanges.name ?: "未知角色",
                         role = npcChanges.role ?: "未知",
                         attributes = npcChanges.attributeChanges ?: emptyMap(),
                         mood = npcChanges.mood ?: "neutral",
@@ -83,8 +91,13 @@ class UpdateStateUseCase(
 
         return npc.copy(
             attributes = updatedAttributes,
+            name = changes.name ?: npc.name,
             mood = changes.mood ?: npc.mood,
             awareness = changes.awareness ?: npc.awareness,
+            appearance = changes.appearance ?: npc.appearance,
+            personality = changes.personality ?: npc.personality,
+            backstory = changes.backstory ?: npc.backstory,
+            role = changes.role ?: npc.role,
             updatedAt = now
         )
     }

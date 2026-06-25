@@ -3,6 +3,7 @@ package com.textgame.domain.model
 data class NPC(
     val id: Long = 0,
     val sessionId: Long = 0,
+    val npcId: String = "",
     val name: String,
     val role: String,
     val attributes: Map<String, Any> = emptyMap(),

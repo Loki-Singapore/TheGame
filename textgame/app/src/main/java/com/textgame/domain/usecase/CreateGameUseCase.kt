@@ -35,13 +35,15 @@ class CreateGameUseCase(
         )
         gameRepository.saveProtagonist(protagonist)
 
-        initialNPCs.forEach { npc ->
-            gameRepository.saveNPC(
-                npc.copy(
-                    sessionId = sessionId,
-                    updatedAt = now
-                )
+        val npcsWithId = initialNPCs.mapIndexed { index, npc ->
+            npc.copy(
+                sessionId = sessionId,
+                npcId = "npc_${(index + 1).toString().padStart(3, '0')}",
+                updatedAt = now
             )
+        }
+        npcsWithId.forEach { npc ->
+            gameRepository.saveNPC(npc)
         }
 
         val gameState = GameState(

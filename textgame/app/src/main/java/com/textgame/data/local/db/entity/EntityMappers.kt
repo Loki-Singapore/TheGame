@@ -64,6 +64,7 @@ fun NPCStateEntity.toDomain(): NPC {
     return NPC(
         id = id,
         sessionId = sessionId,
+        npcId = npcId,
         name = name,
         role = role,
         attributes = gson.fromJson(attributesJson, attributesType) ?: emptyMap(),
@@ -80,6 +81,7 @@ fun NPCStateEntity.toDomain(): NPC {
 fun NPC.toEntity(): NPCStateEntity = NPCStateEntity(
     id = id,
     sessionId = sessionId,
+    npcId = npcId,
     name = name,
     role = role,
     attributesJson = gson.toJson(attributes),

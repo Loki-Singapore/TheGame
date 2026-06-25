@@ -18,8 +18,11 @@ interface NPCDao {
     @Query("SELECT * FROM npc_states WHERE id = :id")
     suspend fun getNPCById(id: Long): NPCStateEntity?
 
-    @Query("SELECT * FROM npc_states WHERE sessionId = :sessionId AND name = :name LIMIT 1")
+    @Query("SELECT * FROM npc_states WHERE sessionId = :sessionId AND name = :name")
     suspend fun getNPCByName(sessionId: Long, name: String): NPCStateEntity?
+
+    @Query("SELECT * FROM npc_states WHERE sessionId = :sessionId AND npcId = :npcId")
+    suspend fun getNPCByNpcId(sessionId: Long, npcId: String): NPCStateEntity?
 
     @Insert
     suspend fun insertNPC(npc: NPCStateEntity): Long
