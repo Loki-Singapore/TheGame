@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -471,6 +472,8 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
 @Composable
 fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.CreatorUiState())
+    var editingNpcIndex by remember { mutableStateOf<Int?>(null) }
+    var editingNpc by remember { mutableStateOf<NPC?>(null) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -516,11 +519,34 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
                         )
                     }
                 }
+                IconButton(onClick = {
+                    editingNpcIndex = index
+                    editingNpc = npc
+                }) {
+                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
+                }
                 IconButton(onClick = { viewModel.removeNPC(index) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除")
+                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
+    }
+
+    editingNpc?.let { npc ->
+        EditNPCDialog(
+            npc = npc,
+            onDismiss = {
+                editingNpc = null
+                editingNpcIndex = null
+            },
+            onSave = { updatedNpc ->
+                editingNpcIndex?.let { index ->
+                    viewModel.updateNPC(index, updatedNpc)
+                }
+                editingNpc = null
+                editingNpcIndex = null
+            }
+        )
     }
 }
 
@@ -687,6 +713,7 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
 fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
     var name by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("") }
+    var briefing by remember { mutableStateOf("") }
     var personality by remember { mutableStateOf("") }
     var backstory by remember { mutableStateOf("") }
 
@@ -708,6 +735,15 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                     value = role,
                     onValueChange = { role = it },
                     label = { Text("身份/职业") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = briefing,
+                    onValueChange = { briefing = it },
+                    label = { Text("简介（一句话描述）") },
                     singleLine = true
                 )
 
@@ -738,6 +774,7 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                         NPC(
                             name = name,
                             role = role,
+                            briefing = briefing,
                             personality = personality,
                             backstory = backstory,
                             sessionId = 0
@@ -747,6 +784,90 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 enabled = name.isNotBlank() && role.isNotBlank()
             ) {
                 Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
+    var name by remember { mutableStateOf(npc.name) }
+    var role by remember { mutableStateOf(npc.role) }
+    var briefing by remember { mutableStateOf(npc.briefing) }
+    var personality by remember { mutableStateOf(npc.personality) }
+    var backstory by remember { mutableStateOf(npc.backstory) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑NPC") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("NPC名称") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = role,
+                    onValueChange = { role = it },
+                    label = { Text("身份/职业") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = briefing,
+                    onValueChange = { briefing = it },
+                    label = { Text("简介（一句话描述）") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = personality,
+                    onValueChange = { personality = it },
+                    label = { Text("性格特点") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = backstory,
+                    onValueChange = { backstory = it },
+                    label = { Text("背景故事") },
+                    modifier = Modifier.height(100.dp),
+                    maxLines = 4
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(
+                        npc.copy(
+                            name = name,
+                            role = role,
+                            briefing = briefing,
+                            personality = personality,
+                            backstory = backstory
+                        )
+                    )
+                },
+                enabled = name.isNotBlank() && role.isNotBlank()
+            ) {
+                Text("保存")
             }
         },
         dismissButton = {

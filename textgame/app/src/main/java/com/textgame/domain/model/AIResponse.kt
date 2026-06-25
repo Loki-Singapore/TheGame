@@ -33,6 +33,7 @@ data class NPCChanges(
     @SerializedName("is_new")
     val isNew: Boolean = false,
     val name: String? = null,
+    val briefing: String? = null,
     val role: String? = null,
     val mood: String? = null,
     val awareness: String? = null,

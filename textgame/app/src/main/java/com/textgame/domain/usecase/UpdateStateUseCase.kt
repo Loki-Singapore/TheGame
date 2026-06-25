@@ -35,7 +35,7 @@ class UpdateStateUseCase(
                         npcId = npcId,
                         name = npcChanges.name ?: "未知角色",
                         role = npcChanges.role ?: "未知",
-                        // AI返回完整属性，直接使用
+                        briefing = npcChanges.briefing ?: "",
                         attributes = npcChanges.attributes ?: emptyMap(),
                         mood = npcChanges.mood ?: "neutral",
                         awareness = npcChanges.awareness ?: "",
@@ -83,6 +83,7 @@ class UpdateStateUseCase(
         return npc.copy(
             attributes = updatedAttributes,
             name = changes.name ?: npc.name,
+            briefing = changes.briefing ?: npc.briefing,
             mood = changes.mood ?: npc.mood,
             awareness = changes.awareness ?: npc.awareness,
             appearance = changes.appearance ?: npc.appearance,

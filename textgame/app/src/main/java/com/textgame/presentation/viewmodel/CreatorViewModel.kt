@@ -136,6 +136,14 @@ class CreatorViewModel : ViewModel() {
         }
     }
 
+    fun updateNPC(index: Int, npc: NPC) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index in npcs.indices) {
+            npcs[index] = npc
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
     fun addAttributeCategory(category: AttributeCategory) {
         _uiState.value = _uiState.value.copy(
             attributeCategories = _uiState.value.attributeCategories + category

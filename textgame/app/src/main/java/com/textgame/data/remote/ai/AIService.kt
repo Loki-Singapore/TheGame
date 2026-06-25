@@ -243,6 +243,9 @@ class AIService(
             npcs.forEach { npc ->
                 val displayId = npc.npcId.ifBlank { "未分配" }
                 appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
+                if (npc.briefing.isNotEmpty()) {
+                    appendLine("  简介：${npc.briefing}")
+                }
                 appendLine("  情绪：${npc.mood}")
                 if (npc.awareness.isNotEmpty()) {
                     appendLine("  认知：${npc.awareness}")
@@ -333,12 +336,14 @@ class AIService(
               "已存在NPC的ID（如npc_001）": {
                 "mood": "新情绪",
                 "awareness": "新的认知更新",
+                "briefing": "一句话简介更新",
                 "attributes": {"属性名": 最终数值（完整状态，不是变化量）}
               },
               "新NPC的ID（新出现的角色，格式如npc_003）": {
                 "is_new": true,
                 "name": "NPC名称",
                 "role": "角色身份（如：旅店老板、神秘剑客等）",
+                "briefing": "一句话简介",
                 "appearance": "外貌详细描述",
                 "personality": "性格特点",
                 "backstory": "背景故事",
@@ -374,6 +379,7 @@ class AIService(
         15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId
         16. 【属性系统重要】attributes字段返回的是完整最终状态，不是变化量！例如主角生命值从100变成90，你应该返回{"生命值": 90}，而不是{"生命值": -10}。引擎会直接用你返回的值替换原有值，不做加减运算。如果某属性没有变化，可以不返回该属性，引擎会保留原值。
         17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
+        18. 【严格禁止】禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {

@@ -10,6 +10,7 @@ data class NPCStateEntity(
     val npcId: String = "",
     val name: String,
     val role: String,
+    val briefing: String = "",
     val attributesJson: String = "{}",
     val dialogueHistoryJson: String = "[]",
     val mood: String = "neutral",
