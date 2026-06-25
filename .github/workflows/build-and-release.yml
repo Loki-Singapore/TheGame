@@ -1,0 +1,205 @@
+name: Build and Release APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'textgame/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches:
+      - main
+      - master
+  release:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Release version tag (e.g. v1.0.0)'
+        required: false
+        default: ''
+
+env:
+  JAVA_VERSION: '17'
+  ANDROID_COMPILE_SDK: '34'
+  ANDROID_BUILD_TOOLS: '34.0.0'
+  ANDROID_SDK_TOOLS: '11076708'
+  PROJECT_DIR: 'textgame'
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    outputs:
+      apk_path: ${{ steps.upload_apk.outputs.apk_path }}
+      version_name: ${{ steps.get_version.outputs.version_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: ${{ env.ANDROID_SDK_TOOLS }}
+          packages: >
+            platforms;android-${{ env.ANDROID_COMPILE_SDK }}
+            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
+            platform-tools
+
+      - name: Cache Gradle dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('textgame/**/*.gradle*', 'textgame/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant gradle execute permission
+        run: |
+          if [ -f "${{ env.PROJECT_DIR }}/gradlew" ]; then
+            chmod +x ${{ env.PROJECT_DIR }}/gradlew
+          fi
+
+      - name: Generate Gradle Wrapper (if missing)
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Gradle wrapper not found, generating..."
+            gradle wrapper --gradle-version 7.6.4
+            chmod +x gradlew
+          fi
+          ls -la gradlew 2>/dev/null || echo "gradlew still missing"
+
+      - name: Get app version
+        id: get_version
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          VERSION_NAME=$(grep -oP 'versionName\s*=\s*"\K[^"]+' app/build.gradle.kts || echo "1.0")
+          VERSION_CODE=$(grep -oP 'versionCode\s*=\s*\K[0-9]+' app/build.gradle.kts || echo "1")
+          echo "version_name=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "version_code=${VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION_NAME} (${VERSION_CODE})"
+
+      - name: Build Debug APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          ./gradlew assembleDebug --stacktrace --no-daemon
+
+      - name: Build Release APK
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          ./gradlew assembleRelease --stacktrace --no-daemon
+        continue-on-error: true
+
+      - name: Find APK files
+        id: find_apk
+        run: |
+          echo "Looking for APK files..."
+          find ${{ env.PROJECT_DIR }} -name "*.apk" -type f 2>/dev/null || echo "No APK found"
+          
+          DEBUG_APK="${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk"
+          RELEASE_APK="${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk"
+          
+          if [ -f "$DEBUG_APK" ]; then
+            echo "debug_apk=$DEBUG_APK" >> $GITHUB_OUTPUT
+            echo "Found debug APK: $DEBUG_APK"
+          fi
+          
+          if [ -f "$RELEASE_APK" ]; then
+            echo "release_apk=$RELEASE_APK" >> $GITHUB_OUTPUT
+            echo "Found release APK: $RELEASE_APK"
+          fi
+
+      - name: Upload Debug APK artifact
+        if: steps.find_apk.outputs.debug_apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug.apk
+          path: ${{ steps.find_apk.outputs.debug_apk }}
+          if-no-files-found: error
+
+      - name: Upload Release APK artifact
+        if: steps.find_apk.outputs.release_apk
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.apk
+          path: ${{ steps.find_apk.outputs.release_apk }}
+          if-no-files-found: warn
+
+  release:
+    name: Release APK
+    needs: build
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_version != '')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: app-debug.apk
+          path: ./artifacts
+
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: app-release.apk
+          path: ./artifacts
+
+      - name: List downloaded artifacts
+        run: ls -la ./artifacts/
+
+      - name: Determine release tag
+        id: get_tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_NAME="${{ github.event.release.tag_name }}"
+          elif [ "${{ github.event.inputs.release_version }}" != "" ]; then
+            TAG_NAME="${{ github.event.inputs.release_version }}"
+          else
+            TAG_NAME="v${{ needs.build.outputs.version_name }}"
+          fi
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Release tag: $TAG_NAME"
+
+      - name: Rename APK with version
+        run: |
+          VERSION="${{ needs.build.outputs.version_name }}"
+          mkdir -p release
+          
+          if [ -f "artifacts/app-debug.apk" ]; then
+            cp artifacts/app-debug.apk release/textgame-debug-v${VERSION}.apk
+            echo "Prepared: textgame-debug-v${VERSION}.apk"
+          fi
+          
+          if [ -f "artifacts/app-release.apk" ]; then
+            cp artifacts/app-release.apk release/textgame-release-v${VERSION}.apk
+            echo "Prepared: textgame-release-v${VERSION}.apk"
+          fi
+          
+          ls -la release/
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_tag.outputs.tag_name }}
+          files: release/*
+          fail_on_unmatched_files: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
