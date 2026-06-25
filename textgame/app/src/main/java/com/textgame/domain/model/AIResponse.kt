@@ -19,8 +19,8 @@ data class StateChanges(
 )
 
 data class ProtagonistChanges(
-    @SerializedName("attribute_changes")
-    val attributeChanges: Map<String, Any>? = null,
+    // AI返回主角的完整属性状态，引擎直接替换，不做加减
+    val attributes: Map<String, Any>? = null,
     @SerializedName("inventory_add")
     val inventoryAdd: List<String>? = null,
     @SerializedName("inventory_remove")
@@ -39,8 +39,8 @@ data class NPCChanges(
     val appearance: String? = null,
     val personality: String? = null,
     val backstory: String? = null,
-    @SerializedName("attribute_changes")
-    val attributeChanges: Map<String, Any>? = null
+    // AI返回NPC的完整属性状态，引擎直接替换，不做加减
+    val attributes: Map<String, Any>? = null
 )
 
 data class GameChanges(

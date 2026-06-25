@@ -23,26 +23,20 @@ class UpdateStateUseCase(
         }
 
         if (stateChanges?.npc != null) {
-            val existingNpcs = gameRepository.getNPCList(sessionId)
-            var maxNpcNumber = existingNpcs.mapNotNull {
-                it.npcId.removePrefix("npc_").toIntOrNull()
-            }.maxOrNull() ?: 0
-
             stateChanges.npc.forEach { (npcId, npcChanges) ->
-                // 尝试用 npcId 查找已有NPC
                 val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
                 if (existingNpc != null) {
                     val updatedNpc = updateNPC(existingNpc, npcChanges, now)
                     gameRepository.updateNPC(updatedNpc)
                 } else {
-                    // 新NPC：分配新ID并插入数据库
-                    maxNpcNumber++
+                    // 新NPC：插入数据库
                     val newNpc = NPC(
                         sessionId = sessionId,
                         npcId = npcId,
                         name = npcChanges.name ?: "未知角色",
                         role = npcChanges.role ?: "未知",
-                        attributes = npcChanges.attributeChanges ?: emptyMap(),
+                        // AI返回完整属性，直接使用
+                        attributes = npcChanges.attributes ?: emptyMap(),
                         mood = npcChanges.mood ?: "neutral",
                         awareness = npcChanges.awareness ?: "",
                         appearance = npcChanges.appearance ?: "",
@@ -67,11 +61,8 @@ class UpdateStateUseCase(
         changes: ProtagonistChanges,
         now: Long
     ): Protagonist {
-        var updatedAttributes = protagonist.attributes.toMutableMap()
-
-        changes.attributeChanges?.forEach { (key, value) ->
-            updatedAttributes[key] = value
-        }
+        // AI返回完整属性状态，引擎直接替换，不做加减
+        val updatedAttributes = changes.attributes ?: protagonist.attributes
 
         var updatedInventory = protagonist.inventory.toMutableList()
         changes.inventoryAdd?.let { updatedInventory.addAll(it) }
@@ -86,8 +77,8 @@ class UpdateStateUseCase(
     }
 
     private fun updateNPC(npc: NPC, changes: NPCChanges, now: Long): NPC {
-        var updatedAttributes = npc.attributes.toMutableMap()
-        changes.attributeChanges?.let { updatedAttributes.putAll(it) }
+        // AI返回完整属性状态，引擎直接替换，不做加减
+        val updatedAttributes = changes.attributes ?: npc.attributes
 
         return npc.copy(
             attributes = updatedAttributes,

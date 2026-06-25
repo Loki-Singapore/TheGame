@@ -324,7 +324,7 @@ class AIService(
           ],
           "state_changes": {
             "protagonist": {
-              "attribute_changes": {"属性名": 数值变化},
+              "attributes": {"属性名": 最终数值（完整状态，不是变化量）},
               "inventory_add": ["新增物品"],
               "inventory_remove": ["移除物品"],
               "location_change": "新位置"
@@ -333,7 +333,7 @@ class AIService(
               "已存在NPC的ID（如npc_001）": {
                 "mood": "新情绪",
                 "awareness": "新的认知更新",
-                "attribute_changes": {"属性名": 数值}
+                "attributes": {"属性名": 最终数值（完整状态，不是变化量）}
               },
               "新NPC的ID（新出现的角色，格式如npc_003）": {
                 "is_new": true,
@@ -343,7 +343,8 @@ class AIService(
                 "personality": "性格特点",
                 "backstory": "背景故事",
                 "mood": "当前情绪",
-                "awareness": "对主角的认知"
+                "awareness": "对主角的认知",
+                "attributes": {"属性名": 初始数值}
               }
             },
             "game": {
@@ -368,10 +369,11 @@ class AIService(
         10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么
         11. 选项应该多样化，可以是对话选项、行动选项、调查选项等
         12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态
-        13. 【重要】每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增，如已有npc_001和npc_002，新NPC就是npc_003），并且is_new必须设为true，同时提供name、role、appearance、personality、backstory、mood、awareness字段
-        14. 已经在场的NPC不要重复设置is_new，只更新mood/awareness等，key用其ID
+        13. 【重要】每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true
+        14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID
         15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId
-        16. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
+        16. 【属性系统重要】attributes字段返回的是完整最终状态，不是变化量！例如主角生命值从100变成90，你应该返回{"生命值": 90}，而不是{"生命值": -10}。引擎会直接用你返回的值替换原有值，不做加减运算。如果某属性没有变化，可以不返回该属性，引擎会保留原值。
+        17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
