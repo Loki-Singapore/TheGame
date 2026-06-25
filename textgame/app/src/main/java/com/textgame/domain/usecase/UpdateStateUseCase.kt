@@ -23,7 +23,7 @@ class UpdateStateUseCase(
         }
 
         if (stateChanges?.npc != null) {
-            val existingNpcs = gameRepository.getNPCsBySession(sessionId)
+            val existingNpcs = gameRepository.getNPCList(sessionId)
             var maxNpcNumber = existingNpcs.mapNotNull {
                 it.npcId.removePrefix("npc_").toIntOrNull()
             }.maxOrNull() ?: 0
