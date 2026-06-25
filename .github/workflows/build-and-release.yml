@@ -50,37 +50,20 @@ jobs:
         with:
           gradle-version: wrapper
           cache-read-only: false
+          validate-wrappers: false
 
       - name: Make gradlew executable
         working-directory: ${{ env.PROJECT_DIR }}
         run: chmod +x gradlew
 
       - name: Setup Android SDK
-        run: |
-          echo "Installing Android SDK..."
-          
-          # Create SDK directory
-          export ANDROID_HOME=$HOME/android-sdk
-          mkdir -p $ANDROID_HOME/cmdline-tools
-          
-          # Download command line tools
-          wget -q "https://dl.google.com/android/repository/commandlinetools-linux-${{ env.ANDROID_SDK_TOOLS }}_latest.zip" -O cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-          rm cmdline-tools.zip
-          
-          # Add to PATH
-          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          
-          # Accept licenses and install required components
-          yes | sdkmanager --licenses > /dev/null 2>&1
-          sdkmanager "platforms;android-${{ env.ANDROID_COMPILE_SDK }}" \
-                     "build-tools;${{ env.ANDROID_BUILD_TOOLS }}" \
-                     "platform-tools"
-          
-          echo "Android SDK setup complete"
+        uses: android-actions/setup-android@v3
+        with:
+          cmdline-tools-version: ${{ env.ANDROID_SDK_TOOLS }}
+          packages: >
+            platforms;android-${{ env.ANDROID_COMPILE_SDK }}
+            build-tools;${{ env.ANDROID_BUILD_TOOLS }}
+            platform-tools
 
       - name: Get app version
         id: get_version
