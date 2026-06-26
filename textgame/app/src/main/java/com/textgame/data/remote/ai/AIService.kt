@@ -50,14 +50,18 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting,
         summary: Summary?,
+        preSummaryDialogues: List<String>,
+        postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        recentDialogues: List<String>,
         userInput: String
     ): AIResponse {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val contextPrompt = buildContextPrompt(summary, protagonist, npcs, gameState, recentDialogues)
+        val contextPrompt = buildContextPrompt(
+            summary, preSummaryDialogues, postSummaryDialogues,
+            protagonist, npcs, gameState
+        )
         val userPrompt = buildUserPrompt(userInput)
         val outputInstruction = buildOutputInstruction()
 
@@ -211,6 +215,75 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting
     ): String = buildString {
+        appendLine("【输出格式要求】")
+        appendLine("你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown代码块标记。你的整个回复内容必须是一个可以直接被解析的JSON对象。")
+        appendLine()
+        appendLine("JSON格式如下：")
+        appendLine("{")
+        appendLine("  \"dialogue\": \"当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）\",")
+        appendLine("  \"narrative\": \"场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富\",")
+        appendLine("  \"choices\": [")
+        appendLine("    \"选项1的文字描述\",")
+        appendLine("    \"选项2的文字描述\",")
+        appendLine("    \"选项3的文字描述\"")
+        appendLine("  ],")
+        appendLine("  \"state_changes\": {")
+        appendLine("    \"protagonist\": {")
+        appendLine("      \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）},")
+        appendLine("      \"inventory_add\": [\"新增物品\"],")
+        appendLine("      \"inventory_remove\": [\"移除物品\"],")
+        appendLine("      \"location_change\": \"新位置\"")
+        appendLine("    },")
+        appendLine("    \"npc\": {")
+        appendLine("      \"已存在NPC的ID（如npc_001）\": {")
+        appendLine("        \"mood\": \"新情绪\",")
+        appendLine("        \"awareness\": \"新的认知更新\",")
+        appendLine("        \"briefing\": \"一句话简介更新\",")
+        appendLine("        \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）}")
+        appendLine("      },")
+        appendLine("      \"新NPC的ID（新出现的角色，格式如npc_003）\": {")
+        appendLine("        \"is_new\": true,")
+        appendLine("        \"name\": \"NPC名称\",")
+        appendLine("        \"role\": \"角色身份（如：旅店老板、神秘剑客等）\",")
+        appendLine("        \"briefing\": \"一句话简介\",")
+        appendLine("        \"appearance\": \"外貌详细描述\",")
+        appendLine("        \"personality\": \"性格特点\",")
+        appendLine("        \"backstory\": \"背景故事\",")
+        appendLine("        \"mood\": \"当前情绪\",")
+        appendLine("        \"awareness\": \"对主角的认知\",")
+        appendLine("        \"attributes\": {\"属性名\": 初始数值}")
+        appendLine("      }")
+        appendLine("    },")
+        appendLine("    \"game\": {")
+        appendLine("      \"scene_change\": \"新场景名称\",")
+        appendLine("      \"event_trigger\": \"触发的事件名\",")
+        appendLine("      \"flag_set\": {\"标记名\": true/false}")
+        appendLine("    }")
+        appendLine("  },")
+        appendLine("  \"summary_update\": false")
+        appendLine("}")
+        appendLine()
+        appendLine("重要规则（必须严格遵守）：")
+        appendLine("1. 你的整个回复只能是JSON，不能有任何其他文字、解释或markdown代码块标记")
+        appendLine("2. 每次回复都必须有state_changes字段，即使没有变化也要包含该字段")
+        appendLine("3. narrative字段是核心，必须包含完整的情节叙述，内容要充实饱满")
+        appendLine("4. narrative中必须包含：当前场景的环境描写（光线、声音、气味等感官细节）、在场NPC的状态和动作描写、事件进展、主角的感受")
+        appendLine("5. 如果是NPC第一次出场，必须在narrative中详细描写其外貌（面容、身材、穿着、气质）")
+        appendLine("6. 对话要符合角色性格，自然流畅，配合动作和表情描写")
+        appendLine("7. 用直白、有画面感的文字描写，让玩家有身临其境的感觉")
+        appendLine("8. 每次回复都要推动剧情，提供足够的互动空间")
+        appendLine("9. 适当加入突发事件或环境变化，让场景更生动真实")
+        appendLine("10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么")
+        appendLine("11. 选项应该多样化，可以是对话选项、行动选项、调查选项等")
+        appendLine("12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态")
+        appendLine("13. 每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true")
+        appendLine("14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID")
+        appendLine("15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId")
+        appendLine("16. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
+        appendLine("17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
+        appendLine("18. 禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。")
+        appendLine("19. 引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。")
+        appendLine()
         appendLine("你是一个文字冒险游戏的游戏主持人和NPC扮演助手。")
         appendLine("你的回复必须详细、丰富、生动，给玩家沉浸式的游戏体验。")
         appendLine()
@@ -256,16 +329,33 @@ class AIService(
 
     private fun buildContextPrompt(
         summary: Summary?,
+        preSummaryDialogues: List<String>,
+        postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState,
-        recentDialogues: List<String>
+        gameState: GameState
     ): String = buildString {
+        // 总结前的十轮对话（有总结时才写）
+        if (preSummaryDialogues.isNotEmpty()) {
+            appendLine("【总结前的对话记录（参考）】")
+            preSummaryDialogues.forEach { appendLine(it) }
+            appendLine()
+        }
+
+        // 近期总结
         if (summary != null && summary.summaryText.isNotEmpty()) {
             appendLine("【近期进度总结】")
             appendLine(summary.summaryText)
             appendLine()
         }
+
+        // 上次总结后的对话
+        if (postSummaryDialogues.isNotEmpty()) {
+            appendLine("【上次总结后的对话记录】")
+            postSummaryDialogues.forEach { appendLine(it) }
+            appendLine()
+        }
+
         appendLine("【主角状态】")
         appendLine("姓名：${protagonist.name}")
         appendLine("位置：${protagonist.location}")
@@ -279,6 +369,7 @@ class AIService(
             appendLine("物品：${protagonist.inventory.joinToString("、")}")
         }
         appendLine()
+
         if (npcs.isNotEmpty()) {
             appendLine("【在场NPC】")
             npcs.forEach { npc ->
@@ -300,13 +391,7 @@ class AIService(
             }
             appendLine()
         }
-        if (recentDialogues.isNotEmpty()) {
-            appendLine("【近期对话记录】")
-            recentDialogues.forEach { dialogue ->
-                appendLine(dialogue)
-            }
-            appendLine()
-        }
+
         appendLine("【当前场景】${gameState.currentScene}")
         appendLine("【当前轮次】${gameState.turnCount}")
     }
@@ -327,101 +412,81 @@ class AIService(
         appendLine("世界名称：${worldSetting.name}")
         appendLine("世界类型：${worldSetting.worldType}")
         appendLine()
-        appendLine("【近期对话】")
+        appendLine("【近期完整对话记录】")
         recentDialogues.forEachIndexed { index, dialogue ->
             appendLine("${index + 1}. $dialogue")
         }
         appendLine()
         if (npcs.isNotEmpty()) {
-            appendLine("【NPC状态】")
+            appendLine("【NPC当前状态】")
             npcs.forEach { npc ->
                 val displayId = npc.npcId.ifBlank { "未分配" }
-                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）- 情绪: ${npc.mood}")
+                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
+                appendLine("  情绪: ${npc.mood}, 认知: ${npc.awareness}")
+                if (npc.personality.isNotEmpty()) {
+                    appendLine("  性格: ${npc.personality}")
+                }
             }
             appendLine()
         }
-        appendLine("【主角状态】")
-        appendLine("姓名：${protagonist.name}")
-        appendLine("位置：${protagonist.location}")
+        appendLine("【主角当前状态】")
+        appendLine("姓名：${protagonist.name}，位置：${protagonist.location}")
+        if (protagonist.attributes.isNotEmpty()) {
+            appendLine("属性：${protagonist.attributes.entries.joinToString(", ") { "${it.key}=${it.value}" }}")
+        }
+        if (protagonist.inventory.isNotEmpty()) {
+            appendLine("物品：${protagonist.inventory.joinToString("、")}")
+        }
         appendLine()
-        appendLine("【当前轮次】${gameState.turnCount}")
+        appendLine("【当前轮次】${gameState.turnCount}，当前场景：${gameState.currentScene}")
         appendLine()
-        appendLine("请总结以上游戏进展，包括：")
-        appendLine("1. 关键事件")
-        appendLine("2. 涉及的NPC")
-        appendLine("3. 场景和剧情进展")
-        appendLine("4. 主角状态变化")
+        appendLine("【总结要求】")
+        appendLine("请用详细、完整的文字总结以上游戏进展。总结需要包含尽可能多的细节，字数不少于500字。必须包括以下内容：")
+        appendLine()
+        appendLine("1. 【关键事件时间线】")
+        appendLine("   按时间顺序列出所有重要事件，包括：")
+        appendLine("   - 每个事件的起因、经过、结果")
+        appendLine("   - 事件中涉及的具体对话内容（关键台词）")
+        appendLine("   - 事件的地点、时间、参与人物")
+        appendLine()
+        appendLine("2. 【NPC详细状态】")
+        appendLine("   对每个涉及的NPC详细描述：")
+        appendLine("   - NPC的当前情绪变化和原因")
+        appendLine("   - NPC对主角的认知和态度变化")
+        appendLine("   - NPC在剧情中的具体行动和选择")
+        appendLine("   - NPC之间的关系动态（如果有）")
+        appendLine()
+        appendLine("3. 【场景和环境变化】")
+        appendLine("   - 主角经历了哪些不同的场景/地点")
+        appendLine("   - 每个场景的关键特征和重要细节")
+        appendLine("   - 场景之间的转换和关联")
+        appendLine()
+        appendLine("4. 【主角详细状态变化】")
+        appendLine("   - 主角的属性变化（具体数值变化）")
+        appendLine("   - 主角获得的物品和失去的物品")
+        appendLine("   - 主角位置的变化轨迹")
+        appendLine("   - 主角的心理变化和成长")
+        appendLine()
+        appendLine("5. 【剧情线索和伏笔】")
+        appendLine("   - 当前未解决的悬念")
+        appendLine("   - 埋下的伏笔和暗示")
+        appendLine("   - 可能的剧情发展方向")
+        appendLine("   - 主角接下来可能面临的选择或挑战")
+        appendLine()
+        appendLine("6. 【重要对话摘录】")
+        appendLine("   摘录2-3段最重要的对话，保留原话或核心内容")
+        appendLine()
+        appendLine("请用连贯的叙述体撰写总结，不要分点罗列。总结要像一篇完整的故事回顾，包含丰富细节。")
     }
 
     private fun buildOutputInstruction(): String = """
-        【输出要求】
-        你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown代码块标记。你的整个回复内容必须是一个可以直接被解析的JSON对象。
-
-        JSON格式如下：
-        {
-          "dialogue": "当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）",
-          "narrative": "场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富",
-          "choices": [
-            "选项1的文字描述",
-            "选项2的文字描述",
-            "选项3的文字描述"
-          ],
-          "state_changes": {
-            "protagonist": {
-              "attributes": {"发生变化的属性名": 新数值（只返回变化的属性）},
-              "inventory_add": ["新增物品"],
-              "inventory_remove": ["移除物品"],
-              "location_change": "新位置"
-            },
-            "npc": {
-              "已存在NPC的ID（如npc_001）": {
-                "mood": "新情绪",
-                "awareness": "新的认知更新",
-                "briefing": "一句话简介更新",
-                "attributes": {"发生变化的属性名": 新数值（只返回变化的属性）}
-              },
-              "新NPC的ID（新出现的角色，格式如npc_003）": {
-                "is_new": true,
-                "name": "NPC名称",
-                "role": "角色身份（如：旅店老板、神秘剑客等）",
-                "briefing": "一句话简介",
-                "appearance": "外貌详细描述",
-                "personality": "性格特点",
-                "backstory": "背景故事",
-                "mood": "当前情绪",
-                "awareness": "对主角的认知",
-                "attributes": {"属性名": 初始数值}
-              }
-            },
-            "game": {
-              "scene_change": "新场景名称",
-              "event_trigger": "触发的事件名",
-              "flag_set": {"标记名": true/false}
-            }
-          },
-          "summary_update": false
-        }
-
-        重要规则（必须严格遵守）：
-        1. 你的整个回复只能是JSON，不能有任何其他文字、解释或markdown代码块标记
-        2. 每次回复都必须有state_changes字段，即使没有变化也要包含该字段
-        3. narrative字段是核心，必须包含完整的情节叙述，内容要充实饱满
-        4. narrative中必须包含：当前场景的环境描写（光线、声音、气味等感官细节）、在场NPC的状态和动作描写、事件进展、主角的感受
-        5. 如果是NPC第一次出场，必须在narrative中详细描写其外貌（面容、身材、穿着、气质）
-        6. 对话要符合角色性格，自然流畅，配合动作和表情描写
-        7. 用直白、有画面感的文字描写，让玩家有身临其境的感觉
-        8. 每次回复都要推动剧情，提供足够的互动空间
-        9. 适当加入突发事件或环境变化，让场景更生动真实
-        10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么
-        11. 选项应该多样化，可以是对话选项、行动选项、调查选项等
-        12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态
-        13. 【重要】每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true
-        14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID
-        15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId
-        16. 【属性系统重要】attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。例如主角有生命值和金币两个属性，如果只有生命值从100变成90，你应该返回{"生命值": 90}，引擎会保留金币原值不变。不需要返回所有属性。
-        17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
-        18. 【严格禁止】禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。
-        19. 【属性保护】引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。
+        【本轮输出提醒】
+        请以纯JSON格式回复，格式和规则已在system提示词中详细说明。
+        特别注意：
+        - narrative必须详细丰富，包含完整场景、动作、对话和心理描写
+        - 每次回复都要推动剧情发展
+        - attributes只返回变化的属性，引擎会保留其他属性不变
+        - 禁止创建新属性名或修改属性类目
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
