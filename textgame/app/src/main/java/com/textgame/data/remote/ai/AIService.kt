@@ -327,7 +327,7 @@ class AIService(
           ],
           "state_changes": {
             "protagonist": {
-              "attributes": {"属性名": 最终数值（完整状态，不是变化量）},
+              "attributes": {"发生变化的属性名": 新数值（只返回变化的属性）},
               "inventory_add": ["新增物品"],
               "inventory_remove": ["移除物品"],
               "location_change": "新位置"
@@ -337,7 +337,7 @@ class AIService(
                 "mood": "新情绪",
                 "awareness": "新的认知更新",
                 "briefing": "一句话简介更新",
-                "attributes": {"属性名": 最终数值（完整状态，不是变化量）}
+                "attributes": {"发生变化的属性名": 新数值（只返回变化的属性）}
               },
               "新NPC的ID（新出现的角色，格式如npc_003）": {
                 "is_new": true,
@@ -377,9 +377,10 @@ class AIService(
         13. 【重要】每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true
         14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID
         15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId
-        16. 【属性系统重要】attributes字段返回的是完整最终状态，不是变化量！例如主角生命值从100变成90，你应该返回{"生命值": 90}，而不是{"生命值": -10}。引擎会直接用你返回的值替换原有值，不做加减运算。如果某属性没有变化，可以不返回该属性，引擎会保留原值。
+        16. 【属性系统重要】attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。例如主角有生命值和金币两个属性，如果只有生命值从100变成90，你应该返回{"生命值": 90}，引擎会保留金币原值不变。不需要返回所有属性。
         17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
         18. 【严格禁止】禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。
+        19. 【属性保护】引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {

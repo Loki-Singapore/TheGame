@@ -61,8 +61,12 @@ class UpdateStateUseCase(
         changes: ProtagonistChanges,
         now: Long
     ): Protagonist {
-        // AI返回完整属性状态，引擎直接替换，不做加减
-        val updatedAttributes = changes.attributes ?: protagonist.attributes
+        val updatedAttributes = protagonist.attributes.toMutableMap()
+        changes.attributes?.forEach { (key, value) ->
+            if (updatedAttributes.containsKey(key)) {
+                updatedAttributes[key] = value
+            }
+        }
 
         var updatedInventory = protagonist.inventory.toMutableList()
         changes.inventoryAdd?.let { updatedInventory.addAll(it) }
@@ -77,8 +81,12 @@ class UpdateStateUseCase(
     }
 
     private fun updateNPC(npc: NPC, changes: NPCChanges, now: Long): NPC {
-        // AI返回完整属性状态，引擎直接替换，不做加减
-        val updatedAttributes = changes.attributes ?: npc.attributes
+        val updatedAttributes = npc.attributes.toMutableMap()
+        changes.attributes?.forEach { (key, value) ->
+            if (updatedAttributes.containsKey(key)) {
+                updatedAttributes[key] = value
+            }
+        }
 
         return npc.copy(
             attributes = updatedAttributes,
