@@ -9,12 +9,18 @@ interface DeepSeekApiService {
     suspend fun createChatCompletion(@Body request: ChatCompletionRequest): ChatCompletionResponse
 }
 
+data class ResponseFormat(
+    val type: String
+)
+
 data class ChatCompletionRequest(
     val model: String,
     val messages: List<ChatMessage>,
     val temperature: Float = 0.7f,
     @SerializedName("max_tokens")
-    val maxTokens: Int = 2000
+    val maxTokens: Int = 2000,
+    @SerializedName("response_format")
+    val responseFormat: ResponseFormat? = null
 )
 
 data class ChatMessage(

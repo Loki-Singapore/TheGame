@@ -70,11 +70,32 @@ class AIService(
             model = model,
             messages = messages,
             temperature = dialogueTemperature,
-            maxTokens = dialogueMaxTokens
+            maxTokens = dialogueMaxTokens,
+            responseFormat = ResponseFormat(type = "json_object")
         )
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
+        if (content.isBlank()) {
+            // JSON Mode有概率返回空content，降级为普通模式重试
+            val fallbackRequest = ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = dialogueTemperature,
+                maxTokens = dialogueMaxTokens
+            )
+            val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
+            val fallbackContent = fallbackResponse.choices.firstOrNull()?.message?.content ?: ""
+            return parseAIResponse(fallbackContent).copy(
+                tokenUsage = fallbackResponse.usage?.let {
+                    com.textgame.domain.model.TokenUsage(
+                        promptTokens = it.promptTokens,
+                        completionTokens = it.completionTokens,
+                        totalTokens = it.totalTokens
+                    )
+                }
+            )
+        }
         val aiResponse = parseAIResponse(content)
         return aiResponse.copy(
             tokenUsage = response.usage?.let {
@@ -167,11 +188,22 @@ class AIService(
             model = model,
             messages = messages,
             temperature = 1.0f,
-            maxTokens = 8000
+            maxTokens = 8000,
+            responseFormat = ResponseFormat(type = "json_object")
         )
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
+        if (content.isBlank()) {
+            val fallbackRequest = ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = 1.0f,
+                maxTokens = 8000
+            )
+            val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
+            return parseGeneratedWorld(fallbackResponse.choices.firstOrNull()?.message?.content ?: "")
+        }
         return parseGeneratedWorld(content)
     }
 
