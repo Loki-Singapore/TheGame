@@ -417,46 +417,40 @@ class AIService(
             appendLine("${index + 1}. $dialogue")
         }
         appendLine()
-        if (npcs.isNotEmpty()) {
-            appendLine("【NPC当前状态】")
-            npcs.forEach { npc ->
-                val displayId = npc.npcId.ifBlank { "未分配" }
-                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
-                appendLine("  情绪: ${npc.mood}, 认知: ${npc.awareness}")
-            }
-            appendLine()
-        }
-        appendLine("【主角当前状态】")
-        appendLine("姓名：${protagonist.name}，位置：${protagonist.location}")
-        if (protagonist.attributes.isNotEmpty()) {
-            appendLine("属性：${protagonist.attributes.entries.joinToString(", ") { "${it.key}=${it.value}" }}")
-        }
-        if (protagonist.inventory.isNotEmpty()) {
-            appendLine("物品：${protagonist.inventory.joinToString("、")}")
-        }
-        appendLine()
         appendLine("【当前轮次】${gameState.turnCount}，当前场景：${gameState.currentScene}")
         appendLine()
         appendLine("【总结要求】")
-        appendLine("请基于以上对话记录，提炼并总结关键剧情点和关键信息。注意：")
-        appendLine("- 这是总结，不是原文复述。禁止大段粘贴原文，必须用自己的话提炼概括。")
-        appendLine("- 要覆盖尽可能多的剧情细节，每个重要节点都要提到。")
+        appendLine("请基于以上对话记录，逐轮梳理并总结所有重要的剧情点和关键信息。")
+        appendLine()
+        appendLine("重要提醒：")
+        appendLine("- 这是剧情总结，不是原文复述。禁止大段粘贴原文，必须用自己的话提炼概括。")
+        appendLine("- 绝对不能漏掉任何关键信息。逐轮检查对话，确保每一个有意义的事件、信息、人物、物品、地点都被记录。")
         appendLine("- 只陈述客观事实，不要加入主观评价、心理分析或推测。")
-        appendLine("- 语言简洁，不要啰嗦。")
         appendLine()
-        appendLine("总结必须包含以下内容：")
+        appendLine("请按以下结构撰写总结：")
         appendLine()
-        appendLine("1. 【关键事件】按时间顺序列出所有重要事件。每个事件说明：发生了什么、涉及谁、在哪里、导致了什么结果。")
+        appendLine("【剧情进展】")
+        appendLine("按时间顺序列出所有重要事件，每个事件用一行简短描述。必须覆盖：")
+        appendLine("- 主角做了什么，NPC说了什么，发生了什么事")
+        appendLine("- 任何新出现的人物、新获得的信息、新发现的线索")
+        appendLine("- 场景/地点的变化")
+        appendLine("- 任何达成的约定、任务、承诺")
+        appendLine("- 任何战斗、冲突、危险情况及其结果")
         appendLine()
-        appendLine("2. 【NPC状态】列出每个涉及NPC的当前客观状态：当前情绪、对主角的认知内容、在剧情中做了什么。只写事实，不写原因分析。")
+        appendLine("【新出现的人物】")
+        appendLine("列出本轮对话中新出现的所有人物，包括：姓名、身份、与主角的关系、外貌特征（如果有描写）。如果没有新人物，写"无"。")
         appendLine()
-        appendLine("3. 【场景变化】主角经过的场景/地点，以及每个场景中发生的关键事。")
+        appendLine("【获得的信息和线索】")
+        appendLine("列出主角从对话或事件中获得的所有重要信息、传闻、秘密、线索等。哪怕是看似不重要的信息也要记录。")
         appendLine()
-        appendLine("4. 【主角状态】主角当前属性数值、持有的物品、所在位置。只列当前值，不写变化过程描述。")
+        appendLine("【物品和地点】")
+        appendLine("- 主角获得或失去的物品")
+        appendLine("- 提到的重要地点及其位置关系")
         appendLine()
-        appendLine("5. 【待处理事项】对话中明确提到的、主角尚未完成的事项或约定。只写已有信息，不做推测。")
+        appendLine("【未完成事项】")
+        appendLine("对话中明确提到的、主角尚未完成的事项、任务、约定或目标。只写已有信息，不做推测。")
         appendLine()
-        appendLine("请用简洁的条目式撰写，每个条目一行，方便后续检索。")
+        appendLine("请确保总结完整、客观、简洁。宁可多记，不要遗漏。")
     }
 
     private fun buildOutputInstruction(): String = """
