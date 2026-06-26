@@ -423,12 +423,6 @@ class AIService(
                 val displayId = npc.npcId.ifBlank { "未分配" }
                 appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
                 appendLine("  情绪: ${npc.mood}, 认知: ${npc.awareness}")
-                if (npc.personality.isNotEmpty()) {
-                    appendLine("  性格: ${npc.personality}")
-                }
-                if (npc.appearance.isNotEmpty()) {
-                    appendLine("  外貌: ${npc.appearance}")
-                }
             }
             appendLine()
         }
@@ -444,15 +438,11 @@ class AIService(
         appendLine("【当前轮次】${gameState.turnCount}，当前场景：${gameState.currentScene}")
         appendLine()
         appendLine("【总结要求】")
-        appendLine("请基于以上对话记录，提炼并总结关键剧情点和关键信息。")
-        appendLine()
-        appendLine("第一步：逐轮检查清单。按轮次顺序逐一检查对话记录，列出每一轮发生的重要事件。如果某轮没有重要事件，标注'无'。这个清单必须完整，禁止跳过任何一轮。")
-        appendLine()
-        appendLine("第二步：基于清单撰写正式总结。注意：")
-        appendLine("- 禁止大段粘贴原文，必须用自己的话提炼概括。")
-        appendLine("- 覆盖率达到100%，清单中的每个事件都要在总结中体现，禁止遗漏。")
-        appendLine("- 只陈述客观事实，不加入主观评价、心理分析或推测。")
-        appendLine("- 语言简洁，不啰嗦。")
+        appendLine("请基于以上对话记录，提炼并总结关键剧情点和关键信息。注意：")
+        appendLine("- 这是总结，不是原文复述。禁止大段粘贴原文，必须用自己的话提炼概括。")
+        appendLine("- 要覆盖尽可能多的剧情细节，每个重要节点都要提到。")
+        appendLine("- 只陈述客观事实，不要加入主观评价、心理分析或推测。")
+        appendLine("- 语言简洁，不要啰嗦。")
         appendLine()
         appendLine("总结必须包含以下内容：")
         appendLine()
