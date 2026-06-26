@@ -61,14 +61,8 @@ class UpdateStateUseCase(
         changes: ProtagonistChanges,
         now: Long
     ): Protagonist {
-        // AI返回属性时，只更新已存在的属性，忽略新属性名，防止属性类目被修改
-        val updatedAttributes = if (changes.attributes != null) {
-            protagonist.attributes.mapValues { (key, _) ->
-                changes.attributes?.get(key) ?: protagonist.attributes[key]!!
-            }
-        } else {
-            protagonist.attributes
-        }
+        // AI返回完整属性状态，引擎直接替换，不做加减
+        val updatedAttributes = changes.attributes ?: protagonist.attributes
 
         var updatedInventory = protagonist.inventory.toMutableList()
         changes.inventoryAdd?.let { updatedInventory.addAll(it) }
@@ -83,14 +77,8 @@ class UpdateStateUseCase(
     }
 
     private fun updateNPC(npc: NPC, changes: NPCChanges, now: Long): NPC {
-        // AI返回属性时，只更新已存在的属性，忽略新属性名，防止属性类目被修改
-        val updatedAttributes = if (changes.attributes != null) {
-            npc.attributes.mapValues { (key, _) ->
-                changes.attributes?.get(key) ?: npc.attributes[key]!!
-            }
-        } else {
-            npc.attributes
-        }
+        // AI返回完整属性状态，引擎直接替换，不做加减
+        val updatedAttributes = changes.attributes ?: npc.attributes
 
         return npc.copy(
             attributes = updatedAttributes,
