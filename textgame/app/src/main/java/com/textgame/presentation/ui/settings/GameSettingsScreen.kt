@@ -168,6 +168,14 @@ class GameSettingsViewModel(private val sessionId: Long) : ViewModel() {
         }
     }
 
+    fun updateNPCBriefing(index: Int, briefing: String) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index < npcs.size) {
+            npcs[index] = npcs[index].copy(briefing = briefing)
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
     fun deleteNPC(index: Int) {
         val npcs = _uiState.value.npcs.toMutableList()
         if (index < npcs.size) {
@@ -301,6 +309,7 @@ fun GameSettingsScreen(sessionId: Long, onBack: () -> Unit) {
                                 onNameChange = { viewModel.updateNPCName(index, it) },
                                 onRoleChange = { viewModel.updateNPCRole(index, it) },
                                 onMoodChange = { viewModel.updateNPCMood(index, it) },
+                                onBriefingChange = { viewModel.updateNPCBriefing(index, it) },
                                 onDelete = { viewModel.deleteNPC(index) }
                             )
                         }
@@ -445,6 +454,7 @@ fun NPCSection(
     onNameChange: (String) -> Unit,
     onRoleChange: (String) -> Unit,
     onMoodChange: (String) -> Unit,
+    onBriefingChange: (String) -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -479,6 +489,17 @@ fun NPCSection(
                 onValueChange = onRoleChange,
                 label = { Text("角色定位") },
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = npc.briefing,
+                onValueChange = onBriefingChange,
+                label = { Text("简介") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 3
             )
 
             Spacer(modifier = Modifier.height(8.dp))

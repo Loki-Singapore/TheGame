@@ -400,6 +400,9 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                     uiState.npcs.forEach { npc ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("${npc.name} (${npc.role})")
+                        if (npc.briefing.isNotEmpty()) {
+                            Text("  简介: ${npc.briefing}")
+                        }
                         Text("  情绪: ${npc.mood}")
                     }
                 }
