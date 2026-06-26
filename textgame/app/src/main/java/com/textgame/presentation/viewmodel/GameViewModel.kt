@@ -38,7 +38,8 @@ data class DialogueDisplay(
     val speaker: String,
     val content: String,
     val isPlayer: Boolean = false,
-    val isNarrative: Boolean = false
+    val isNarrative: Boolean = false,
+    val tokenUsage: com.textgame.domain.model.TokenUsage? = null
 )
 
 class GameViewModel(
@@ -145,7 +146,7 @@ class GameViewModel(
             )
         }
         if (response.narrative.isNotEmpty()) {
-            addNarrative(response.narrative, turnNumber)
+            addNarrative(response.narrative, turnNumber, response.tokenUsage)
             saveDialogueToDb(
                 speaker = "",
                 content = response.narrative,
@@ -197,12 +198,13 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(dialogues = newDialogues)
     }
 
-    private fun addNarrative(content: String, turnNumber: Int) {
+    private fun addNarrative(content: String, turnNumber: Int, tokenUsage: com.textgame.domain.model.TokenUsage? = null) {
         val newDialogues = _uiState.value.dialogues + DialogueDisplay(
             speaker = "",
             content = content,
             isNarrative = true,
-            turnNumber = turnNumber
+            turnNumber = turnNumber,
+            tokenUsage = tokenUsage
         )
         _uiState.value = _uiState.value.copy(dialogues = newDialogues)
     }

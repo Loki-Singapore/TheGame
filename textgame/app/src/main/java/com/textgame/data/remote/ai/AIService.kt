@@ -75,7 +75,16 @@ class AIService(
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
-        return parseAIResponse(content)
+        val aiResponse = parseAIResponse(content)
+        return aiResponse.copy(
+            tokenUsage = response.usage?.let {
+                com.textgame.domain.model.TokenUsage(
+                    promptTokens = it.promptTokens,
+                    completionTokens = it.completionTokens,
+                    totalTokens = it.totalTokens
+                )
+            }
+        )
     }
 
     suspend fun generateSummary(

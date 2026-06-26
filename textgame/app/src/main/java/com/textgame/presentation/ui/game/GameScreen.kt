@@ -262,6 +262,19 @@ fun DialogueItem(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    dialogue.tokenUsage?.let { usage ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "${usage.totalTokens} tokens",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                     Box {
                         DropdownMenu(
                             expanded = showMenu,
