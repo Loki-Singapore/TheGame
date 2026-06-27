@@ -33,7 +33,7 @@ import com.textgame.data.local.db.entity.WorldSettingEntity
         DialogueEntity::class,
         StateSnapshotEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class GameDatabase : RoomDatabase() {

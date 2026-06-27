@@ -232,7 +232,8 @@ class CreatorViewModel : ViewModel() {
                     socialStructure = state.socialStructure,
                     specialRules = state.specialRules,
                     lore = state.lore,
-                    locations = if (state.locationSetting.isNotBlank()) listOf(state.locationSetting) else emptyList()
+                    locations = if (state.locationSetting.isNotBlank()) listOf(state.locationSetting) else emptyList(),
+                    attributeCategories = state.attributeCategories
                 )
 
                 val backgroundSetting = BackgroundSetting(

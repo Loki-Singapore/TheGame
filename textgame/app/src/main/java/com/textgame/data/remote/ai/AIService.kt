@@ -3,6 +3,7 @@ package com.textgame.data.remote.ai
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.textgame.domain.model.AIResponse
+import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.GameState
 import com.textgame.domain.model.NPC
@@ -60,7 +61,7 @@ class AIService(
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
         val contextPrompt = buildContextPrompt(
             summary, preSummaryDialogues, postSummaryDialogues,
-            protagonist, npcs, gameState
+            protagonist, npcs, gameState, worldSetting.attributeCategories
         )
         val userPrompt = buildUserPrompt(userInput)
         val outputInstruction = buildOutputInstruction()
@@ -117,9 +118,10 @@ class AIService(
         recentDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState
+        gameState: GameState,
+        previousSummary: Summary? = null
     ): Summary {
-        val prompt = buildSummaryPrompt(worldSetting, recentDialogues, protagonist, npcs, gameState)
+        val prompt = buildSummaryPrompt(worldSetting, recentDialogues, protagonist, npcs, gameState, previousSummary)
 
         val messages = listOf(
             ChatMessage(role = "system", content = "你是一个游戏剧情总结助手，负责总结近期游戏进展。"),
@@ -333,7 +335,8 @@ class AIService(
         postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState
+        gameState: GameState,
+        attributeCategories: List<AttributeCategory> = emptyList()
     ): String = buildString {
         // 总结前的十轮对话（有总结时才写）
         if (preSummaryDialogues.isNotEmpty()) {
@@ -362,7 +365,20 @@ class AIService(
         if (protagonist.attributes.isNotEmpty()) {
             appendLine("属性：")
             protagonist.attributes.forEach { (key, value) ->
-                appendLine("  $key: $value")
+                val cat = attributeCategories.find { it.name == key }
+                val meta = buildString {
+                    if (cat != null) {
+                        append("类型:${cat.type.name.lowercase()}")
+                        if (cat.minValue != null) append(" 最小:${cat.minValue}")
+                        if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
+                        if (cat.description.isNotBlank()) append(" - ${cat.description}")
+                    }
+                }
+                if (meta.isNotEmpty()) {
+                    appendLine("  $key: $value  [$meta]")
+                } else {
+                    appendLine("  $key: $value")
+                }
             }
         }
         if (protagonist.inventory.isNotEmpty()) {
@@ -388,6 +404,24 @@ class AIService(
                 if (npc.appearance.isNotEmpty()) {
                     appendLine("  外貌：${npc.appearance}")
                 }
+                if (npc.attributes.isNotEmpty()) {
+                    appendLine("  属性：")
+                    npc.attributes.forEach { (key, value) ->
+                        val cat = attributeCategories.find { it.name == key }
+                        val meta = buildString {
+                            if (cat != null) {
+                                append("类型:${cat.type.name.lowercase()}")
+                                if (cat.minValue != null) append(" 最小:${cat.minValue}")
+                                if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
+                            }
+                        }
+                        if (meta.isNotEmpty()) {
+                            appendLine("    $key: $value  [$meta]")
+                        } else {
+                            appendLine("    $key: $value")
+                        }
+                    }
+                }
             }
             appendLine()
         }
@@ -406,12 +440,20 @@ class AIService(
         recentDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState
+        gameState: GameState,
+        previousSummary: Summary? = null
     ): String = buildString {
         appendLine("【世界观】")
         appendLine("世界名称：${worldSetting.name}")
         appendLine("世界类型：${worldSetting.worldType}")
         appendLine()
+        if (previousSummary != null && previousSummary.summaryText.isNotEmpty()) {
+            appendLine("【上一次总结】")
+            appendLine(previousSummary.summaryText)
+            appendLine()
+            appendLine("注意：本次总结是在上一次总结的基础上追加，只需要覆盖上一次总结之后的新内容。")
+            appendLine()
+        }
         appendLine("【近期完整对话记录】")
         recentDialogues.forEachIndexed { index, dialogue ->
             appendLine("${index + 1}. $dialogue")
