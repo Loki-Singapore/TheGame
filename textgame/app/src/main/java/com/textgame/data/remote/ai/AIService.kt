@@ -451,7 +451,12 @@ class AIService(
             appendLine("【上一次总结】")
             appendLine(previousSummary.summaryText)
             appendLine()
-            appendLine("注意：本次总结是在上一次总结的基础上追加，只需要覆盖上一次总结之后的新内容。")
+            appendLine("注意：你需要结合近期对话和上一次总结，生成一份新的、完整的总结。")
+            appendLine("判断标准：")
+            appendLine("- 上一次总结中仍然重要、与当前剧情相关的信息，保留并整合进来")
+            appendLine("- 已经过时、不再重要、或被后续剧情覆盖的信息，舍弃掉")
+            appendLine("- 近期对话中的新内容，有重要性的加入，不重要的不加入")
+            appendLine("- 最终输出是一份完整的、自包含的总结，不是增量追加")
             appendLine()
         }
         appendLine("【近期完整对话记录】")
