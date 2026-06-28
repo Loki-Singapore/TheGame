@@ -69,6 +69,9 @@ class UpdateStateUseCase(
                             val index = currentRules.indexOfFirst { it.id == change.id }
                             if (index >= 0) {
                                 currentRules[index] = currentRules[index].copy(content = change.content)
+                            } else {
+                                // ID不存在，当作新细则添加
+                                currentRules.add(WorldRule(id = change.id, content = change.content))
                             }
                         } else {
                             // 新细则
