@@ -179,6 +179,38 @@ class GameSettingsViewModel(private val sessionId: Long) : ViewModel() {
         }
     }
 
+    fun updateNPCBackstory(index: Int, backstory: String) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index < npcs.size) {
+            npcs[index] = npcs[index].copy(backstory = backstory)
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
+    fun updateNPCPersonality(index: Int, personality: String) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index < npcs.size) {
+            npcs[index] = npcs[index].copy(personality = personality)
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
+    fun updateNPCAppearance(index: Int, appearance: String) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index < npcs.size) {
+            npcs[index] = npcs[index].copy(appearance = appearance)
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
+    fun updateNPCAwareness(index: Int, awareness: String) {
+        val npcs = _uiState.value.npcs.toMutableList()
+        if (index < npcs.size) {
+            npcs[index] = npcs[index].copy(awareness = awareness)
+            _uiState.value = _uiState.value.copy(npcs = npcs)
+        }
+    }
+
     fun deleteNPC(index: Int) {
         val npcs = _uiState.value.npcs.toMutableList()
         if (index < npcs.size) {
@@ -338,6 +370,10 @@ fun GameSettingsScreen(sessionId: Long, onBack: () -> Unit) {
                                 onRoleChange = { viewModel.updateNPCRole(index, it) },
                                 onMoodChange = { viewModel.updateNPCMood(index, it) },
                                 onBriefingChange = { viewModel.updateNPCBriefing(index, it) },
+                                onBackstoryChange = { viewModel.updateNPCBackstory(index, it) },
+                                onPersonalityChange = { viewModel.updateNPCPersonality(index, it) },
+                                onAppearanceChange = { viewModel.updateNPCAppearance(index, it) },
+                                onAwarenessChange = { viewModel.updateNPCAwareness(index, it) },
                                 onDelete = { viewModel.deleteNPC(index) }
                             )
                         }
@@ -627,6 +663,10 @@ fun NPCSection(
     onRoleChange: (String) -> Unit,
     onMoodChange: (String) -> Unit,
     onBriefingChange: (String) -> Unit,
+    onBackstoryChange: (String) -> Unit,
+    onPersonalityChange: (String) -> Unit,
+    onAppearanceChange: (String) -> Unit,
+    onAwarenessChange: (String) -> Unit,
     onDelete: () -> Unit
 ) {
     Card(
@@ -681,6 +721,50 @@ fun NPCSection(
                 onValueChange = onMoodChange,
                 label = { Text("当前情绪") },
                 modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = npc.awareness,
+                onValueChange = onAwarenessChange,
+                label = { Text("对主角的认知") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = npc.appearance,
+                onValueChange = onAppearanceChange,
+                label = { Text("外貌描述") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = npc.personality,
+                onValueChange = onPersonalityChange,
+                label = { Text("性格特点") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 3
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = npc.backstory,
+                onValueChange = onBackstoryChange,
+                label = { Text("背景故事") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3,
+                maxLines = 6
             )
         }
     }
