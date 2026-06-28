@@ -57,5 +57,12 @@ data class GameChanges(
     @SerializedName("event_trigger")
     val eventTrigger: String? = null,
     @SerializedName("flag_set")
-    val flagSet: Map<String, Boolean>? = null
+    val flagSet: Map<String, Boolean>? = null,
+    @SerializedName("world_rules")
+    val worldRules: List<WorldRuleChange>? = null
+)
+
+data class WorldRuleChange(
+    val id: String? = null,
+    val content: String
 )

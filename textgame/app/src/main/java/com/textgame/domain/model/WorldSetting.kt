@@ -14,5 +14,6 @@ data class WorldSetting(
     val factions: List<String> = emptyList(),
     val locations: List<String> = emptyList(),
     val attributeCategories: List<AttributeCategory> = emptyList(),
+    val worldRules: List<WorldRule> = emptyList(),
     val updatedAt: Long = 0
 )

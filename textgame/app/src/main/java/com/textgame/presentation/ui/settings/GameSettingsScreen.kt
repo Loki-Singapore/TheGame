@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -52,7 +53,9 @@ import com.textgame.di.AppModule
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.NPC
 import com.textgame.domain.model.Protagonist
+import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.WorldSetting
+import com.textgame.domain.model.generateShortUuid
 import com.textgame.domain.repository.GameRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -191,6 +194,28 @@ class GameSettingsViewModel(private val sessionId: Long) : ViewModel() {
         }
     }
 
+    fun addWorldRule(content: String) {
+        _uiState.value.worldSetting?.let { world ->
+            val newRule = WorldRule(id = generateShortUuid(), content = content)
+            _uiState.value = _uiState.value.copy(worldSetting = world.copy(worldRules = world.worldRules + newRule))
+        }
+    }
+
+    fun updateWorldRule(id: String, content: String) {
+        _uiState.value.worldSetting?.let { world ->
+            val updatedRules = world.worldRules.map { rule ->
+                if (rule.id == id) rule.copy(content = content) else rule
+            }
+            _uiState.value = _uiState.value.copy(worldSetting = world.copy(worldRules = updatedRules))
+        }
+    }
+
+    fun deleteWorldRule(id: String) {
+        _uiState.value.worldSetting?.let { world ->
+            _uiState.value = _uiState.value.copy(worldSetting = world.copy(worldRules = world.worldRules.filter { it.id != id }))
+        }
+    }
+
     fun saveSettings() {
         viewModelScope.launch {
             try {
@@ -280,7 +305,10 @@ fun GameSettingsScreen(sessionId: Long, onBack: () -> Unit) {
                                 worldSetting = uiState.worldSetting,
                                 onNameChange = viewModel::updateWorldName,
                                 onDescriptionChange = viewModel::updateWorldDescription,
-                                onTypeChange = viewModel::updateWorldType
+                                onTypeChange = viewModel::updateWorldType,
+                                onAddWorldRule = viewModel::addWorldRule,
+                                onUpdateWorldRule = viewModel::updateWorldRule,
+                                onDeleteWorldRule = viewModel::deleteWorldRule
                             )
                         }
                     }
@@ -325,8 +353,15 @@ fun WorldSettingSection(
     worldSetting: WorldSetting?,
     onNameChange: (String) -> Unit,
     onDescriptionChange: (String) -> Unit,
-    onTypeChange: (String) -> Unit
+    onTypeChange: (String) -> Unit,
+    onAddWorldRule: (String) -> Unit,
+    onUpdateWorldRule: (String, String) -> Unit,
+    onDeleteWorldRule: (String) -> Unit
 ) {
+    var showAddRuleDialog by remember { mutableStateOf(false) }
+    var editingRuleId by remember { mutableStateOf<String?>(null) }
+    var editingRuleContent by remember { mutableStateOf("") }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -361,8 +396,145 @@ fun WorldSettingSection(
                 minLines = 3,
                 maxLines = 5
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("世界观细则", style = MaterialTheme.typography.titleMedium)
+                OutlinedButton(onClick = { showAddRuleDialog = true }) {
+                    Text("添加")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            worldSetting?.worldRules?.forEach { rule ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "[${rule.id}] ${rule.content}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    IconButton(onClick = {
+                        editingRuleId = rule.id
+                        editingRuleContent = rule.content
+                    }) {
+                        Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
+                    }
+                    IconButton(onClick = { onDeleteWorldRule(rule.id) }) {
+                        Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+            }
+
+            if (worldSetting?.worldRules.isNullOrEmpty()) {
+                Text(
+                    text = "暂无世界观细则",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
+
+    if (showAddRuleDialog) {
+        AddWorldRuleDialog(
+            onDismiss = { showAddRuleDialog = false },
+            onConfirm = { content ->
+                onAddWorldRule(content)
+                showAddRuleDialog = false
+            }
+        )
+    }
+
+    editingRuleId?.let { id ->
+        EditWorldRuleDialog(
+            initialContent = editingRuleContent,
+            onDismiss = {
+                editingRuleId = null
+                editingRuleContent = ""
+            },
+            onConfirm = { content ->
+                onUpdateWorldRule(id, content)
+                editingRuleId = null
+                editingRuleContent = ""
+            }
+        )
+    }
+}
+
+@Composable
+fun AddWorldRuleDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var content by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("添加世界观细则") },
+        text = {
+            OutlinedTextField(
+                value = content,
+                onValueChange = { content = it },
+                label = { Text("规则内容") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(content) }, enabled = content.isNotBlank()) {
+                Text("添加")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditWorldRuleDialog(
+    initialContent: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var content by remember { mutableStateOf(initialContent) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("编辑世界观细则") },
+        text = {
+            OutlinedTextField(
+                value = content,
+                onValueChange = { content = it },
+                label = { Text("规则内容") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(content) }, enabled = content.isNotBlank()) {
+                Text("保存")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    )
 }
 
 @Composable

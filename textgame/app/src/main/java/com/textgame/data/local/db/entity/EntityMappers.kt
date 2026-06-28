@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.BackgroundSetting
+import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.Dialogue
 import com.textgame.domain.model.GameSession
 import com.textgame.domain.model.GameState
@@ -158,6 +159,7 @@ fun WorldSettingEntity.toDomain(): WorldSetting {
     val factionsType = object : TypeToken<List<String>>() {}.type
     val locationsType = object : TypeToken<List<String>>() {}.type
     val attributesType = object : TypeToken<List<AttributeCategory>>() {}.type
+    val worldRulesType = object : TypeToken<List<WorldRule>>() {}.type
 
     return WorldSetting(
         id = id,
@@ -173,6 +175,7 @@ fun WorldSettingEntity.toDomain(): WorldSetting {
         factions = gson.fromJson(factionsJson, factionsType) ?: emptyList(),
         locations = gson.fromJson(locationsJson, locationsType) ?: emptyList(),
         attributeCategories = gson.fromJson(attributeCategoriesJson, attributesType) ?: emptyList(),
+        worldRules = gson.fromJson(worldRulesJson, worldRulesType) ?: emptyList(),
         updatedAt = updatedAt
     )
 }
@@ -191,6 +194,7 @@ fun WorldSetting.toEntity(): WorldSettingEntity = WorldSettingEntity(
     factionsJson = gson.toJson(factions),
     locationsJson = gson.toJson(locations),
     attributeCategoriesJson = gson.toJson(attributeCategories),
+    worldRulesJson = gson.toJson(worldRules),
     updatedAt = updatedAt
 )
 

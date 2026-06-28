@@ -259,7 +259,10 @@ class AIService(
         appendLine("    \"game\": {")
         appendLine("      \"scene_change\": \"新场景名称\",")
         appendLine("      \"event_trigger\": \"触发的事件名\",")
-        appendLine("      \"flag_set\": {\"标记名\": true/false}")
+        appendLine("      \"flag_set\": {\"标记名\": true/false},")
+        appendLine("      \"world_rules\": [")
+        appendLine("        {\"id\": \"8位UUID\", \"content\": \"细则内容\"}")
+        appendLine("      ]")
         appendLine("    }")
         appendLine("  },")
         appendLine("  \"summary_update\": false")
@@ -314,6 +317,12 @@ class AIService(
         }
         if (worldSetting.lore.isNotEmpty()) {
             appendLine("世界观历史：${worldSetting.lore}")
+        }
+        if (worldSetting.worldRules.isNotEmpty()) {
+            appendLine("世界观细则：")
+            worldSetting.worldRules.forEach { rule ->
+                appendLine("[${rule.id}] ${rule.content}")
+            }
         }
         appendLine()
         appendLine("【背景设定】")
@@ -510,6 +519,8 @@ class AIService(
         - 每次回复都要推动剧情发展
         - attributes只返回变化的属性，引擎会保留其他属性不变
         - 禁止创建新属性名或修改属性类目
+        - 【世界观细则维护】根据最新剧情发展，可以添加新的细则或修改已有细则的内容，但禁止删除已有细则
+        - 如果需要新增世界观细则，使用8位短UUID作为id（格式：8位字母数字组合，如a1b2c3d4）
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {

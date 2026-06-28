@@ -7,6 +7,8 @@ import com.textgame.domain.model.NPC
 import com.textgame.domain.model.NPCChanges
 import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.ProtagonistChanges
+import com.textgame.domain.model.WorldRule
+import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
 
 class UpdateStateUseCase(
@@ -53,6 +55,29 @@ class UpdateStateUseCase(
         if (gameState != null) {
             val updatedGameState = updateGameState(gameState, stateChanges?.game, userInput, now)
             gameRepository.updateGameState(updatedGameState)
+        }
+
+        // 处理世界观细则更新
+        stateChanges?.game?.worldRules?.let { worldRuleChanges ->
+            if (worldRuleChanges.isNotEmpty()) {
+                val worldSetting = gameRepository.getWorldSetting(sessionId)
+                if (worldSetting != null) {
+                    val currentRules = worldSetting.worldRules.toMutableList()
+                    worldRuleChanges.forEach { change ->
+                        if (change.id != null) {
+                            // 已有细则，更新内容
+                            val index = currentRules.indexOfFirst { it.id == change.id }
+                            if (index >= 0) {
+                                currentRules[index] = currentRules[index].copy(content = change.content)
+                            }
+                        } else {
+                            // 新细则
+                            currentRules.add(WorldRule(content = change.content))
+                        }
+                    }
+                    gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
+                }
+            }
         }
     }
 

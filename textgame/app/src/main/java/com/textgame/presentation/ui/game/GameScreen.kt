@@ -422,6 +422,17 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                uiState.worldSetting?.let { world ->
+                    if (world.worldRules.isNotEmpty()) {
+                        Text("世界观细则:", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        world.worldRules.forEach { rule ->
+                            Text("[${rule.id}] ${rule.content}", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
                 uiState.summary?.let { summary ->
                     if (summary.summaryText.isNotEmpty()) {
                         Text("进度总结:", style = MaterialTheme.typography.titleMedium)

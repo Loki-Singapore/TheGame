@@ -18,5 +18,6 @@ data class WorldSettingEntity(
     val factionsJson: String = "[]",
     val locationsJson: String = "[]",
     val attributeCategoriesJson: String = "[]",
+    val worldRulesJson: String = "[]",
     val updatedAt: Long = 0
 )
