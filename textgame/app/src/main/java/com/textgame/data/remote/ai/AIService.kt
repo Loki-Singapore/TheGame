@@ -416,6 +416,9 @@ class AIService(
                 if (npc.awareness.isNotEmpty()) {
                     appendLine("  认知：${npc.awareness}")
                 }
+                if (npc.personality.isNotEmpty()) {
+                    appendLine("  性格：${npc.personality}")
+                }
                 if (npc.backstory.isNotEmpty()) {
                     appendLine("  背景：${npc.backstory}")
                 }
