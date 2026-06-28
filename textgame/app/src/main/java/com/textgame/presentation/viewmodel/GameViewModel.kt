@@ -214,12 +214,14 @@ class GameViewModel(
         val npcs = gameRepository.getNPCList(sessionId)
         val gameState = gameRepository.getGameState(sessionId)
         val summary = gameRepository.getLatestSummary(sessionId)
+        val worldSetting = gameRepository.getWorldSetting(sessionId)
 
         _uiState.value = _uiState.value.copy(
             protagonist = protagonist,
             npcs = npcs,
             gameState = gameState,
-            summary = summary
+            summary = summary,
+            worldSetting = worldSetting
         )
     }
 

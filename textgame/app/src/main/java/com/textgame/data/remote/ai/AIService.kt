@@ -288,6 +288,14 @@ class AIService(
         appendLine("17. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
         appendLine("18. 禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。")
         appendLine("19. 引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。")
+        appendLine("20. 【世界观细则维护 - 重要】你必须主动维护世界观细则（game.world_rules），这是游戏世界的知识库：")
+        appendLine("    - 当剧情中揭示了新的世界设定、历史背景、魔法/力量体系规则、社会制度、文化习俗、地理信息、特殊规则等长期有效的信息时，必须添加新的世界观细则")
+        appendLine("    - 当已有世界观细则需要修正、补充或细化时，可以修改对应细则的内容")
+        appendLine("    - 禁止删除任何已有的世界观细则，即使你认为它不再重要")
+        appendLine("    - 新增细则时id字段留空（不填），引擎会自动生成8位短UUID")
+        appendLine("    - 修改已有细则时必须填写该细则的id，id从上方\"世界观细则\"列表中获取")
+        appendLine("    - 每条细则用简洁的一句话概括核心内容，不要长篇大论")
+        appendLine("    - 如果本轮没有新增或修改的细则，world_rules字段可以省略")
         appendLine()
         appendLine("你是一个文字冒险游戏的游戏主持人和NPC扮演助手。")
         appendLine("你的回复必须详细、丰富、生动，给玩家沉浸式的游戏体验。")
@@ -519,8 +527,6 @@ class AIService(
         - 每次回复都要推动剧情发展
         - attributes只返回变化的属性，引擎会保留其他属性不变
         - 禁止创建新属性名或修改属性类目
-        - 【世界观细则维护】根据最新剧情发展，可以添加新的细则或修改已有细则的内容，但禁止删除已有细则
-        - 如果需要新增世界观细则，使用8位短UUID作为id（格式：8位字母数字组合，如a1b2c3d4）
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
