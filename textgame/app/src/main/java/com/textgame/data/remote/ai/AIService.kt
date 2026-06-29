@@ -61,7 +61,7 @@ class AIService(
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
         val contextPrompt = buildContextPrompt(
             summary, preSummaryDialogues, postSummaryDialogues,
-            protagonist, npcs, gameState, worldSetting.attributeCategories
+            protagonist, npcs, gameState, worldSetting.attributeCategories, worldSetting.worldRules
         )
         val userPrompt = buildUserPrompt(userInput)
         val outputInstruction = buildOutputInstruction()
@@ -330,12 +330,6 @@ class AIService(
         if (worldSetting.lore.isNotEmpty()) {
             appendLine("世界观历史：${worldSetting.lore}")
         }
-        if (worldSetting.worldRules.isNotEmpty()) {
-            appendLine("世界观细则：")
-            worldSetting.worldRules.forEach { rule ->
-                appendLine("[${rule.id}] ${rule.content}")
-            }
-        }
         appendLine()
         appendLine("【背景设定】")
         appendLine("主角背景：${backgroundSetting.protagonistBackground}")
@@ -357,7 +351,8 @@ class AIService(
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        attributeCategories: List<AttributeCategory> = emptyList()
+        attributeCategories: List<AttributeCategory> = emptyList(),
+        worldRules: List<com.textgame.domain.model.WorldRule> = emptyList()
     ): String = buildString {
         // 总结前的十轮对话（有总结时才写）
         if (preSummaryDialogues.isNotEmpty()) {
@@ -446,6 +441,14 @@ class AIService(
                         }
                     }
                 }
+            }
+            appendLine()
+        }
+
+        if (worldRules.isNotEmpty()) {
+            appendLine("【世界观细则】")
+            worldRules.forEach { rule ->
+                appendLine("[${rule.id}] ${rule.content}")
             }
             appendLine()
         }
