@@ -427,7 +427,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                         Text("世界观细则:", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(4.dp))
                         world.worldRules.forEach { rule ->
-                            Text("[${rule.id}] ${rule.content}", style = MaterialTheme.typography.bodySmall)
+                            Text("• ${rule.content}", style = MaterialTheme.typography.bodySmall)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }

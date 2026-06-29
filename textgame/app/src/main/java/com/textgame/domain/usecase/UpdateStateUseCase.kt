@@ -57,26 +57,18 @@ class UpdateStateUseCase(
             gameRepository.updateGameState(updatedGameState)
         }
 
-        // 处理世界观细则更新
         stateChanges?.game?.worldRules?.let { worldRuleChanges ->
             if (worldRuleChanges.isNotEmpty()) {
                 val worldSetting = gameRepository.getWorldSetting(sessionId)
                 if (worldSetting != null) {
                     val currentRules = worldSetting.worldRules.toMutableList()
                     worldRuleChanges.forEach { change ->
-                        val effectiveId = change.id?.takeIf { it.isNotBlank() }
-                        if (effectiveId != null) {
-                            // 已有细则，更新内容
-                            val index = currentRules.indexOfFirst { it.id == effectiveId }
-                            if (index >= 0) {
-                                currentRules[index] = currentRules[index].copy(content = change.content)
-                            } else {
-                                // ID不存在，当作新细则添加
-                                currentRules.add(WorldRule(id = effectiveId, content = change.content))
-                            }
+                        val ruleId = change.id?.takeIf { it.isNotBlank() } ?: return@forEach
+                        val index = currentRules.indexOfFirst { it.id == ruleId }
+                        if (index >= 0) {
+                            currentRules[index] = currentRules[index].copy(content = change.content)
                         } else {
-                            // 新细则，id留空则由引擎生成8位短UUID
-                            currentRules.add(WorldRule(content = change.content))
+                            currentRules.add(WorldRule(id = ruleId, content = change.content))
                         }
                     }
                     gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
