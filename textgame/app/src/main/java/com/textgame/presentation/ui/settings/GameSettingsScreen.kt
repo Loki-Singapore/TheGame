@@ -55,7 +55,7 @@ import com.textgame.domain.model.NPC
 import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.WorldSetting
-import com.textgame.domain.model.generateNextRuleId
+import com.textgame.domain.model.generateShortUuid
 import com.textgame.domain.repository.GameRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -228,7 +228,7 @@ class GameSettingsViewModel(private val sessionId: Long) : ViewModel() {
 
     fun addWorldRule(content: String) {
         _uiState.value.worldSetting?.let { world ->
-            val newRule = WorldRule(id = generateNextRuleId(world.worldRules), content = content)
+            val newRule = WorldRule(id = generateShortUuid(), content = content)
             _uiState.value = _uiState.value.copy(worldSetting = world.copy(worldRules = world.worldRules + newRule))
         }
     }
