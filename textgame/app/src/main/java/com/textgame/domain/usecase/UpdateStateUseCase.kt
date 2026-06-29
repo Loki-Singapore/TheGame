@@ -9,6 +9,7 @@ import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.ProtagonistChanges
 import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.WorldSetting
+import com.textgame.domain.model.generateNextRuleId
 import com.textgame.domain.repository.GameRepository
 
 class UpdateStateUseCase(
@@ -64,19 +65,13 @@ class UpdateStateUseCase(
                 if (worldSetting != null) {
                     val currentRules = worldSetting.worldRules.toMutableList()
                     worldRuleChanges.forEach { change ->
-                        val effectiveId = change.id?.takeIf { it.isNotBlank() }
-                        if (effectiveId != null) {
-                            // 已有细则，更新内容
-                            val index = currentRules.indexOfFirst { it.id == effectiveId }
-                            if (index >= 0) {
-                                currentRules[index] = currentRules[index].copy(content = change.content)
-                            } else {
-                                // ID不存在，当作新细则添加
-                                currentRules.add(WorldRule(id = effectiveId, content = change.content))
-                            }
+                        val ruleId = change.id?.takeIf { it.isNotBlank() }
+                            ?: generateNextRuleId(currentRules)
+                        val index = currentRules.indexOfFirst { it.id == ruleId }
+                        if (index >= 0) {
+                            currentRules[index] = currentRules[index].copy(content = change.content)
                         } else {
-                            // 新细则，id留空则由引擎生成8位短UUID
-                            currentRules.add(WorldRule(content = change.content))
+                            currentRules.add(WorldRule(id = ruleId, content = change.content))
                         }
                     }
                     gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
