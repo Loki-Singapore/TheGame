@@ -1,7 +1,10 @@
 package com.textgame.presentation.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.textgame.data.audio.BgmTrack
+import com.textgame.data.audio.BgmManager
 import com.textgame.di.AppModule
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.BackgroundSetting
@@ -43,10 +46,12 @@ data class DialogueDisplay(
 )
 
 class GameViewModel(
-    private val sessionId: Long
+    private val sessionId: Long,
+    private val context: Context
 ) : ViewModel() {
     private val gameRepository: GameRepository = AppModule.getGameRepository()
     private val sendDialogueUseCase: SendDialogueUseCase = AppModule.getSendDialogueUseCase()
+    private val bgmManager: BgmManager = BgmManager.getInstance(context)
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
@@ -134,6 +139,13 @@ class GameViewModel(
     }
 
     private suspend fun handleAIResponse(response: AIResponse, turnNumber: Int) {
+        response.bgm?.let { bgmKeyword ->
+            val track = BgmTrack.fromKeyword(bgmKeyword)
+            if (track != null) {
+                bgmManager.play(track)
+            }
+        }
+
         if (response.dialogue.isNotEmpty()) {
             val npcName = _uiState.value.npcs.firstOrNull()?.name ?: "NPC"
             addNPCDialogue(npcName, response.dialogue, turnNumber)
@@ -311,5 +323,17 @@ class GameViewModel(
         if (_uiState.value.pendingRegeneratePrompt != null) {
             _uiState.value = _uiState.value.copy(pendingRegeneratePrompt = null)
         }
+    }
+
+    fun onPause() {
+        bgmManager.pause()
+    }
+
+    fun onResume() {
+        bgmManager.resume()
+    }
+
+    fun stopBgm() {
+        bgmManager.stop()
     }
 }

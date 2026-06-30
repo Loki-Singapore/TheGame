@@ -10,6 +10,7 @@ data class AIResponse(
     val choices: List<String>? = null,
     @SerializedName("summary_update")
     val summaryUpdate: Boolean = false,
+    val bgm: String? = null,
     val tokenUsage: TokenUsage? = null
 )
 

@@ -2,6 +2,7 @@ package com.textgame.data.remote.ai
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.textgame.data.audio.BgmTrack
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.BackgroundSetting
@@ -224,6 +225,7 @@ class AIService(
         appendLine("{")
         appendLine("  \"dialogue\": \"当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）\",")
         appendLine("  \"narrative\": \"场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富\",")
+        appendLine("  \"bgm\": \"背景音乐关键词（可选，从下方BGM列表中选择一个最匹配当前剧情氛围的关键词，如果不需要切换则不填该字段）\",")
         appendLine("  \"choices\": [")
         appendLine("    \"选项1的文字描述\",")
         appendLine("    \"选项2的文字描述\",")
@@ -303,6 +305,20 @@ class AIService(
         appendLine("    - 修改已有细则时必须填写该细则的id，id从上方\"世界观细则\"列表中获取")
         appendLine("    - 每条细则用简洁的一句话概括核心内容，不要长篇大论")
         appendLine("    - 如果本轮没有新增或修改的细则，world_rules字段可以省略")
+        appendLine()
+        appendLine("【背景音乐BGM点播】")
+        appendLine("你可以根据当前剧情氛围点播背景音乐。可用的BGM关键词如下：")
+        val bgmKeywords = BgmTrack.availableKeywords()
+        bgmKeywords.forEach { keyword ->
+            appendLine("- $keyword")
+        }
+        appendLine()
+        appendLine("BGM点播规则：")
+        appendLine("1. 当剧情氛围发生明显变化时（如进入战斗、发现危险、获得胜利、场景切换等），选择最匹配的BGM关键词填入bgm字段")
+        appendLine("2. 如果当前氛围没有明显变化，不需要切换BGM，就不要填bgm字段（省略该字段）")
+        appendLine("3. 必须从上面的列表中选择关键词，不能自创关键词")
+        appendLine("4. 季节类BGM（春夏、秋天、冬天）在场景切换到对应季节环境时使用")
+        appendLine("5. 情绪类BGM（战斗、危险临近、胜利、爱情、未知的恐惧）在剧情氛围匹配时使用")
         appendLine()
         appendLine("你是一个文字冒险游戏的游戏主持人和NPC扮演助手。")
         appendLine("你的回复必须详细、丰富、生动，给玩家沉浸式的游戏体验。")

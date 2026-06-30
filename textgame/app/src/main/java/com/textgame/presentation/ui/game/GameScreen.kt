@@ -1,5 +1,6 @@
 package com.textgame.presentation.ui.game
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
@@ -61,8 +63,9 @@ fun GameScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val context = LocalContext.current
     val viewModel: GameViewModel = viewModel(
-        factory = GameViewModelFactory(sessionId)
+        factory = GameViewModelFactory(sessionId, context)
     )
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.GameUiState())
 
@@ -455,12 +458,13 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
 }
 
 class GameViewModelFactory(
-    private val sessionId: Long
+    private val sessionId: Long,
+    private val context: Context
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return GameViewModel(sessionId) as T
+            return GameViewModel(sessionId, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

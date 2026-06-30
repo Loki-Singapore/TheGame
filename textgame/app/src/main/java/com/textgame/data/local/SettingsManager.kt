@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -22,6 +23,7 @@ object SettingsManager {
     private val DIALOGUE_MAX_TOKENS = intPreferencesKey("dialogue_max_tokens")
     private val SUMMARY_TEMPERATURE = floatPreferencesKey("summary_temperature")
     private val SUMMARY_MAX_TOKENS = intPreferencesKey("summary_max_tokens")
+    private val MUSIC_ENABLED = booleanPreferencesKey("music_enabled")
 
     val DEFAULTS = SettingsPreferences()
 
@@ -34,7 +36,8 @@ object SettingsManager {
                 dialogueTemperature = prefs[DIALOGUE_TEMPERATURE] ?: DEFAULTS.dialogueTemperature,
                 dialogueMaxTokens = prefs[DIALOGUE_MAX_TOKENS] ?: DEFAULTS.dialogueMaxTokens,
                 summaryTemperature = prefs[SUMMARY_TEMPERATURE] ?: DEFAULTS.summaryTemperature,
-                summaryMaxTokens = prefs[SUMMARY_MAX_TOKENS] ?: DEFAULTS.summaryMaxTokens
+                summaryMaxTokens = prefs[SUMMARY_MAX_TOKENS] ?: DEFAULTS.summaryMaxTokens,
+                musicEnabled = prefs[MUSIC_ENABLED] ?: DEFAULTS.musicEnabled
             )
         }
     }
@@ -48,6 +51,13 @@ object SettingsManager {
             prefs[DIALOGUE_MAX_TOKENS] = settings.dialogueMaxTokens
             prefs[SUMMARY_TEMPERATURE] = settings.summaryTemperature
             prefs[SUMMARY_MAX_TOKENS] = settings.summaryMaxTokens
+            prefs[MUSIC_ENABLED] = settings.musicEnabled
+        }
+    }
+
+    suspend fun saveMusicEnabled(context: Context, enabled: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[MUSIC_ENABLED] = enabled
         }
     }
 }
