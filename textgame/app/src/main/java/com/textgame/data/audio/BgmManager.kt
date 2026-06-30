@@ -16,8 +16,8 @@ class BgmManager private constructor(private val context: Context) {
     private val fadeScope = CoroutineScope(Dispatchers.Main + Job())
     private var fadeJob: Job? = null
     private val maxVolume = 1.0f
-    private val fadeDurationMs = 3000L
-    private val fadeStepDelayMs = 30L
+    private val fadeDurationMs = 5000L
+    private val fadeStepDelayMs = 50L
 
     fun setMusicEnabled(enabled: Boolean) {
         isMusicEnabled = enabled
@@ -31,12 +31,15 @@ class BgmManager private constructor(private val context: Context) {
     fun isMusicEnabled(): Boolean = isMusicEnabled
 
     fun play(track: BgmTrack) {
-        if (!isMusicEnabled) {
-            currentTrack = track
+        if (currentTrack == track && mediaPlayer?.isPlaying == true) {
             return
         }
 
-        if (currentTrack == track && mediaPlayer?.isPlaying == true) {
+        if (!isMusicEnabled) {
+            fadeJob?.cancel()
+            mediaPlayer?.let { releasePlayer(it) }
+            mediaPlayer = null
+            currentTrack = track
             return
         }
 
@@ -50,28 +53,63 @@ class BgmManager private constructor(private val context: Context) {
             val newPlayer = MediaPlayer.create(context.applicationContext, track.resId)
             newPlayer.isLooping = true
             newPlayer.setVolume(0f, 0f)
-            newPlayer.start()
             mediaPlayer = newPlayer
 
-            fadeJob = fadeScope.launch {
-                fadeIn(newPlayer)
-                if (oldPlayer != null && oldTrack != null) {
-                    fadeOutAndRelease(oldPlayer)
+            if (oldPlayer != null) {
+                newPlayer.start()
+                fadeJob = fadeScope.launch {
+                    crossFade(newPlayer, oldPlayer)
                 }
+            } else {
+                newPlayer.setVolume(maxVolume, maxVolume)
+                newPlayer.start()
             }
         } catch (e: Exception) {
             e.printStackTrace()
+            mediaPlayer?.let { releasePlayer(it) }
+            mediaPlayer = null
+        }
+    }
+
+    private suspend fun crossFade(newPlayer: MediaPlayer, oldPlayer: MediaPlayer) {
+        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
+
+        for (i in 0..steps) {
+            val progress = i.toFloat() / steps
+            val eased = easeInOutCubic(progress)
+            val newVolume = eased * maxVolume
+            val oldVolume = maxVolume * (1f - eased)
+
+            try {
+                newPlayer.setVolume(newVolume, newVolume)
+                oldPlayer.setVolume(oldVolume, oldVolume)
+            } catch (e: Exception) {
+                break
+            }
+            delay(fadeStepDelayMs)
+        }
+
+        try {
+            newPlayer.setVolume(maxVolume, maxVolume)
+        } catch (e: Exception) {
+        }
+        releasePlayer(oldPlayer)
+    }
+
+    private fun releasePlayer(player: MediaPlayer) {
+        try {
+            if (player.isPlaying) {
+                player.stop()
+            }
+            player.release()
+        } catch (e: Exception) {
         }
     }
 
     fun stop() {
         fadeJob?.cancel()
-        fadeJob = fadeScope.launch {
-            mediaPlayer?.let {
-                fadeOutAndRelease(it)
-            }
-            mediaPlayer = null
-        }
+        mediaPlayer?.let { releasePlayer(it) }
+        mediaPlayer = null
     }
 
     fun pause() {
@@ -93,49 +131,6 @@ class BgmManager private constructor(private val context: Context) {
     }
 
     fun getCurrentTrack(): BgmTrack? = currentTrack
-
-    private suspend fun fadeIn(player: MediaPlayer) {
-        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
-
-        for (i in 0..steps) {
-            val progress = i.toFloat() / steps
-            val eased = easeInOutCubic(progress)
-            val volume = eased * maxVolume
-            try {
-                player.setVolume(volume, volume)
-            } catch (e: Exception) {
-                break
-            }
-            delay(fadeStepDelayMs)
-        }
-        try {
-            player.setVolume(maxVolume, maxVolume)
-        } catch (e: Exception) {
-        }
-    }
-
-    private suspend fun fadeOutAndRelease(player: MediaPlayer) {
-        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
-
-        for (i in 0..steps) {
-            val progress = i.toFloat() / steps
-            val eased = easeInOutCubic(progress)
-            val volume = maxVolume * (1f - eased)
-            try {
-                player.setVolume(volume, volume)
-            } catch (e: Exception) {
-                break
-            }
-            delay(fadeStepDelayMs)
-        }
-        try {
-            if (player.isPlaying) {
-                player.stop()
-            }
-            player.release()
-        } catch (e: Exception) {
-        }
-    }
 
     private fun easeInOutCubic(t: Float): Float {
         return if (t < 0.5f) {
