@@ -15,9 +15,9 @@ class BgmManager private constructor(private val context: Context) {
     private var isMusicEnabled: Boolean = true
     private val fadeScope = CoroutineScope(Dispatchers.Main + Job())
     private var fadeJob: Job? = null
-    private val maxVolume = 0.8f
-    private val fadeDurationMs = 1500L
-    private val fadeStepDelayMs = 50L
+    private val maxVolume = 1.0f
+    private val fadeDurationMs = 3000L
+    private val fadeStepDelayMs = 30L
 
     fun setMusicEnabled(enabled: Boolean) {
         isMusicEnabled = enabled
@@ -95,15 +95,14 @@ class BgmManager private constructor(private val context: Context) {
     fun getCurrentTrack(): BgmTrack? = currentTrack
 
     private suspend fun fadeIn(player: MediaPlayer) {
-        val steps = fadeDurationMs / fadeStepDelayMs
-        val volumeStep = maxVolume / steps
-        var currentVolume = 0f
+        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
 
-        for (i in 0 until steps) {
-            currentVolume += volumeStep
-            if (currentVolume > maxVolume) currentVolume = maxVolume
+        for (i in 0..steps) {
+            val progress = i.toFloat() / steps
+            val eased = easeInOutCubic(progress)
+            val volume = eased * maxVolume
             try {
-                player.setVolume(currentVolume, currentVolume)
+                player.setVolume(volume, volume)
             } catch (e: Exception) {
                 break
             }
@@ -116,15 +115,14 @@ class BgmManager private constructor(private val context: Context) {
     }
 
     private suspend fun fadeOutAndRelease(player: MediaPlayer) {
-        val steps = fadeDurationMs / fadeStepDelayMs
-        val volumeStep = maxVolume / steps
-        var currentVolume = maxVolume
+        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
 
-        for (i in 0 until steps) {
-            currentVolume -= volumeStep
-            if (currentVolume < 0f) currentVolume = 0f
+        for (i in 0..steps) {
+            val progress = i.toFloat() / steps
+            val eased = easeInOutCubic(progress)
+            val volume = maxVolume * (1f - eased)
             try {
-                player.setVolume(currentVolume, currentVolume)
+                player.setVolume(volume, volume)
             } catch (e: Exception) {
                 break
             }
@@ -136,6 +134,14 @@ class BgmManager private constructor(private val context: Context) {
             }
             player.release()
         } catch (e: Exception) {
+        }
+    }
+
+    private fun easeInOutCubic(t: Float): Float {
+        return if (t < 0.5f) {
+            4f * t * t * t
+        } else {
+            1f - (-2f * t + 2f).let { it * it * it } / 2f
         }
     }
 
