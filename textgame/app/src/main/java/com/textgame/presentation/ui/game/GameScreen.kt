@@ -28,6 +28,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import com.halilibo.richtext.markdown.Markdown
+import com.halilibo.richtext.ui.material3.RichText
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -426,8 +428,11 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                     if (world.worldRules.isNotEmpty()) {
                         Text("世界观细则:", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(4.dp))
-                        world.worldRules.forEach { rule ->
-                            Text("• ${rule.content}", style = MaterialTheme.typography.bodySmall)
+                        val markdown = world.worldRules.joinToString("\n") { "- ${it.content}" }
+                        RichText(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Markdown(content = markdown)
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                     }
