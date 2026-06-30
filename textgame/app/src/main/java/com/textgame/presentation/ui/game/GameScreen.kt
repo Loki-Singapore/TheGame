@@ -49,6 +49,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.halilibo.richtext.markdown.Markdown
+import com.halilibo.richtext.ui.material3.RichTextMaterial3
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 
@@ -437,7 +439,9 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                     if (summary.summaryText.isNotEmpty()) {
                         Text("进度总结:", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(summary.summaryText)
+                        RichTextMaterial3 {
+                            Markdown(summary.summaryText)
+                        }
                     }
                 }
             }
