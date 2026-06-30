@@ -52,7 +52,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
-import com.halilibo.richtext.ui.material3.RichText
+import com.halilibo.richtext.ui.RichText
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 
