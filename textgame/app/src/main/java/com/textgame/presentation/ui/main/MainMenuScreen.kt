@@ -82,12 +82,13 @@ fun MainMenuScreen(
     fun toggleMusic() {
         val newEnabled = !musicEnabled
         musicEnabled = newEnabled
-        bgmManager.setMusicEnabled(newEnabled)
-        if (newEnabled) {
-            bgmManager.play(BgmTrack.MAIN)
-        }
         coroutineScope.launch {
             SettingsManager.saveMusicEnabled(context, newEnabled)
+        }
+        if (newEnabled) {
+            bgmManager.play(BgmTrack.MAIN)
+        } else {
+            bgmManager.stop()
         }
     }
 

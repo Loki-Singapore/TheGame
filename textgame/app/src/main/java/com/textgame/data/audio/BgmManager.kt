@@ -10,12 +10,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 class BgmManager private constructor(private val context: Context) {
 
     private val currentPlayerRef = AtomicReference<MediaPlayer?>(null)
     private val currentTrackRef = AtomicReference<BgmTrack?>(null)
+    private val isPreparing = AtomicBoolean(false)
+    private val pendingTrack = AtomicReference<BgmTrack?>(null)
     private var isMusicEnabled: Boolean = true
     private val fadeScope = CoroutineScope(Dispatchers.Main + Job())
     private var fadeJob: Job? = null
@@ -28,7 +31,7 @@ class BgmManager private constructor(private val context: Context) {
         if (isMusicEnabled == enabled) return
         isMusicEnabled = enabled
         if (enabled) {
-            currentTrackRef.get()?.let { playAsync(it) }
+            currentTrackRef.get()?.let { play(it) }
         } else {
             stop()
         }
@@ -37,35 +40,56 @@ class BgmManager private constructor(private val context: Context) {
     fun isMusicEnabled(): Boolean = isMusicEnabled
 
     fun play(track: BgmTrack) {
-        playAsync(track)
+        mainHandler.post { playInternal(track) }
     }
 
-    private fun playAsync(track: BgmTrack) {
-        val existingTrack = currentTrackRef.get()
-        if (existingTrack == track && currentPlayerRef.get()?.isPlaying == true) {
+    private fun playInternal(track: BgmTrack) {
+        val currentTrack = currentTrackRef.get()
+        val currentPlayer = currentPlayerRef.get()
+
+        if (currentTrack == track && currentPlayer?.isPlaying == true) {
+            pendingTrack.set(null)
             return
         }
 
         if (!isMusicEnabled) {
-            fadeJob?.cancel()
+            pendingTrack.set(null)
+            isPreparing.set(false)
             currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
             currentTrackRef.set(track)
             return
         }
 
+        if (isPreparing.get()) {
+            pendingTrack.set(track)
+            return
+        }
+
         fadeJob?.cancel()
 
-        val oldPlayer = currentPlayerRef.getAndSet(null)
+        val oldPlayer = currentPlayer
+        isPreparing.set(true)
         currentTrackRef.set(track)
+        pendingTrack.set(null)
 
         val newPlayer = MediaPlayer()
         newPlayer.isLooping = true
         newPlayer.setVolume(0f, 0f)
 
         newPlayer.setOnPreparedListener { mp ->
+            isPreparing.set(false)
             currentPlayerRef.set(mp)
+
+            val pending = pendingTrack.getAndSet(null)
+            if (pending != null && pending != track) {
+                releasePlayer(mp)
+                currentPlayerRef.set(null)
+                mainHandler.post { playInternal(pending) }
+                return
+            }
+
             fadeJob = fadeScope.launch {
-                if (oldPlayer != null) {
+                if (oldPlayer != null && oldPlayer != mp) {
                     mp.start()
                     crossFade(mp, oldPlayer)
                 } else {
@@ -76,8 +100,12 @@ class BgmManager private constructor(private val context: Context) {
         }
 
         newPlayer.setOnErrorListener { mp, _, _ ->
-            if (currentPlayerRef.compareAndSet(mp, null)) {
-                mainHandler.post { releasePlayer(mp) }
+            isPreparing.set(false)
+            currentPlayerRef.compareAndSet(mp, null)
+            mainHandler.post { releasePlayer(mp) }
+            val pending = pendingTrack.getAndSet(null)
+            if (pending != null) {
+                mainHandler.post { playInternal(pending) }
             }
             true
         }
@@ -89,8 +117,11 @@ class BgmManager private constructor(private val context: Context) {
             newPlayer.prepareAsync()
         } catch (e: Exception) {
             e.printStackTrace()
-            if (currentPlayerRef.compareAndSet(newPlayer, null)) {
-                mainHandler.post { releasePlayer(newPlayer) }
+            isPreparing.set(false)
+            mainHandler.post { releasePlayer(newPlayer) }
+            val pending = pendingTrack.getAndSet(null)
+            if (pending != null) {
+                mainHandler.post { playInternal(pending) }
             }
         }
     }
@@ -132,6 +163,8 @@ class BgmManager private constructor(private val context: Context) {
 
     fun stop() {
         fadeJob?.cancel()
+        isPreparing.set(false)
+        pendingTrack.set(null)
         currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
     }
 
