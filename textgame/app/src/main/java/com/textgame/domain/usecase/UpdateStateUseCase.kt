@@ -26,27 +26,34 @@ class UpdateStateUseCase(
 
         if (stateChanges?.npc != null) {
             stateChanges.npc.forEach { (npcId, npcChanges) ->
-                val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
-                if (existingNpc != null) {
-                    val updatedNpc = updateNPC(existingNpc, npcChanges, now)
-                    gameRepository.updateNPC(updatedNpc)
+                if (npcChanges.isDeleted) {
+                    val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
+                    if (existingNpc != null) {
+                        gameRepository.deleteNPC(existingNpc.id)
+                    }
                 } else {
-                    // 新NPC：插入数据库
-                    val newNpc = NPC(
-                        sessionId = sessionId,
-                        npcId = npcId,
-                        name = npcChanges.name ?: "未知角色",
-                        role = npcChanges.role ?: "未知",
-                        briefing = npcChanges.briefing ?: "",
-                        attributes = npcChanges.attributes ?: emptyMap(),
-                        mood = npcChanges.mood ?: "neutral",
-                        awareness = npcChanges.awareness ?: "",
-                        appearance = npcChanges.appearance ?: "",
-                        personality = npcChanges.personality ?: "",
-                        backstory = npcChanges.backstory ?: "",
-                        updatedAt = now
-                    )
-                    gameRepository.saveNPC(newNpc)
+                    val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
+                    if (existingNpc != null) {
+                        val updatedNpc = updateNPC(existingNpc, npcChanges, now)
+                        gameRepository.updateNPC(updatedNpc)
+                    } else {
+                        // 新NPC：插入数据库
+                        val newNpc = NPC(
+                            sessionId = sessionId,
+                            npcId = npcId,
+                            name = npcChanges.name ?: "未知角色",
+                            role = npcChanges.role ?: "未知",
+                            briefing = npcChanges.briefing ?: "",
+                            attributes = npcChanges.attributes ?: emptyMap(),
+                            mood = npcChanges.mood ?: "neutral",
+                            awareness = npcChanges.awareness ?: "",
+                            appearance = npcChanges.appearance ?: "",
+                            personality = npcChanges.personality ?: "",
+                            backstory = npcChanges.backstory ?: "",
+                            updatedAt = now
+                        )
+                        gameRepository.saveNPC(newNpc)
+                    }
                 }
             }
         }
