@@ -61,16 +61,22 @@ fun MainMenuScreen(
     val coroutineScope = rememberCoroutineScope()
     val bgmManager = remember { BgmManager.getInstance(context) }
     var musicEnabled by remember { mutableStateOf(bgmManager.isMusicEnabled()) }
+    var hasStartedBgm by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         SettingsManager.getSettingsFlow(context).collect { settings ->
+            val wasEnabled = musicEnabled
             musicEnabled = settings.musicEnabled
-            bgmManager.setMusicEnabled(settings.musicEnabled)
+            if (wasEnabled != settings.musicEnabled) {
+                bgmManager.setMusicEnabled(settings.musicEnabled)
+            }
+            if (!hasStartedBgm) {
+                hasStartedBgm = true
+                if (settings.musicEnabled) {
+                    bgmManager.play(BgmTrack.MAIN)
+                }
+            }
         }
-    }
-
-    LaunchedEffect(Unit) {
-        bgmManager.play(BgmTrack.MAIN)
     }
 
     fun toggleMusic() {

@@ -25,6 +25,7 @@ class BgmManager private constructor(private val context: Context) {
     private val fadeStepDelayMs = 50L
 
     fun setMusicEnabled(enabled: Boolean) {
+        if (isMusicEnabled == enabled) return
         isMusicEnabled = enabled
         if (enabled) {
             currentTrackRef.get()?.let { playAsync(it) }
@@ -62,6 +63,7 @@ class BgmManager private constructor(private val context: Context) {
         newPlayer.setVolume(0f, 0f)
 
         newPlayer.setOnPreparedListener { mp ->
+            currentPlayerRef.set(mp)
             fadeJob = fadeScope.launch {
                 if (oldPlayer != null) {
                     mp.start()
@@ -73,10 +75,10 @@ class BgmManager private constructor(private val context: Context) {
             }
         }
 
-        newPlayer.setOnCompletionListener { }
-
         newPlayer.setOnErrorListener { mp, _, _ ->
-            mainHandler.post { releasePlayer(mp) }
+            if (currentPlayerRef.compareAndSet(mp, null)) {
+                mainHandler.post { releasePlayer(mp) }
+            }
             true
         }
 
@@ -87,7 +89,9 @@ class BgmManager private constructor(private val context: Context) {
             newPlayer.prepareAsync()
         } catch (e: Exception) {
             e.printStackTrace()
-            mainHandler.post { releasePlayer(newPlayer) }
+            if (currentPlayerRef.compareAndSet(newPlayer, null)) {
+                mainHandler.post { releasePlayer(newPlayer) }
+            }
         }
     }
 
