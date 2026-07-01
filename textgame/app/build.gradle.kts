@@ -86,6 +86,9 @@ dependencies {
 
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
+    implementation("androidx.media3:media3-exoplayer:1.2.0")
+    implementation("androidx.media3:media3-session:1.2.0")
+
     implementation("com.halilibo.compose-richtext:richtext-ui:0.17.0")
     implementation("com.halilibo.compose-richtext:richtext-ui-material3:0.17.0")
     implementation("com.halilibo.compose-richtext:richtext-commonmark:0.17.0")

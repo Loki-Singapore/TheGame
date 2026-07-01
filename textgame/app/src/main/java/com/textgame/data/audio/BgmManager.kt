@@ -1,8 +1,9 @@
 package com.textgame.data.audio
 
 import android.content.Context
-import android.media.MediaPlayer
-import android.net.Uri
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,9 +14,9 @@ import java.util.concurrent.atomic.AtomicReference
 
 class BgmManager private constructor(private val context: Context) {
 
-    private val currentPlayerRef = AtomicReference<MediaPlayer?>(null)
+    private val currentPlayerRef = AtomicReference<ExoPlayer?>(null)
     private val currentTrackRef = AtomicReference<BgmTrack?>(null)
-    private val isPreparing = AtomicBoolean(false)
+    private val isSwitching = AtomicBoolean(false)
     private val pendingTrack = AtomicReference<BgmTrack?>(null)
     private var isMusicEnabled: Boolean = true
     private val scope = CoroutineScope(Dispatchers.Main + Job())
@@ -39,21 +40,21 @@ class BgmManager private constructor(private val context: Context) {
     fun play(track: BgmTrack) {
         val currentTrack = currentTrackRef.get()
         val currentPlayer = currentPlayerRef.get()
-        
-        if (currentTrack == track && currentPlayer?.isPlaying == true) {
+
+        if (currentTrack == track && currentPlayer?.playWhenReady == true && currentPlayer.isPlaying) {
             pendingTrack.set(null)
             return
         }
 
         if (!isMusicEnabled) {
             pendingTrack.set(null)
-            isPreparing.set(false)
+            isSwitching.set(false)
             currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
             currentTrackRef.set(track)
             return
         }
 
-        if (isPreparing.get()) {
+        if (isSwitching.get()) {
             pendingTrack.set(track)
             return
         }
@@ -61,84 +62,70 @@ class BgmManager private constructor(private val context: Context) {
         fadeJob?.cancel()
 
         val oldPlayer = currentPlayerRef.get()
-        isPreparing.set(true)
+        isSwitching.set(true)
         currentTrackRef.set(track)
         pendingTrack.set(null)
 
-        val newPlayer = MediaPlayer()
-        newPlayer.isLooping = true
-        newPlayer.setVolume(0f, 0f)
+        val newPlayer = ExoPlayer.Builder(context).build()
+        newPlayer.volume = 0f
+        newPlayer.repeatMode = ExoPlayer.REPEAT_MODE_ONE
 
-        newPlayer.setOnPreparedListener { mp ->
-            currentPlayerRef.set(mp)
-            isPreparing.set(false)
+        val resId = track.resId
+        val mediaItem = MediaItem.fromUri("android.resource://${context.packageName}/$resId")
+        newPlayer.setMediaItem(mediaItem)
 
-            val pending = pendingTrack.getAndSet(null)
-            if (pending != null && pending != track) {
-                releasePlayer(mp)
-                currentPlayerRef.set(null)
-                play(pending)
-                return@setOnPreparedListener
-            }
+        newPlayer.addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_READY) {
+                    newPlayer.removeListener(this)
+                    currentPlayerRef.set(newPlayer)
 
-            mp.start()
+                    val pending = pendingTrack.get()
+                    if (pending != null && pending != track) {
+                        releasePlayer(newPlayer)
+                        currentPlayerRef.set(null)
+                        isSwitching.set(false)
+                        play(pending)
+                        return
+                    }
 
-            fadeJob = scope.launch {
-                if (oldPlayer != null) {
-                    crossFade(mp, oldPlayer)
-                } else {
-                    fadeIn(mp)
+                    fadeJob = scope.launch {
+                        if (oldPlayer != null) {
+                            crossFade(newPlayer, oldPlayer)
+                        } else {
+                            fadeIn(newPlayer)
+                        }
+                        isSwitching.set(false)
+                        checkPending()
+                    }
                 }
             }
-        }
+        })
 
-        newPlayer.setOnErrorListener { mp, _, _ ->
-            isPreparing.set(false)
-            currentPlayerRef.compareAndSet(mp, null)
-            releasePlayer(mp)
-            val pending = pendingTrack.getAndSet(null)
-            if (pending != null) {
-                play(pending)
-            }
-            true
-        }
+        newPlayer.prepare()
+        newPlayer.playWhenReady = true
+    }
 
-        try {
-            val resId = track.resId
-            val uri = Uri.parse("android.resource://${context.packageName}/$resId")
-            newPlayer.setDataSource(context, uri)
-            newPlayer.prepareAsync()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            isPreparing.set(false)
-            releasePlayer(newPlayer)
-            val pending = pendingTrack.getAndSet(null)
-            if (pending != null) {
-                play(pending)
-            }
+    private fun checkPending() {
+        val pending = pendingTrack.getAndSet(null)
+        if (pending != null) {
+            play(pending)
         }
     }
 
-    private suspend fun fadeIn(player: MediaPlayer) {
+    private suspend fun fadeIn(player: ExoPlayer) {
         val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
         for (i in 0..steps) {
             val progress = i.toFloat() / steps
             val eased = easeInOutCubic(progress)
             val volume = eased * maxVolume
-            try {
-                player.setVolume(volume, volume)
-            } catch (e: Exception) {
-                break
-            }
+            player.volume = volume
             delay(fadeStepDelayMs)
         }
-        try {
-            player.setVolume(maxVolume, maxVolume)
-        } catch (e: Exception) {
-        }
+        player.volume = maxVolume
     }
 
-    private suspend fun crossFade(newPlayer: MediaPlayer, oldPlayer: MediaPlayer) {
+    private suspend fun crossFade(newPlayer: ExoPlayer, oldPlayer: ExoPlayer) {
         val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
 
         for (i in 0..steps) {
@@ -147,27 +134,19 @@ class BgmManager private constructor(private val context: Context) {
             val newVolume = eased * maxVolume
             val oldVolume = maxVolume * (1f - eased)
 
-            try {
-                newPlayer.setVolume(newVolume, newVolume)
-                oldPlayer.setVolume(oldVolume, oldVolume)
-            } catch (e: Exception) {
-                break
-            }
+            newPlayer.volume = newVolume
+            oldPlayer.volume = oldVolume
+
             delay(fadeStepDelayMs)
         }
 
-        try {
-            newPlayer.setVolume(maxVolume, maxVolume)
-        } catch (e: Exception) {
-        }
+        newPlayer.volume = maxVolume
         releasePlayer(oldPlayer)
     }
 
-    private fun releasePlayer(player: MediaPlayer) {
+    private fun releasePlayer(player: ExoPlayer) {
         try {
-            if (player.isPlaying) {
-                player.stop()
-            }
+            player.stop()
             player.release()
         } catch (e: Exception) {
         }
@@ -175,25 +154,21 @@ class BgmManager private constructor(private val context: Context) {
 
     fun stop() {
         fadeJob?.cancel()
-        isPreparing.set(false)
+        isSwitching.set(false)
         pendingTrack.set(null)
         currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
     }
 
     fun pause() {
         currentPlayerRef.get()?.let {
-            if (it.isPlaying) {
-                it.pause()
-            }
+            it.playWhenReady = false
         }
     }
 
     fun resume() {
         if (isMusicEnabled) {
             currentPlayerRef.get()?.let {
-                if (!it.isPlaying) {
-                    it.start()
-                }
+                it.playWhenReady = true
             }
         }
     }
