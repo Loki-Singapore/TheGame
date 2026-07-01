@@ -2,6 +2,7 @@ package com.textgame.data.audio
 
 import android.content.Context
 import android.media.MediaPlayer
+import android.net.Uri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -22,7 +23,7 @@ class BgmManager private constructor(private val context: Context) {
     fun setMusicEnabled(enabled: Boolean) {
         isMusicEnabled = enabled
         if (enabled) {
-            currentTrack?.let { play(it) }
+            currentTrack?.let { playAsync(it) }
         } else {
             stop()
         }
@@ -31,6 +32,10 @@ class BgmManager private constructor(private val context: Context) {
     fun isMusicEnabled(): Boolean = isMusicEnabled
 
     fun play(track: BgmTrack) {
+        playAsync(track)
+    }
+
+    private fun playAsync(track: BgmTrack) {
         if (currentTrack == track && mediaPlayer?.isPlaying == true) {
             return
         }
@@ -46,28 +51,59 @@ class BgmManager private constructor(private val context: Context) {
         fadeJob?.cancel()
 
         val oldPlayer = mediaPlayer
-        val oldTrack = currentTrack
         currentTrack = track
 
-        try {
-            val newPlayer = MediaPlayer.create(context.applicationContext, track.resId)
-            newPlayer.isLooping = true
-            newPlayer.setVolume(0f, 0f)
-            mediaPlayer = newPlayer
+        val newPlayer = MediaPlayer()
+        newPlayer.isLooping = true
+        newPlayer.setVolume(0f, 0f)
 
+        newPlayer.setOnPreparedListener { mp ->
+            mediaPlayer = mp
             if (oldPlayer != null) {
-                newPlayer.start()
+                mp.start()
                 fadeJob = fadeScope.launch {
-                    crossFade(newPlayer, oldPlayer)
+                    crossFade(mp, oldPlayer)
                 }
             } else {
-                newPlayer.setVolume(maxVolume, maxVolume)
-                newPlayer.start()
+                mp.setVolume(maxVolume, maxVolume)
+                mp.start()
             }
+        }
+
+        newPlayer.setOnErrorListener { mp, _, _ ->
+            releasePlayer(mp)
+            true
+        }
+
+        try {
+            val afd = context.assets.openFd("raw/bgm_${getAssetName(track)}.mp3")
+            newPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+            newPlayer.prepareAsync()
         } catch (e: Exception) {
-            e.printStackTrace()
-            mediaPlayer?.let { releasePlayer(it) }
-            mediaPlayer = null
+            try {
+                val resId = track.resId
+                val uri = Uri.parse("android.resource://${context.packageName}/$resId")
+                newPlayer.setDataSource(context, uri)
+                newPlayer.prepareAsync()
+            } catch (e2: Exception) {
+                e2.printStackTrace()
+                releasePlayer(newPlayer)
+            }
+        }
+    }
+
+    private fun getAssetName(track: BgmTrack): String {
+        return when (track) {
+            BgmTrack.MAIN -> "main"
+            BgmTrack.BATTLE -> "battle"
+            BgmTrack.DANGER -> "danger"
+            BgmTrack.VICTORY -> "victory"
+            BgmTrack.ROMANCE -> "romance"
+            BgmTrack.UNKNOWN_FEAR -> "unknown_fear"
+            BgmTrack.SPRING_SUMMER -> "spring_summer"
+            BgmTrack.AUTUMN -> "autumn"
+            BgmTrack.WINTER -> "winter"
         }
     }
 
