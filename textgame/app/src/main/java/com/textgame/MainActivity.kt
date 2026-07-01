@@ -32,7 +32,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppModule.initialize(this)
         bgmManager = BgmManager.getInstance(this)
-        bgmManager.initialize()
 
         lifecycleScope.launch {
             val settings = SettingsManager.getSettingsFlow(this@MainActivity).first()
