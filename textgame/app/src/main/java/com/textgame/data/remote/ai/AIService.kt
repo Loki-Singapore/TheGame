@@ -70,14 +70,14 @@ class AIService(
 
         // 消息按稳定性从高到低排列，最大化DeepSeek上下文缓存命中率：
         // 1. system: 静态规则+世界观+背景设定+输出指令（几乎不变）
-        // 2. worldRules: 世界观细则（偶尔增长，已有前缀不变）
-        // 3. dialogueHistory: 对话历史（每轮增长，但已有前缀不变；总结后前缀变化）
+        // 2. dialogueHistory: 对话历史（纯追加，已有前缀永远不变，缓存命中最高）
+        // 3. worldRules: 世界观细则（偶尔增长或修改已有条目，不如对话历史稳定）
         // 4. gameState: 当前游戏状态（每轮变化）
         // 5. userInput: 玩家输入（每轮不同）
         val messages = listOf(
             ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = worldRulesPrompt),
             ChatMessage(role = "user", content = dialogueHistoryPrompt),
+            ChatMessage(role = "user", content = worldRulesPrompt),
             ChatMessage(role = "user", content = gameStatePrompt),
             ChatMessage(role = "user", content = userPrompt)
         )
