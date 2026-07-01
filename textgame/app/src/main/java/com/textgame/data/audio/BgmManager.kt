@@ -85,7 +85,7 @@ class BgmManager private constructor(private val context: Context) {
                 releasePlayer(mp)
                 currentPlayerRef.set(null)
                 mainHandler.post { playInternal(pending) }
-                return
+                return@setOnPreparedListener
             }
 
             fadeJob = fadeScope.launch {
