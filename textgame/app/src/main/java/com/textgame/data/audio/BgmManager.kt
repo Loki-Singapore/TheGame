@@ -3,31 +3,17 @@ package com.textgame.data.audio
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
-import android.os.Handler
-import android.os.Looper
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.util.concurrent.atomic.AtomicReference
 
 class BgmManager private constructor(private val context: Context) {
 
-    private val currentPlayerRef = AtomicReference<MediaPlayer?>(null)
-    private val currentTrackRef = AtomicReference<BgmTrack?>(null)
+    private var activePlayer: MediaPlayer? = null
+    private var currentTrack: BgmTrack? = null
     private var isMusicEnabled: Boolean = true
-    private val fadeScope = CoroutineScope(Dispatchers.Main + Job())
-    private var fadeJob: Job? = null
-    private val mainHandler = Handler(Looper.getMainLooper())
-    private val maxVolume = 1.0f
-    private val fadeDurationMs = 5000L
-    private val fadeStepDelayMs = 50L
 
     fun setMusicEnabled(enabled: Boolean) {
         isMusicEnabled = enabled
         if (enabled) {
-            currentTrackRef.get()?.let { playAsync(it) }
+            currentTrack?.let { play(it) }
         } else {
             stop()
         }
@@ -36,103 +22,72 @@ class BgmManager private constructor(private val context: Context) {
     fun isMusicEnabled(): Boolean = isMusicEnabled
 
     fun play(track: BgmTrack) {
-        playAsync(track)
-    }
-
-    private fun playAsync(track: BgmTrack) {
-        val existingTrack = currentTrackRef.get()
-        if (existingTrack == track && currentPlayerRef.get()?.isPlaying == true) {
+        if (currentTrack == track && activePlayer?.isPlaying == true) {
             return
         }
 
         if (!isMusicEnabled) {
-            fadeJob?.cancel()
-            currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
-            currentTrackRef.set(track)
+            currentTrack = track
             return
         }
 
-        fadeJob?.cancel()
-
-        val oldPlayer = currentPlayerRef.getAndSet(null)
-        currentTrackRef.set(track)
-
-        val newPlayer = MediaPlayer()
-        newPlayer.isLooping = true
-        newPlayer.setVolume(0f, 0f)
-
-        newPlayer.setOnPreparedListener { mp ->
-            fadeJob = fadeScope.launch {
-                if (oldPlayer != null) {
-                    mp.start()
-                    crossFade(mp, oldPlayer)
-                } else {
-                    mp.setVolume(maxVolume, maxVolume)
-                    mp.start()
-                }
-            }
+        val oldPlayer = activePlayer
+        activePlayer = null
+        
+        if (oldPlayer != null) {
+            releasePlayer(oldPlayer)
         }
 
-        newPlayer.setOnCompletionListener { }
-
-        newPlayer.setOnErrorListener { mp, _, _ ->
-            mainHandler.post { releasePlayer(mp) }
-            true
-        }
+        currentTrack = track
 
         try {
-            val resId = track.resId
-            val uri = Uri.parse("android.resource://${context.packageName}/$resId")
+            val uri = Uri.parse("android.resource://${context.packageName}/${track.resId}")
+            val newPlayer = MediaPlayer()
             newPlayer.setDataSource(context, uri)
+            newPlayer.isLooping = true
+            newPlayer.setVolume(0f, 0f)
+            
+            newPlayer.setOnPreparedListener { mp ->
+                if (!isMusicEnabled) {
+                    releasePlayer(mp)
+                    return
+                }
+                
+                activePlayer = mp
+                mp.setVolume(1f, 1f)
+                mp.start()
+            }
+            
+            newPlayer.setOnErrorListener { mp, _, _ ->
+                releasePlayer(mp)
+                if (activePlayer == mp) activePlayer = null
+                true
+            }
+            
             newPlayer.prepareAsync()
         } catch (e: Exception) {
             e.printStackTrace()
-            mainHandler.post { releasePlayer(newPlayer) }
         }
-    }
-
-    private suspend fun crossFade(newPlayer: MediaPlayer, oldPlayer: MediaPlayer) {
-        val steps = (fadeDurationMs / fadeStepDelayMs).toInt()
-
-        for (i in 0..steps) {
-            val progress = i.toFloat() / steps
-            val eased = easeInOutCubic(progress)
-            val newVolume = eased * maxVolume
-            val oldVolume = maxVolume * (1f - eased)
-
-            try {
-                newPlayer.setVolume(newVolume, newVolume)
-                oldPlayer.setVolume(oldVolume, oldVolume)
-            } catch (e: Exception) {
-                break
-            }
-            delay(fadeStepDelayMs)
-        }
-
-        try {
-            newPlayer.setVolume(maxVolume, maxVolume)
-        } catch (e: Exception) {
-        }
-        mainHandler.post { releasePlayer(oldPlayer) }
     }
 
     private fun releasePlayer(player: MediaPlayer) {
         try {
-            if (player.isPlaying) {
-                player.stop()
-            }
+            player.stop()
+        } catch (e: Exception) {
+        }
+        try {
             player.release()
         } catch (e: Exception) {
         }
     }
 
     fun stop() {
-        fadeJob?.cancel()
-        currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
+        activePlayer?.let { releasePlayer(it) }
+        activePlayer = null
     }
 
     fun pause() {
-        currentPlayerRef.get()?.let {
+        activePlayer?.let {
             if (it.isPlaying) {
                 it.pause()
             }
@@ -141,7 +96,7 @@ class BgmManager private constructor(private val context: Context) {
 
     fun resume() {
         if (isMusicEnabled) {
-            currentPlayerRef.get()?.let {
+            activePlayer?.let {
                 if (!it.isPlaying) {
                     it.start()
                 }
@@ -149,15 +104,7 @@ class BgmManager private constructor(private val context: Context) {
         }
     }
 
-    fun getCurrentTrack(): BgmTrack? = currentTrackRef.get()
-
-    private fun easeInOutCubic(t: Float): Float {
-        return if (t < 0.5f) {
-            4f * t * t * t
-        } else {
-            1f - (-2f * t + 2f).let { it * it * it } / 2f
-        }
-    }
+    fun getCurrentTrack(): BgmTrack? = currentTrack
 
     companion object {
         @Volatile
