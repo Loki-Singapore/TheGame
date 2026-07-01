@@ -3,19 +3,23 @@ package com.textgame.data.audio
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicReference
 
 class BgmManager private constructor(private val context: Context) {
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var currentTrack: BgmTrack? = null
+    private val currentPlayerRef = AtomicReference<MediaPlayer?>(null)
+    private val currentTrackRef = AtomicReference<BgmTrack?>(null)
     private var isMusicEnabled: Boolean = true
     private val fadeScope = CoroutineScope(Dispatchers.Main + Job())
     private var fadeJob: Job? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val maxVolume = 1.0f
     private val fadeDurationMs = 5000L
     private val fadeStepDelayMs = 50L
@@ -23,7 +27,7 @@ class BgmManager private constructor(private val context: Context) {
     fun setMusicEnabled(enabled: Boolean) {
         isMusicEnabled = enabled
         if (enabled) {
-            currentTrack?.let { playAsync(it) }
+            currentTrackRef.get()?.let { playAsync(it) }
         } else {
             stop()
         }
@@ -36,74 +40,54 @@ class BgmManager private constructor(private val context: Context) {
     }
 
     private fun playAsync(track: BgmTrack) {
-        if (currentTrack == track && mediaPlayer?.isPlaying == true) {
+        val existingTrack = currentTrackRef.get()
+        if (existingTrack == track && currentPlayerRef.get()?.isPlaying == true) {
             return
         }
 
         if (!isMusicEnabled) {
             fadeJob?.cancel()
-            mediaPlayer?.let { releasePlayer(it) }
-            mediaPlayer = null
-            currentTrack = track
+            currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
+            currentTrackRef.set(track)
             return
         }
 
         fadeJob?.cancel()
 
-        val oldPlayer = mediaPlayer
-        currentTrack = track
+        val oldPlayer = currentPlayerRef.getAndSet(null)
+        currentTrackRef.set(track)
 
         val newPlayer = MediaPlayer()
         newPlayer.isLooping = true
         newPlayer.setVolume(0f, 0f)
 
         newPlayer.setOnPreparedListener { mp ->
-            mediaPlayer = mp
-            if (oldPlayer != null) {
-                mp.start()
-                fadeJob = fadeScope.launch {
+            fadeJob = fadeScope.launch {
+                if (oldPlayer != null) {
+                    mp.start()
                     crossFade(mp, oldPlayer)
+                } else {
+                    mp.setVolume(maxVolume, maxVolume)
+                    mp.start()
                 }
-            } else {
-                mp.setVolume(maxVolume, maxVolume)
-                mp.start()
             }
         }
 
+        newPlayer.setOnCompletionListener { }
+
         newPlayer.setOnErrorListener { mp, _, _ ->
-            releasePlayer(mp)
+            mainHandler.post { releasePlayer(mp) }
             true
         }
 
         try {
-            val afd = context.assets.openFd("raw/bgm_${getAssetName(track)}.mp3")
-            newPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
+            val resId = track.resId
+            val uri = Uri.parse("android.resource://${context.packageName}/$resId")
+            newPlayer.setDataSource(context, uri)
             newPlayer.prepareAsync()
         } catch (e: Exception) {
-            try {
-                val resId = track.resId
-                val uri = Uri.parse("android.resource://${context.packageName}/$resId")
-                newPlayer.setDataSource(context, uri)
-                newPlayer.prepareAsync()
-            } catch (e2: Exception) {
-                e2.printStackTrace()
-                releasePlayer(newPlayer)
-            }
-        }
-    }
-
-    private fun getAssetName(track: BgmTrack): String {
-        return when (track) {
-            BgmTrack.MAIN -> "main"
-            BgmTrack.BATTLE -> "battle"
-            BgmTrack.DANGER -> "danger"
-            BgmTrack.VICTORY -> "victory"
-            BgmTrack.ROMANCE -> "romance"
-            BgmTrack.UNKNOWN_FEAR -> "unknown_fear"
-            BgmTrack.SPRING_SUMMER -> "spring_summer"
-            BgmTrack.AUTUMN -> "autumn"
-            BgmTrack.WINTER -> "winter"
+            e.printStackTrace()
+            mainHandler.post { releasePlayer(newPlayer) }
         }
     }
 
@@ -129,7 +113,7 @@ class BgmManager private constructor(private val context: Context) {
             newPlayer.setVolume(maxVolume, maxVolume)
         } catch (e: Exception) {
         }
-        releasePlayer(oldPlayer)
+        mainHandler.post { releasePlayer(oldPlayer) }
     }
 
     private fun releasePlayer(player: MediaPlayer) {
@@ -144,12 +128,11 @@ class BgmManager private constructor(private val context: Context) {
 
     fun stop() {
         fadeJob?.cancel()
-        mediaPlayer?.let { releasePlayer(it) }
-        mediaPlayer = null
+        currentPlayerRef.getAndSet(null)?.let { releasePlayer(it) }
     }
 
     fun pause() {
-        mediaPlayer?.let {
+        currentPlayerRef.get()?.let {
             if (it.isPlaying) {
                 it.pause()
             }
@@ -158,7 +141,7 @@ class BgmManager private constructor(private val context: Context) {
 
     fun resume() {
         if (isMusicEnabled) {
-            mediaPlayer?.let {
+            currentPlayerRef.get()?.let {
                 if (!it.isPlaying) {
                     it.start()
                 }
@@ -166,7 +149,7 @@ class BgmManager private constructor(private val context: Context) {
         }
     }
 
-    fun getCurrentTrack(): BgmTrack? = currentTrack
+    fun getCurrentTrack(): BgmTrack? = currentTrackRef.get()
 
     private fun easeInOutCubic(t: Float): Float {
         return if (t < 0.5f) {
