@@ -2,7 +2,9 @@ package com.textgame.data.remote.ai
 
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import com.textgame.data.audio.BgmTrack
 import com.textgame.domain.model.AIResponse
+import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.GameState
 import com.textgame.domain.model.NPC
@@ -21,18 +23,47 @@ class AIService(
 ) {
     private val gson = Gson()
 
+    /**
+     * 为NPC列表分配唯一ID（如果尚未分配）
+     * 格式：npc_001, npc_002, ...
+     */
+    fun assignNpcIds(npcs: List<NPC>): List<NPC> {
+        var counter = 1
+        return npcs.map { npc ->
+            if (npc.npcId.isBlank()) {
+                npc.copy(npcId = "npc_${counter++.toString().padStart(3, '0')}")
+            } else {
+                npc
+            }
+        }
+    }
+
+    /**
+     * 为单个NPC生成下一个可用的ID
+     */
+    fun generateNextNpcId(existingNpcs: List<NPC>): String {
+        val maxNum = existingNpcs.mapNotNull {
+            it.npcId.removePrefix("npc_").toIntOrNull()
+        }.maxOrNull() ?: 0
+        return "npc_${(maxNum + 1).toString().padStart(3, '0')}"
+    }
+
     suspend fun generateDialogueResponse(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting,
         summary: Summary?,
+        preSummaryDialogues: List<String>,
+        postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        recentDialogues: List<String>,
         userInput: String
     ): AIResponse {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val contextPrompt = buildContextPrompt(summary, protagonist, npcs, gameState, recentDialogues)
+        val contextPrompt = buildContextPrompt(
+            summary, preSummaryDialogues, postSummaryDialogues,
+            protagonist, npcs, gameState, worldSetting.attributeCategories, worldSetting.worldRules
+        )
         val userPrompt = buildUserPrompt(userInput)
         val outputInstruction = buildOutputInstruction()
 
@@ -45,12 +76,42 @@ class AIService(
             model = model,
             messages = messages,
             temperature = dialogueTemperature,
-            maxTokens = dialogueMaxTokens
+            maxTokens = dialogueMaxTokens,
+            responseFormat = ResponseFormat(type = "json_object")
         )
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
-        return parseAIResponse(content)
+        if (content.isBlank()) {
+            // JSON Mode有概率返回空content，降级为普通模式重试
+            val fallbackRequest = ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = dialogueTemperature,
+                maxTokens = dialogueMaxTokens
+            )
+            val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
+            val fallbackContent = fallbackResponse.choices.firstOrNull()?.message?.content ?: ""
+            return parseAIResponse(fallbackContent).copy(
+                tokenUsage = fallbackResponse.usage?.let {
+                    com.textgame.domain.model.TokenUsage(
+                        promptTokens = it.promptTokens,
+                        completionTokens = it.completionTokens,
+                        totalTokens = it.totalTokens
+                    )
+                }
+            )
+        }
+        val aiResponse = parseAIResponse(content)
+        return aiResponse.copy(
+            tokenUsage = response.usage?.let {
+                com.textgame.domain.model.TokenUsage(
+                    promptTokens = it.promptTokens,
+                    completionTokens = it.completionTokens,
+                    totalTokens = it.totalTokens
+                )
+            }
+        )
     }
 
     suspend fun generateSummary(
@@ -58,9 +119,10 @@ class AIService(
         recentDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState
+        gameState: GameState,
+        previousSummary: Summary? = null
     ): Summary {
-        val prompt = buildSummaryPrompt(worldSetting, recentDialogues, protagonist, npcs, gameState)
+        val prompt = buildSummaryPrompt(worldSetting, recentDialogues, protagonist, npcs, gameState, previousSummary)
 
         val messages = listOf(
             ChatMessage(role = "system", content = "你是一个游戏剧情总结助手，负责总结近期游戏进展。"),
@@ -112,6 +174,8 @@ class AIService(
                   "appearance": "外貌描述"
                 }
               ]
+              
+            NPC的ID会自动分配为npc_001, npc_002等格式，你不需要在JSON中提供npcId字段
             }
 
             重要规则：
@@ -131,11 +195,22 @@ class AIService(
             model = model,
             messages = messages,
             temperature = 1.0f,
-            maxTokens = 8000
+            maxTokens = 8000,
+            responseFormat = ResponseFormat(type = "json_object")
         )
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
+        if (content.isBlank()) {
+            val fallbackRequest = ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = 1.0f,
+                maxTokens = 8000
+            )
+            val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
+            return parseGeneratedWorld(fallbackResponse.choices.firstOrNull()?.message?.content ?: "")
+        }
         return parseGeneratedWorld(content)
     }
 
@@ -143,6 +218,108 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting
     ): String = buildString {
+        appendLine("【输出格式要求】")
+        appendLine("你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown代码块标记。你的整个回复内容必须是一个可以直接被解析的JSON对象。")
+        appendLine()
+        appendLine("JSON格式如下：")
+        appendLine("{")
+        appendLine("  \"dialogue\": \"当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）\",")
+        appendLine("  \"narrative\": \"场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富\",")
+        appendLine("  \"bgm\": \"背景音乐关键词（可选，从下方BGM列表中选择一个最匹配当前剧情氛围的关键词，如果不需要切换则不填该字段）\",")
+        appendLine("  \"choices\": [")
+        appendLine("    \"选项1的文字描述\",")
+        appendLine("    \"选项2的文字描述\",")
+        appendLine("    \"选项3的文字描述\"")
+        appendLine("  ],")
+        appendLine("  \"state_changes\": {")
+        appendLine("    \"protagonist\": {")
+        appendLine("      \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）},")
+        appendLine("      \"inventory_add\": [\"新增物品\"],")
+        appendLine("      \"inventory_remove\": [\"移除物品\"],")
+        appendLine("      \"location_change\": \"新位置\"")
+        appendLine("    },")
+        appendLine("    \"npc\": {")
+        appendLine("      \"已存在NPC的ID（如npc_001）\": {")
+        appendLine("        \"mood\": \"新情绪\",")
+        appendLine("        \"awareness\": \"新的认知更新\",")
+        appendLine("        \"briefing\": \"一句话简介更新\",")
+        appendLine("        \"personality\": \"性格特点更新\",")
+        appendLine("        \"backstory\": \"背景故事更新（记录过去的经历或当前经历的重大事件）\",")
+        appendLine("        \"appearance\": \"外貌描述更新（添加新的细节变化）\",")
+        appendLine("        \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）}")
+        appendLine("      },")
+        appendLine("      \"新NPC的ID（新出现的角色，格式如npc_003）\": {")
+        appendLine("        \"is_new\": true,")
+        appendLine("        \"name\": \"NPC名称\",")
+        appendLine("        \"role\": \"角色身份（如：旅店老板、神秘剑客等）\",")
+        appendLine("        \"briefing\": \"一句话简介\",")
+        appendLine("        \"appearance\": \"外貌详细描述\",")
+        appendLine("        \"personality\": \"性格特点\",")
+        appendLine("        \"backstory\": \"背景故事\",")
+        appendLine("        \"mood\": \"当前情绪\",")
+        appendLine("        \"awareness\": \"对主角的认知\",")
+        appendLine("        \"attributes\": {\"属性名\": 初始数值}")
+        appendLine("      }")
+        appendLine("    },")
+        appendLine("    \"game\": {")
+        appendLine("      \"scene_change\": \"新场景名称\",")
+        appendLine("      \"event_trigger\": \"触发的事件名\",")
+        appendLine("      \"flag_set\": {\"标记名\": true/false},")
+        appendLine("      \"world_rules\": [")
+        appendLine("        {\"id\": \"worldrule_001\", \"content\": \"细则内容\"}")
+        appendLine("      ]")
+        appendLine("    }")
+        appendLine("  },")
+        appendLine("  \"summary_update\": false")
+        appendLine("}")
+        appendLine()
+        appendLine("重要规则（必须严格遵守）：")
+        appendLine("1. 你的整个回复只能是JSON，不能有任何其他文字、解释或markdown代码块标记")
+        appendLine("2. 每次回复都必须有state_changes字段，即使没有变化也要包含该字段")
+        appendLine("3. narrative字段是核心，必须包含完整的情节叙述，内容要充实饱满")
+        appendLine("4. narrative中必须包含：当前场景的环境描写（光线、声音、气味等感官细节）、在场NPC的状态和动作描写、事件进展、主角的感受")
+        appendLine("5. 如果是NPC第一次出场，必须在narrative中详细描写其外貌（面容、身材、穿着、气质）")
+        appendLine("6. 对话要符合角色性格，自然流畅，配合动作和表情描写")
+        appendLine("7. 用直白、有画面感的文字描写，让玩家有身临其境的感觉")
+        appendLine("8. 每次回复都要推动剧情，提供足够的互动空间")
+        appendLine("9. 适当加入突发事件或环境变化，让场景更生动真实")
+        appendLine("10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么")
+        appendLine("11. 选项应该多样化，可以是对话选项、行动选项、调查选项等")
+        appendLine("12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态")
+        appendLine("13. 每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true")
+        appendLine("14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID")
+        appendLine("15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId")
+        appendLine("16. NPC的所有字段都可以随着剧情发展更新：name（名称）、role（角色定位）、briefing（简介）、mood（当前情绪）、awareness（对主角的认知）、appearance（外貌）、personality（性格）、backstory（背景故事）。当剧情揭示了新的信息或状态发生变化时，必须及时更新对应的字段。特别注意：")
+        appendLine("    - backstory（背景故事）：返回完整的、自包含的内容，包含所有历史信息+最新动态，不是只返回增量。原有内容中仍然重要的信息必须保留并整合，再加上新发生的重大事件，绝不能用新内容直接覆盖历史")
+        appendLine("    - appearance（外貌描述）：返回完整的、自包含的外貌描述，包含基础形象（面容、身材、气质、常服等）+ 最新变化（临时服装、受伤、表情等）。基础形象必须保留，新变化是在基础上补充，绝不能用临时状态覆盖整体形象")
+        appendLine("    - 当NPC经历了重要事件后，必须在对应的字段中体现出来")
+        appendLine("17. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
+        appendLine("18. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
+        appendLine("19. 禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。")
+        appendLine("20. 引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。")
+        appendLine("21. 【世界观细则维护 - 重要】你必须主动维护世界观细则（game.world_rules），这是游戏世界的知识库：")
+        appendLine("    - 当剧情中揭示了新的世界设定、历史背景、魔法/力量体系规则、社会制度、文化习俗、地理信息、特殊规则等长期有效的信息时，必须添加新的世界观细则")
+        appendLine("    - 当已有世界观细则需要修正、补充或细化时，可以修改对应细则的内容")
+        appendLine("    - 禁止删除任何已有的世界观细则，即使你认为它不再重要")
+        appendLine("    - 新增细则时，id由你指定，格式为 worldrule_XXX（XXX为数字编号，按顺序递增，确保与已有细则的ID不冲突）")
+        appendLine("    - 修改已有细则时必须填写该细则的id，id从上方\"世界观细则\"列表中获取")
+        appendLine("    - 每条细则用简洁的一句话概括核心内容，不要长篇大论")
+        appendLine("    - 如果本轮没有新增或修改的细则，world_rules字段可以省略")
+        appendLine()
+        appendLine("【背景音乐BGM点播】")
+        appendLine("你可以根据当前剧情氛围点播背景音乐。可用的BGM关键词如下：")
+        val bgmKeywords = BgmTrack.availableKeywords()
+        bgmKeywords.forEach { keyword ->
+            appendLine("- $keyword")
+        }
+        appendLine()
+        appendLine("BGM点播规则：")
+        appendLine("1. 当剧情氛围发生明显变化时（如进入战斗、发现危险、获得胜利、场景切换等），选择最匹配的BGM关键词填入bgm字段")
+        appendLine("2. 如果当前氛围没有明显变化，不需要切换BGM，就不要填bgm字段（省略该字段）")
+        appendLine("3. 必须从上面的列表中选择关键词，不能自创关键词")
+        appendLine("4. 季节类BGM（春夏、秋天、冬天）在场景切换到对应季节环境时使用")
+        appendLine("5. 情绪类BGM（战斗、危险临近、胜利、爱情、未知的恐惧）在剧情氛围匹配时使用")
+        appendLine()
         appendLine("你是一个文字冒险游戏的游戏主持人和NPC扮演助手。")
         appendLine("你的回复必须详细、丰富、生动，给玩家沉浸式的游戏体验。")
         appendLine()
@@ -188,36 +365,76 @@ class AIService(
 
     private fun buildContextPrompt(
         summary: Summary?,
+        preSummaryDialogues: List<String>,
+        postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        recentDialogues: List<String>
+        attributeCategories: List<AttributeCategory> = emptyList(),
+        worldRules: List<com.textgame.domain.model.WorldRule> = emptyList()
     ): String = buildString {
+        // 总结前的十轮对话（有总结时才写）
+        if (preSummaryDialogues.isNotEmpty()) {
+            appendLine("【总结前的对话记录（参考）】")
+            preSummaryDialogues.forEach { appendLine(it) }
+            appendLine()
+        }
+
+        // 近期总结
         if (summary != null && summary.summaryText.isNotEmpty()) {
             appendLine("【近期进度总结】")
             appendLine(summary.summaryText)
             appendLine()
         }
+
+        // 上次总结后的对话
+        if (postSummaryDialogues.isNotEmpty()) {
+            appendLine("【上次总结后的对话记录】")
+            postSummaryDialogues.forEach { appendLine(it) }
+            appendLine()
+        }
+
         appendLine("【主角状态】")
         appendLine("姓名：${protagonist.name}")
         appendLine("位置：${protagonist.location}")
         if (protagonist.attributes.isNotEmpty()) {
             appendLine("属性：")
             protagonist.attributes.forEach { (key, value) ->
-                appendLine("  $key: $value")
+                val cat = attributeCategories.find { it.name == key }
+                val meta = buildString {
+                    if (cat != null) {
+                        append("类型:${cat.type.name.lowercase()}")
+                        if (cat.minValue != null) append(" 最小:${cat.minValue}")
+                        if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
+                        if (cat.description.isNotBlank()) append(" - ${cat.description}")
+                    }
+                }
+                if (meta.isNotEmpty()) {
+                    appendLine("  $key: $value  [$meta]")
+                } else {
+                    appendLine("  $key: $value")
+                }
             }
         }
         if (protagonist.inventory.isNotEmpty()) {
             appendLine("物品：${protagonist.inventory.joinToString("、")}")
         }
         appendLine()
+
         if (npcs.isNotEmpty()) {
             appendLine("【在场NPC】")
             npcs.forEach { npc ->
-                appendLine("${npc.name}（${npc.role}）")
+                val displayId = npc.npcId.ifBlank { "未分配" }
+                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
+                if (npc.briefing.isNotEmpty()) {
+                    appendLine("  简介：${npc.briefing}")
+                }
                 appendLine("  情绪：${npc.mood}")
                 if (npc.awareness.isNotEmpty()) {
                     appendLine("  认知：${npc.awareness}")
+                }
+                if (npc.personality.isNotEmpty()) {
+                    appendLine("  性格：${npc.personality}")
                 }
                 if (npc.backstory.isNotEmpty()) {
                     appendLine("  背景：${npc.backstory}")
@@ -225,16 +442,36 @@ class AIService(
                 if (npc.appearance.isNotEmpty()) {
                     appendLine("  外貌：${npc.appearance}")
                 }
+                if (npc.attributes.isNotEmpty()) {
+                    appendLine("  属性：")
+                    npc.attributes.forEach { (key, value) ->
+                        val cat = attributeCategories.find { it.name == key }
+                        val meta = buildString {
+                            if (cat != null) {
+                                append("类型:${cat.type.name.lowercase()}")
+                                if (cat.minValue != null) append(" 最小:${cat.minValue}")
+                                if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
+                            }
+                        }
+                        if (meta.isNotEmpty()) {
+                            appendLine("    $key: $value  [$meta]")
+                        } else {
+                            appendLine("    $key: $value")
+                        }
+                    }
+                }
             }
             appendLine()
         }
-        if (recentDialogues.isNotEmpty()) {
-            appendLine("【近期对话记录】")
-            recentDialogues.forEach { dialogue ->
-                appendLine(dialogue)
+
+        if (worldRules.isNotEmpty()) {
+            appendLine("【世界观细则】")
+            worldRules.forEach { rule ->
+                appendLine("[${rule.id}] ${rule.content}")
             }
             appendLine()
         }
+
         appendLine("【当前场景】${gameState.currentScene}")
         appendLine("【当前轮次】${gameState.turnCount}")
     }
@@ -249,91 +486,76 @@ class AIService(
         recentDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
-        gameState: GameState
+        gameState: GameState,
+        previousSummary: Summary? = null
     ): String = buildString {
         appendLine("【世界观】")
         appendLine("世界名称：${worldSetting.name}")
         appendLine("世界类型：${worldSetting.worldType}")
         appendLine()
-        appendLine("【近期对话】")
+        if (previousSummary != null && previousSummary.summaryText.isNotEmpty()) {
+            appendLine("【上一次总结】")
+            appendLine(previousSummary.summaryText)
+            appendLine()
+            appendLine("注意：你需要结合近期对话和上一次总结，生成一份新的、完整的总结。")
+            appendLine("判断标准：")
+            appendLine("- 上一次总结中仍然重要、与当前剧情相关的信息，保留并整合进来")
+            appendLine("- 已经过时、不再重要、或被后续剧情覆盖的信息，舍弃掉")
+            appendLine("- 近期对话中的新内容，有重要性的加入，不重要的不加入")
+            appendLine("- 最终输出是一份完整的、自包含的总结，不是增量追加")
+            appendLine()
+        }
+        appendLine("【近期完整对话记录】")
         recentDialogues.forEachIndexed { index, dialogue ->
             appendLine("${index + 1}. $dialogue")
         }
         appendLine()
-        appendLine("【主角状态】")
-        appendLine("姓名：${protagonist.name}")
-        appendLine("位置：${protagonist.location}")
+        if (npcs.isNotEmpty()) {
+            appendLine("【NPC当前状态】")
+            npcs.forEach { npc ->
+                val displayId = npc.npcId.ifBlank { "未分配" }
+                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
+                appendLine("  情绪: ${npc.mood}, 认知: ${npc.awareness}")
+            }
+            appendLine()
+        }
+        appendLine("【主角当前状态】")
+        appendLine("姓名：${protagonist.name}，位置：${protagonist.location}")
+        if (protagonist.attributes.isNotEmpty()) {
+            appendLine("属性：${protagonist.attributes.entries.joinToString(", ") { "${it.key}=${it.value}" }}")
+        }
+        if (protagonist.inventory.isNotEmpty()) {
+            appendLine("物品：${protagonist.inventory.joinToString("、")}")
+        }
         appendLine()
-        appendLine("【当前轮次】${gameState.turnCount}")
+        appendLine("【当前轮次】${gameState.turnCount}，当前场景：${gameState.currentScene}")
         appendLine()
-        appendLine("请总结以上游戏进展，包括：")
-        appendLine("1. 关键事件")
-        appendLine("2. 涉及的NPC")
-        appendLine("3. 场景和剧情进展")
-        appendLine("4. 主角状态变化")
+        appendLine("【总结要求】")
+        appendLine("请基于以上对话记录，提炼并总结关键剧情点和关键信息。注意：")
+        appendLine("- 这是总结，不是原文复述。禁止大段粘贴原文，必须用自己的话提炼概括。")
+        appendLine("- 要覆盖尽可能多的剧情细节，每个重要节点都要提到。")
+        appendLine("- 只陈述客观事实，不要加入主观评价、心理分析或推测。")
+        appendLine("- 语言简洁，不要啰嗦。")
+        appendLine()
+        appendLine("总结必须包含以下内容：")
+        appendLine()
+        appendLine("1. 【关键事件】按时间顺序列出所有重要事件。每个事件说明：发生了什么、涉及谁、在哪里、导致了什么结果。")
+        appendLine()
+        appendLine("2. 【场景变化】主角经过的场景/地点，以及每个场景中发生的关键事。")
+        appendLine()
+        appendLine("3. 【待处理事项】对话中明确提到的、主角尚未完成的事项或约定。只写已有信息，不做推测。")
+        appendLine()
+        appendLine("请用简洁的条目式撰写，每个条目一行，方便后续检索。")
     }
 
     private fun buildOutputInstruction(): String = """
-        【输出要求】
-        你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown代码块标记。你的整个回复内容必须是一个可以直接被解析的JSON对象。
-
-        JSON格式如下：
-        {
-          "dialogue": "当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）",
-          "narrative": "场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富",
-          "choices": [
-            "选项1的文字描述",
-            "选项2的文字描述",
-            "选项3的文字描述"
-          ],
-          "state_changes": {
-            "protagonist": {
-              "attribute_changes": {"属性名": 数值变化},
-              "inventory_add": ["新增物品"],
-              "inventory_remove": ["移除物品"],
-              "location_change": "新位置"
-            },
-            "npc": {
-              "已存在的NPC名称": {
-                "mood": "新情绪",
-                "awareness": "新的认知更新",
-                "attribute_changes": {"属性名": 数值}
-              },
-              "新NPC名称（新出现的角色）": {
-                "is_new": true,
-                "role": "角色身份（如：旅店老板、神秘剑客等）",
-                "appearance": "外貌详细描述",
-                "personality": "性格特点",
-                "backstory": "背景故事",
-                "mood": "当前情绪",
-                "awareness": "对主角的认知"
-              }
-            },
-            "game": {
-              "scene_change": "新场景名称",
-              "event_trigger": "触发的事件名",
-              "flag_set": {"标记名": true/false}
-            }
-          },
-          "summary_update": false
-        }
-
-        重要规则（必须严格遵守）：
-        1. 你的整个回复只能是JSON，不能有任何其他文字、解释或markdown代码块标记
-        2. 每次回复都必须有state_changes字段，即使没有变化也要包含该字段
-        3. narrative字段是核心，必须包含完整的情节叙述，内容要充实饱满
-        4. narrative中必须包含：当前场景的环境描写（光线、声音、气味等感官细节）、在场NPC的状态和动作描写、事件进展、主角的感受
-        5. 如果是NPC第一次出场，必须在narrative中详细描写其外貌（面容、身材、穿着、气质）
-        6. 对话要符合角色性格，自然流畅，配合动作和表情描写
-        7. 用直白、有画面感的文字描写，让玩家有身临其境的感觉
-        8. 每次回复都要推动剧情，提供足够的互动空间
-        9. 适当加入突发事件或环境变化，让场景更生动真实
-        10. choices字段必须包含3-4个玩家可以选择的行动选项，每个选项用简洁的文字描述玩家可以做什么
-        11. 选项应该多样化，可以是对话选项、行动选项、调查选项等
-        12. 无论玩家输入是什么，都必须输出state_changes来更新游戏状态
-        13. 【重要】当剧情中出现新NPC时，必须在state_changes.npc中以"新NPC名称"作为key，并且is_new必须设为true，同时提供role、appearance、personality、backstory、mood、awareness字段
-        14. 已经在场的NPC不要重复设置is_new，只更新mood/awareness等
-        15. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结
+        【本轮输出提醒】
+        请以纯JSON格式回复，格式和规则已在system提示词中详细说明。
+        特别注意：
+        - narrative必须详细丰富，包含完整场景、动作、对话和心理描写
+        - 每次回复都要推动剧情发展
+        - attributes只返回变化的属性，引擎会保留其他属性不变
+        - 禁止创建新属性名或修改属性类目
     """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
@@ -392,7 +614,7 @@ class AIService(
                 }
             }
 
-            val npcs = mutableListOf<NPC>()
+            var npcs = mutableListOf<NPC>()
             if (json.has("npcs")) {
                 json.getAsJsonArray("npcs").forEach { elem ->
                     val obj = elem.asJsonObject
@@ -409,6 +631,7 @@ class AIService(
                     )
                 }
             }
+            npcs = assignNpcIds(npcs).toMutableList()
 
             GeneratedWorldResult(
                 gameName = json.get("gameName")?.asString ?: "",

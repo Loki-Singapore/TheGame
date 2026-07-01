@@ -25,6 +25,7 @@ interface GameRepository {
     suspend fun getNPCList(sessionId: Long): List<NPC>
     suspend fun getNPCById(id: Long): NPC?
     suspend fun getNPCByName(sessionId: Long, name: String): NPC?
+    suspend fun getNPCByNpcId(sessionId: Long, npcId: String): NPC?
     suspend fun saveNPC(npc: NPC): Long
     suspend fun updateNPC(npc: NPC)
     suspend fun deleteNPC(id: Long)

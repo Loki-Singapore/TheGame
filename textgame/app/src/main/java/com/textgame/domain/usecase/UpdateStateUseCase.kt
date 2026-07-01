@@ -7,6 +7,8 @@ import com.textgame.domain.model.NPC
 import com.textgame.domain.model.NPCChanges
 import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.ProtagonistChanges
+import com.textgame.domain.model.WorldRule
+import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
 
 class UpdateStateUseCase(
@@ -23,8 +25,8 @@ class UpdateStateUseCase(
         }
 
         if (stateChanges?.npc != null) {
-            stateChanges.npc.forEach { (npcName, npcChanges) ->
-                val existingNpc = gameRepository.getNPCByName(sessionId, npcName)
+            stateChanges.npc.forEach { (npcId, npcChanges) ->
+                val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
                 if (existingNpc != null) {
                     val updatedNpc = updateNPC(existingNpc, npcChanges, now)
                     gameRepository.updateNPC(updatedNpc)
@@ -32,9 +34,11 @@ class UpdateStateUseCase(
                     // 新NPC：插入数据库
                     val newNpc = NPC(
                         sessionId = sessionId,
-                        name = npcName,
+                        npcId = npcId,
+                        name = npcChanges.name ?: "未知角色",
                         role = npcChanges.role ?: "未知",
-                        attributes = npcChanges.attributeChanges ?: emptyMap(),
+                        briefing = npcChanges.briefing ?: "",
+                        attributes = npcChanges.attributes ?: emptyMap(),
                         mood = npcChanges.mood ?: "neutral",
                         awareness = npcChanges.awareness ?: "",
                         appearance = npcChanges.appearance ?: "",
@@ -52,6 +56,25 @@ class UpdateStateUseCase(
             val updatedGameState = updateGameState(gameState, stateChanges?.game, userInput, now)
             gameRepository.updateGameState(updatedGameState)
         }
+
+        stateChanges?.game?.worldRules?.let { worldRuleChanges ->
+            if (worldRuleChanges.isNotEmpty()) {
+                val worldSetting = gameRepository.getWorldSetting(sessionId)
+                if (worldSetting != null) {
+                    val currentRules = worldSetting.worldRules.toMutableList()
+                    worldRuleChanges.forEach { change ->
+                        val ruleId = change.id?.takeIf { it.isNotBlank() } ?: return@forEach
+                        val index = currentRules.indexOfFirst { it.id == ruleId }
+                        if (index >= 0) {
+                            currentRules[index] = currentRules[index].copy(content = change.content)
+                        } else {
+                            currentRules.add(WorldRule(id = ruleId, content = change.content))
+                        }
+                    }
+                    gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
+                }
+            }
+        }
     }
 
     private fun updateProtagonist(
@@ -59,10 +82,11 @@ class UpdateStateUseCase(
         changes: ProtagonistChanges,
         now: Long
     ): Protagonist {
-        var updatedAttributes = protagonist.attributes.toMutableMap()
-
-        changes.attributeChanges?.forEach { (key, value) ->
-            updatedAttributes[key] = value
+        val updatedAttributes = protagonist.attributes.toMutableMap()
+        changes.attributes?.forEach { (key, value) ->
+            if (updatedAttributes.containsKey(key)) {
+                updatedAttributes[key] = value
+            }
         }
 
         var updatedInventory = protagonist.inventory.toMutableList()
@@ -78,13 +102,23 @@ class UpdateStateUseCase(
     }
 
     private fun updateNPC(npc: NPC, changes: NPCChanges, now: Long): NPC {
-        var updatedAttributes = npc.attributes.toMutableMap()
-        changes.attributeChanges?.let { updatedAttributes.putAll(it) }
+        val updatedAttributes = npc.attributes.toMutableMap()
+        changes.attributes?.forEach { (key, value) ->
+            if (updatedAttributes.containsKey(key)) {
+                updatedAttributes[key] = value
+            }
+        }
 
         return npc.copy(
             attributes = updatedAttributes,
+            name = changes.name ?: npc.name,
+            briefing = changes.briefing ?: npc.briefing,
             mood = changes.mood ?: npc.mood,
             awareness = changes.awareness ?: npc.awareness,
+            appearance = changes.appearance ?: npc.appearance,
+            personality = changes.personality ?: npc.personality,
+            backstory = changes.backstory ?: npc.backstory,
+            role = changes.role ?: npc.role,
             updatedAt = now
         )
     }

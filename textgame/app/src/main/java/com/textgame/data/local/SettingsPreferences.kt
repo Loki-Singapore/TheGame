@@ -7,7 +7,8 @@ data class SettingsPreferences(
     val dialogueTemperature: Float = 1.0f,
     val dialogueMaxTokens: Int = 125000,
     val summaryTemperature: Float = 0.8f,
-    val summaryMaxTokens: Int = 125000
+    val summaryMaxTokens: Int = 125000,
+    val musicEnabled: Boolean = true
 ) {
     companion object {
         val DEFAULTS = SettingsPreferences()

@@ -12,6 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.textgame.data.audio.BgmManager
+import com.textgame.data.audio.BgmTrack
 import com.textgame.data.local.SettingsManager
 import com.textgame.data.local.SettingsPreferences
 import com.textgame.di.AppModule
@@ -24,16 +26,19 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    private lateinit var bgmManager: BgmManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppModule.initialize(this)
+        bgmManager = BgmManager.getInstance(this)
 
-        // 从DataStore加载已保存的配置
         lifecycleScope.launch {
             val settings = SettingsManager.getSettingsFlow(this@MainActivity).first()
             if (settings.apiKey.isNotEmpty()) {
                 AppModule.configureAI(settings)
             }
+            bgmManager.setMusicEnabled(settings.musicEnabled)
         }
 
         setContent {
@@ -87,5 +92,15 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        bgmManager.resume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        bgmManager.pause()
     }
 }

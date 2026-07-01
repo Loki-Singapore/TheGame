@@ -34,12 +34,12 @@ class SyncSettingsUseCase(
             }
         }
 
-        stateChanges.npc?.forEach { (npcName, npcChanges) ->
-            val existingBg = backgroundSetting.npcBackgrounds[npcName]
+        stateChanges.npc?.forEach { (npcId, npcChanges) ->
+            val existingBg = backgroundSetting.npcBackgrounds[npcId]
             val newAwareness = npcChanges.awareness
             if (newAwareness != null && existingBg?.contains(newAwareness) != true) {
                 val currentBg = existingBg ?: ""
-                newNpcBackgrounds[npcName] = if (currentBg.isEmpty()) {
+                newNpcBackgrounds[npcId] = if (currentBg.isEmpty()) {
                     newAwareness
                 } else {
                     "$currentBg；$newAwareness"

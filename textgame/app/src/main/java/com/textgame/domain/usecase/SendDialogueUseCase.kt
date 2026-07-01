@@ -39,23 +39,19 @@ class SendDialogueUseCase(
         gameRepository.saveStateSnapshot(snapshot)
 
         val allDialogues = gameRepository.getDialogues(sessionId)
-        val recentDialogues = allDialogues.takeLast(20).map { dialogue ->
-            val speaker = when {
-                dialogue.isNarrative -> "【旁白】"
-                dialogue.isPlayer -> "【玩家】"
-                else -> "【${dialogue.speaker}】"
-            }
-            "$speaker${dialogue.content}"
-        }
+        val (preSummaryDialogues, postSummaryDialogues) = buildDialogueHistory(
+            allDialogues, latestSummary
+        )
 
         val aiResponse = aiService.generateDialogueResponse(
             worldSetting = worldSetting,
             backgroundSetting = backgroundSetting,
             summary = latestSummary,
+            preSummaryDialogues = preSummaryDialogues,
+            postSummaryDialogues = postSummaryDialogues,
             protagonist = protagonist,
             npcs = npcs,
             gameState = gameState,
-            recentDialogues = recentDialogues,
             userInput = userInput
         )
 
@@ -77,5 +73,38 @@ class SendDialogueUseCase(
         syncSettingsUseCase.execute(sessionId, aiResponse)
 
         return aiResponse
+    }
+
+    private fun buildDialogueHistory(
+        allDialogues: List<Dialogue>,
+        latestSummary: com.textgame.domain.model.Summary?
+    ): Pair<List<String>, List<String>> {
+        val formatDialogue: (Dialogue) -> String = { dialogue ->
+            val prefix = when {
+                dialogue.isNarrative -> "【旁白】"
+                dialogue.isPlayer -> "【玩家】"
+                else -> "【${dialogue.speaker}】"
+            }
+            "$prefix${dialogue.content}"
+        }
+
+        return if (latestSummary != null && latestSummary.turnRangeEnd > 0) {
+            // 有总结：分pre和post两部分
+            val preSummaryRaw = allDialogues.filter {
+                it.turnNumber > latestSummary.turnRangeEnd - 10
+                        && it.turnNumber <= latestSummary.turnRangeEnd
+            }
+            val preSummaryDialogues = preSummaryRaw.map(formatDialogue)
+
+            val postSummaryRaw = allDialogues.filter {
+                it.turnNumber > latestSummary.turnRangeEnd
+            }
+            val postSummaryDialogues = postSummaryRaw.map(formatDialogue)
+
+            Pair(preSummaryDialogues, postSummaryDialogues)
+        } else {
+            // 无总结：pre为空，post为全部对话
+            Pair(emptyList(), allDialogues.map(formatDialogue))
+        }
     }
 }

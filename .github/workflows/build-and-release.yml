@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - master
+      - 'trae/**'
     paths:
       - 'textgame/**'
       - '.github/workflows/**'
@@ -33,7 +34,6 @@ jobs:
     name: Build APK
     runs-on: ubuntu-latest
     outputs:
-      apk_path: ${{ steps.upload_apk.outputs.apk_path }}
       version_name: ${{ steps.get_version.outputs.version_name }}
     steps:
       - name: Checkout code
@@ -44,7 +44,17 @@ jobs:
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
-          cache: 'gradle'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          cache-read-only: false
+          validate-wrappers: false
+
+      - name: Make gradlew executable
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: chmod +x gradlew
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -54,32 +64,6 @@ jobs:
             platforms;android-${{ env.ANDROID_COMPILE_SDK }}
             build-tools;${{ env.ANDROID_BUILD_TOOLS }}
             platform-tools
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('textgame/**/*.gradle*', 'textgame/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Grant gradle execute permission
-        run: |
-          if [ -f "${{ env.PROJECT_DIR }}/gradlew" ]; then
-            chmod +x ${{ env.PROJECT_DIR }}/gradlew
-          fi
-
-      - name: Generate Gradle Wrapper (if missing)
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          if [ ! -f "gradlew" ]; then
-            echo "Gradle wrapper not found, generating..."
-            gradle wrapper --gradle-version 7.6.4
-            chmod +x gradlew
-          fi
-          ls -la gradlew 2>/dev/null || echo "gradlew still missing"
 
       - name: Get app version
         id: get_version
@@ -93,13 +77,11 @@ jobs:
 
       - name: Build Debug APK
         working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          ./gradlew assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
       - name: Build Release APK
         working-directory: ${{ env.PROJECT_DIR }}
-        run: |
-          ./gradlew assembleRelease --stacktrace --no-daemon
+        run: ./gradlew assembleRelease --stacktrace --no-daemon
         continue-on-error: true
 
       - name: Find APK files
@@ -110,6 +92,7 @@ jobs:
           
           DEBUG_APK="${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk"
           RELEASE_APK="${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release.apk"
+          RELEASE_UNSIGNED_APK="${{ env.PROJECT_DIR }}/app/build/outputs/apk/release/app-release-unsigned.apk"
           
           if [ -f "$DEBUG_APK" ]; then
             echo "debug_apk=$DEBUG_APK" >> $GITHUB_OUTPUT
@@ -119,6 +102,9 @@ jobs:
           if [ -f "$RELEASE_APK" ]; then
             echo "release_apk=$RELEASE_APK" >> $GITHUB_OUTPUT
             echo "Found release APK: $RELEASE_APK"
+          elif [ -f "$RELEASE_UNSIGNED_APK" ]; then
+            echo "release_apk=$RELEASE_UNSIGNED_APK" >> $GITHUB_OUTPUT
+            echo "Found release APK (unsigned): $RELEASE_UNSIGNED_APK"
           fi
 
       - name: Upload Debug APK artifact

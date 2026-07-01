@@ -7,8 +7,10 @@ import androidx.room.PrimaryKey
 data class NPCStateEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val sessionId: Long,
+    val npcId: String = "",
     val name: String,
     val role: String,
+    val briefing: String = "",
     val attributesJson: String = "{}",
     val dialogueHistoryJson: String = "[]",
     val mood: String = "neutral",

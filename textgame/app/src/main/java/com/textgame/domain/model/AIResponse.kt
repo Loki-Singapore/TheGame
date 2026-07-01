@@ -9,7 +9,15 @@ data class AIResponse(
     val stateChanges: StateChanges? = null,
     val choices: List<String>? = null,
     @SerializedName("summary_update")
-    val summaryUpdate: Boolean = false
+    val summaryUpdate: Boolean = false,
+    val bgm: String? = null,
+    val tokenUsage: TokenUsage? = null
+)
+
+data class TokenUsage(
+    val promptTokens: Int = 0,
+    val completionTokens: Int = 0,
+    val totalTokens: Int = 0
 )
 
 data class StateChanges(
@@ -19,8 +27,8 @@ data class StateChanges(
 )
 
 data class ProtagonistChanges(
-    @SerializedName("attribute_changes")
-    val attributeChanges: Map<String, Any>? = null,
+    // AI返回主角的完整属性状态，引擎直接替换，不做加减
+    val attributes: Map<String, Any>? = null,
     @SerializedName("inventory_add")
     val inventoryAdd: List<String>? = null,
     @SerializedName("inventory_remove")
@@ -32,14 +40,16 @@ data class ProtagonistChanges(
 data class NPCChanges(
     @SerializedName("is_new")
     val isNew: Boolean = false,
+    val name: String? = null,
+    val briefing: String? = null,
     val role: String? = null,
     val mood: String? = null,
     val awareness: String? = null,
     val appearance: String? = null,
     val personality: String? = null,
     val backstory: String? = null,
-    @SerializedName("attribute_changes")
-    val attributeChanges: Map<String, Any>? = null
+    // AI返回NPC的完整属性状态，引擎直接替换，不做加减
+    val attributes: Map<String, Any>? = null
 )
 
 data class GameChanges(
@@ -48,5 +58,12 @@ data class GameChanges(
     @SerializedName("event_trigger")
     val eventTrigger: String? = null,
     @SerializedName("flag_set")
-    val flagSet: Map<String, Boolean>? = null
+    val flagSet: Map<String, Boolean>? = null,
+    @SerializedName("world_rules")
+    val worldRules: List<WorldRuleChange>? = null
+)
+
+data class WorldRuleChange(
+    val id: String? = null,
+    val content: String
 )

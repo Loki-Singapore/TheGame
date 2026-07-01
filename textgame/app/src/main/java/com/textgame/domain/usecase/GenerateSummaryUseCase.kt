@@ -41,7 +41,8 @@ class GenerateSummaryUseCase(
             recentDialogues = recentDialogues,
             protagonist = protagonist,
             npcs = npcs,
-            gameState = gameState
+            gameState = gameState,
+            previousSummary = lastSummary
         )
 
         val summaryWithRange = summary.copy(

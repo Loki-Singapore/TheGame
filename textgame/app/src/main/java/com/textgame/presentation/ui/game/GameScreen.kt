@@ -1,5 +1,6 @@
 package com.textgame.presentation.ui.game
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,8 +48,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.halilibo.richtext.markdown.Markdown
+import com.halilibo.richtext.ui.RichText
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 
@@ -59,8 +63,9 @@ fun GameScreen(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val context = LocalContext.current
     val viewModel: GameViewModel = viewModel(
-        factory = GameViewModelFactory(sessionId)
+        factory = GameViewModelFactory(sessionId, context)
     )
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.GameUiState())
 
@@ -262,6 +267,19 @@ fun DialogueItem(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    dialogue.tokenUsage?.let { usage ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Text(
+                                text = "${usage.totalTokens} tokens",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
                     Box {
                         DropdownMenu(
                             expanded = showMenu,
@@ -400,17 +418,33 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                     uiState.npcs.forEach { npc ->
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("${npc.name} (${npc.role})")
+                        if (npc.briefing.isNotEmpty()) {
+                            Text("  简介: ${npc.briefing}")
+                        }
                         Text("  情绪: ${npc.mood}")
                     }
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                uiState.worldSetting?.let { world ->
+                    if (world.worldRules.isNotEmpty()) {
+                        Text("世界观细则:", style = MaterialTheme.typography.titleMedium)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        world.worldRules.forEach { rule ->
+                            Text("• ${rule.content}", style = MaterialTheme.typography.bodySmall)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
                 uiState.summary?.let { summary ->
                     if (summary.summaryText.isNotEmpty()) {
                         Text("进度总结:", style = MaterialTheme.typography.titleMedium)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(summary.summaryText)
+                        RichText {
+                            Markdown(summary.summaryText)
+                        }
                     }
                 }
             }
@@ -424,12 +458,13 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
 }
 
 class GameViewModelFactory(
-    private val sessionId: Long
+    private val sessionId: Long,
+    private val context: Context
 ) : androidx.lifecycle.ViewModelProvider.Factory {
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return GameViewModel(sessionId) as T
+            return GameViewModel(sessionId, context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
