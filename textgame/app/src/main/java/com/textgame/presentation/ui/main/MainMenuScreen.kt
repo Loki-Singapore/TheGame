@@ -27,7 +27,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -64,19 +63,23 @@ fun MainMenuScreen(
     var musicEnabled by remember { mutableStateOf(bgmManager.isMusicEnabled()) }
 
     LaunchedEffect(Unit) {
-        bgmManager.play(BgmTrack.MAIN)
+        SettingsManager.getSettingsFlow(context).collect { settings ->
+            musicEnabled = settings.musicEnabled
+            bgmManager.setMusicEnabled(settings.musicEnabled)
+        }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            bgmManager.stop()
-        }
+    LaunchedEffect(Unit) {
+        bgmManager.play(BgmTrack.MAIN)
     }
 
     fun toggleMusic() {
         val newEnabled = !musicEnabled
         musicEnabled = newEnabled
         bgmManager.setMusicEnabled(newEnabled)
+        if (newEnabled) {
+            bgmManager.play(BgmTrack.MAIN)
+        }
         coroutineScope.launch {
             SettingsManager.saveMusicEnabled(context, newEnabled)
         }
