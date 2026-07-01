@@ -60,16 +60,26 @@ class AIService(
         userInput: String
     ): AIResponse {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val contextPrompt = buildContextPrompt(
-            summary, preSummaryDialogues, postSummaryDialogues,
-            protagonist, npcs, gameState, worldSetting.attributeCategories, worldSetting.worldRules
+        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
+        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
+        val gameStatePrompt = buildGameStatePrompt(
+            protagonist, npcs, gameState,
+            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
         )
         val userPrompt = buildUserPrompt(userInput)
-        val outputInstruction = buildOutputInstruction()
 
+        // 消息按稳定性从高到低排列，最大化DeepSeek上下文缓存命中率：
+        // 1. system: 静态规则+世界观+背景设定+输出指令（几乎不变）
+        // 2. worldRules: 世界观细则（偶尔增长，已有前缀不变）
+        // 3. dialogueHistory: 对话历史（每轮增长，但已有前缀不变；总结后前缀变化）
+        // 4. gameState: 当前游戏状态（每轮变化）
+        // 5. userInput: 玩家输入（每轮不同）
         val messages = listOf(
             ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = "$contextPrompt\n\n$userPrompt\n\n$outputInstruction")
+            ChatMessage(role = "user", content = worldRulesPrompt),
+            ChatMessage(role = "user", content = dialogueHistoryPrompt),
+            ChatMessage(role = "user", content = gameStatePrompt),
+            ChatMessage(role = "user", content = userPrompt)
         )
 
         val request = ChatCompletionRequest(
@@ -364,45 +374,71 @@ class AIService(
         if (backgroundSetting.worldHistory.isNotEmpty()) {
             appendLine("世界历史：${backgroundSetting.worldHistory}")
         }
-        if (backgroundSetting.majorPlotThreads.isNotEmpty()) {
-            appendLine("主要剧情线：")
-            backgroundSetting.majorPlotThreads.forEach { appendLine("- $it") }
-        }
         appendLine()
         appendLine("请严格遵循以上设定进行游戏，保持角色性格和世界规则的一致性。")
+        appendLine()
+        appendLine("【本轮输出提醒】")
+        appendLine("请以纯JSON格式回复，格式和规则已在上方详细说明。")
+        appendLine("特别注意：")
+        appendLine("- narrative必须详细丰富，包含完整场景、动作、对话和心理描写")
+        appendLine("- 每次回复都要推动剧情发展")
+        appendLine("- attributes只返回变化的属性，引擎会保留其他属性不变")
+        appendLine("- 禁止创建新属性名或修改属性类目")
     }
 
-    private fun buildContextPrompt(
+    private fun buildWorldRulesPrompt(
+        worldRules: List<com.textgame.domain.model.WorldRule>
+    ): String = buildString {
+        if (worldRules.isNotEmpty()) {
+            appendLine("【世界观细则】")
+            worldRules.forEach { rule ->
+                appendLine("[${rule.id}] ${rule.content}")
+            }
+        } else {
+            appendLine("【世界观细则】暂无")
+        }
+    }
+
+    private fun buildDialogueHistoryPrompt(
         summary: Summary?,
         preSummaryDialogues: List<String>,
-        postSummaryDialogues: List<String>,
-        protagonist: Protagonist,
-        npcs: List<NPC>,
-        gameState: GameState,
-        attributeCategories: List<AttributeCategory> = emptyList(),
-        worldRules: List<com.textgame.domain.model.WorldRule> = emptyList()
+        postSummaryDialogues: List<String>
     ): String = buildString {
-        // 总结前的十轮对话（有总结时才写）
+        val hasContent = preSummaryDialogues.isNotEmpty() ||
+            (summary != null && summary.summaryText.isNotEmpty()) ||
+            postSummaryDialogues.isNotEmpty()
+
+        if (!hasContent) {
+            appendLine("【对话历史】暂无")
+            return@buildString
+        }
+
         if (preSummaryDialogues.isNotEmpty()) {
             appendLine("【总结前的对话记录（参考）】")
             preSummaryDialogues.forEach { appendLine(it) }
             appendLine()
         }
 
-        // 近期总结
         if (summary != null && summary.summaryText.isNotEmpty()) {
             appendLine("【近期进度总结】")
             appendLine(summary.summaryText)
             appendLine()
         }
 
-        // 上次总结后的对话
         if (postSummaryDialogues.isNotEmpty()) {
             appendLine("【上次总结后的对话记录】")
             postSummaryDialogues.forEach { appendLine(it) }
             appendLine()
         }
+    }
 
+    private fun buildGameStatePrompt(
+        protagonist: Protagonist,
+        npcs: List<NPC>,
+        gameState: GameState,
+        attributeCategories: List<AttributeCategory> = emptyList(),
+        majorPlotThreads: List<String> = emptyList()
+    ): String = buildString {
         appendLine("【主角状态】")
         appendLine("姓名：${protagonist.name}")
         appendLine("位置：${protagonist.location}")
@@ -473,11 +509,9 @@ class AIService(
             appendLine()
         }
 
-        if (worldRules.isNotEmpty()) {
-            appendLine("【世界观细则】")
-            worldRules.forEach { rule ->
-                appendLine("[${rule.id}] ${rule.content}")
-            }
+        if (majorPlotThreads.isNotEmpty()) {
+            appendLine("【主要剧情线】")
+            majorPlotThreads.forEach { appendLine("- $it") }
             appendLine()
         }
 
@@ -556,16 +590,6 @@ class AIService(
         appendLine()
         appendLine("请用简洁的条目式撰写，每个条目一行，方便后续检索。")
     }
-
-    private fun buildOutputInstruction(): String = """
-        【本轮输出提醒】
-        请以纯JSON格式回复，格式和规则已在system提示词中详细说明。
-        特别注意：
-        - narrative必须详细丰富，包含完整场景、动作、对话和心理描写
-        - 每次回复都要推动剧情发展
-        - attributes只返回变化的属性，引擎会保留其他属性不变
-        - 禁止创建新属性名或修改属性类目
-    """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
         return try {
