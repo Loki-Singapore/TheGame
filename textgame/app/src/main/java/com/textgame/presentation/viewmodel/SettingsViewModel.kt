@@ -29,7 +29,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 summaryTemperature = settings.summaryTemperature,
                 summaryMaxTokens = settings.summaryMaxTokens,
                 dialogueMaxTokensLimit = SettingsPreferences.MODEL_MAX_OUTPUT[settings.model] ?: 384000,
-                summaryMaxTokensLimit = SettingsPreferences.MODEL_MAX_OUTPUT[settings.model] ?: 384000
+                summaryMaxTokensLimit = SettingsPreferences.MODEL_MAX_OUTPUT[settings.model] ?: 384000,
+                thinkingEnabled = settings.thinkingEnabled,
+                reasoningEffort = settings.reasoningEffort
             )
         }
     }
@@ -73,6 +75,14 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(summaryMaxTokens = value.coerceAtMost(limit))
     }
 
+    fun updateThinkingEnabled(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(thinkingEnabled = enabled)
+    }
+
+    fun updateReasoningEffort(effort: String) {
+        _uiState.value = _uiState.value.copy(reasoningEffort = effort)
+    }
+
     fun saveSettings() {
         val state = _uiState.value
         val settings = SettingsPreferences(
@@ -82,7 +92,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             dialogueTemperature = state.dialogueTemperature,
             dialogueMaxTokens = state.dialogueMaxTokens,
             summaryTemperature = state.summaryTemperature,
-            summaryMaxTokens = state.summaryMaxTokens
+            summaryMaxTokens = state.summaryMaxTokens,
+            thinkingEnabled = state.thinkingEnabled,
+            reasoningEffort = state.reasoningEffort
         )
         viewModelScope.launch {
             SettingsManager.saveSettings(getApplication(), settings)
@@ -103,7 +115,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             summaryTemperature = defaults.summaryTemperature,
             summaryMaxTokens = defaults.summaryMaxTokens,
             dialogueMaxTokensLimit = maxOutput,
-            summaryMaxTokensLimit = maxOutput
+            summaryMaxTokensLimit = maxOutput,
+            thinkingEnabled = defaults.thinkingEnabled,
+            reasoningEffort = defaults.reasoningEffort
         )
     }
 }
@@ -118,5 +132,7 @@ data class SettingsUiState(
     val summaryMaxTokens: Int = 125000,
     val dialogueMaxTokensLimit: Int = 384000,
     val summaryMaxTokensLimit: Int = 384000,
+    val thinkingEnabled: Boolean = false,
+    val reasoningEffort: String = "high",
     val saved: Boolean = false
 )

@@ -13,14 +13,21 @@ data class ResponseFormat(
     val type: String
 )
 
+data class ThinkingConfig(
+    val type: String // "enabled" or "disabled"
+)
+
 data class ChatCompletionRequest(
     val model: String,
     val messages: List<ChatMessage>,
-    val temperature: Float = 0.7f,
+    val temperature: Float? = null,
     @SerializedName("max_tokens")
     val maxTokens: Int = 2000,
     @SerializedName("response_format")
-    val responseFormat: ResponseFormat? = null
+    val responseFormat: ResponseFormat? = null,
+    @SerializedName("reasoning_effort")
+    val reasoningEffort: String? = null,
+    val thinking: ThinkingConfig? = null
 )
 
 data class ChatMessage(

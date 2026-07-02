@@ -19,9 +19,66 @@ class AIService(
     private val dialogueTemperature: Float = 0.8f,
     private val dialogueMaxTokens: Int = 2000,
     private val summaryTemperature: Float = 0.5f,
-    private val summaryMaxTokens: Int = 1000
+    private val summaryMaxTokens: Int = 1000,
+    private val thinkingEnabled: Boolean = false,
+    private val reasoningEffort: String = "high"
 ) {
     private val gson = Gson()
+
+    /**
+     * 构建带思考模式参数的对话请求
+     */
+    private fun buildDialogueRequest(
+        messages: List<ChatMessage>,
+        useJsonFormat: Boolean = false,
+        maxTokens: Int = dialogueMaxTokens
+    ): ChatCompletionRequest {
+        return if (thinkingEnabled) {
+            // 思考模式不支持 temperature、top_p 等参数
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = null,
+                maxTokens = maxTokens,
+                responseFormat = if (useJsonFormat) ResponseFormat(type = "json_object") else null,
+                reasoningEffort = reasoningEffort,
+                thinking = ThinkingConfig(type = "enabled")
+            )
+        } else {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = dialogueTemperature,
+                maxTokens = maxTokens,
+                responseFormat = if (useJsonFormat) ResponseFormat(type = "json_object") else null
+            )
+        }
+    }
+
+    /**
+     * 构建带思考模式参数的总结请求
+     */
+    private fun buildSummaryRequest(
+        messages: List<ChatMessage>
+    ): ChatCompletionRequest {
+        return if (thinkingEnabled) {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = null,
+                maxTokens = summaryMaxTokens,
+                reasoningEffort = reasoningEffort,
+                thinking = ThinkingConfig(type = "enabled")
+            )
+        } else {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = summaryTemperature,
+                maxTokens = summaryMaxTokens
+            )
+        }
+    }
 
     /**
      * 为NPC列表分配唯一ID（如果尚未分配）
@@ -82,24 +139,13 @@ class AIService(
             ChatMessage(role = "user", content = userPrompt)
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = dialogueTemperature,
-            maxTokens = dialogueMaxTokens,
-            responseFormat = ResponseFormat(type = "json_object")
-        )
+        val request = buildDialogueRequest(messages, useJsonFormat = true)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         if (content.isBlank()) {
             // JSON Mode有概率返回空content，降级为普通模式重试
-            val fallbackRequest = ChatCompletionRequest(
-                model = model,
-                messages = messages,
-                temperature = dialogueTemperature,
-                maxTokens = dialogueMaxTokens
-            )
+            val fallbackRequest = buildDialogueRequest(messages, useJsonFormat = false)
             val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
             val fallbackContent = fallbackResponse.choices.firstOrNull()?.message?.content ?: ""
             return parseAIResponse(fallbackContent).copy(
@@ -139,12 +185,7 @@ class AIService(
             ChatMessage(role = "user", content = prompt)
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = summaryTemperature,
-            maxTokens = summaryMaxTokens
-        )
+        val request = buildSummaryRequest(messages)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
@@ -201,23 +242,12 @@ class AIService(
             ChatMessage(role = "user", content = "我想要一个这样的游戏世界：$userPrompt")
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = 1.0f,
-            maxTokens = 8000,
-            responseFormat = ResponseFormat(type = "json_object")
-        )
+        val request = buildDialogueRequest(messages, useJsonFormat = true, maxTokens = 8000)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         if (content.isBlank()) {
-            val fallbackRequest = ChatCompletionRequest(
-                model = model,
-                messages = messages,
-                temperature = 1.0f,
-                maxTokens = 8000
-            )
+            val fallbackRequest = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 8000)
             val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
             return parseGeneratedWorld(fallbackResponse.choices.firstOrNull()?.message?.content ?: "")
         }
