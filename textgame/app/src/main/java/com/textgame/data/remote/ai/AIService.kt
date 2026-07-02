@@ -19,9 +19,66 @@ class AIService(
     private val dialogueTemperature: Float = 0.8f,
     private val dialogueMaxTokens: Int = 2000,
     private val summaryTemperature: Float = 0.5f,
-    private val summaryMaxTokens: Int = 1000
+    private val summaryMaxTokens: Int = 1000,
+    private val thinkingEnabled: Boolean = false,
+    private val reasoningEffort: String = "high"
 ) {
     private val gson = Gson()
+
+    /**
+     * 构建带思考模式参数的对话请求
+     */
+    private fun buildDialogueRequest(
+        messages: List<ChatMessage>,
+        useJsonFormat: Boolean = false,
+        maxTokens: Int = dialogueMaxTokens
+    ): ChatCompletionRequest {
+        return if (thinkingEnabled) {
+            // 思考模式不支持 temperature、top_p 等参数
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = null,
+                maxTokens = maxTokens,
+                responseFormat = if (useJsonFormat) ResponseFormat(type = "json_object") else null,
+                reasoningEffort = reasoningEffort,
+                thinking = ThinkingConfig(type = "enabled")
+            )
+        } else {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = dialogueTemperature,
+                maxTokens = maxTokens,
+                responseFormat = if (useJsonFormat) ResponseFormat(type = "json_object") else null
+            )
+        }
+    }
+
+    /**
+     * 构建带思考模式参数的总结请求
+     */
+    private fun buildSummaryRequest(
+        messages: List<ChatMessage>
+    ): ChatCompletionRequest {
+        return if (thinkingEnabled) {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = null,
+                maxTokens = summaryMaxTokens,
+                reasoningEffort = reasoningEffort,
+                thinking = ThinkingConfig(type = "enabled")
+            )
+        } else {
+            ChatCompletionRequest(
+                model = model,
+                messages = messages,
+                temperature = summaryTemperature,
+                maxTokens = summaryMaxTokens
+            )
+        }
+    }
 
     /**
      * 为NPC列表分配唯一ID（如果尚未分配）
@@ -60,36 +117,35 @@ class AIService(
         userInput: String
     ): AIResponse {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val contextPrompt = buildContextPrompt(
-            summary, preSummaryDialogues, postSummaryDialogues,
-            protagonist, npcs, gameState, worldSetting.attributeCategories, worldSetting.worldRules
+        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
+        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
+        val gameStatePrompt = buildGameStatePrompt(
+            protagonist, npcs, gameState,
+            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
         )
         val userPrompt = buildUserPrompt(userInput)
-        val outputInstruction = buildOutputInstruction()
 
+        // 消息按稳定性从高到低排列，最大化DeepSeek上下文缓存命中率：
+        // 1. system: 静态规则+世界观+背景设定+输出指令（几乎不变）
+        // 2. dialogueHistory: 对话历史（纯追加，已有前缀永远不变，缓存命中最高）
+        // 3. worldRules: 世界观细则（偶尔增长或修改已有条目，不如对话历史稳定）
+        // 4. gameState: 当前游戏状态（每轮变化）
+        // 5. userInput: 玩家输入（每轮不同）
         val messages = listOf(
             ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = "$contextPrompt\n\n$userPrompt\n\n$outputInstruction")
+            ChatMessage(role = "user", content = dialogueHistoryPrompt),
+            ChatMessage(role = "user", content = worldRulesPrompt),
+            ChatMessage(role = "user", content = gameStatePrompt),
+            ChatMessage(role = "user", content = userPrompt)
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = dialogueTemperature,
-            maxTokens = dialogueMaxTokens,
-            responseFormat = ResponseFormat(type = "json_object")
-        )
+        val request = buildDialogueRequest(messages, useJsonFormat = true)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         if (content.isBlank()) {
             // JSON Mode有概率返回空content，降级为普通模式重试
-            val fallbackRequest = ChatCompletionRequest(
-                model = model,
-                messages = messages,
-                temperature = dialogueTemperature,
-                maxTokens = dialogueMaxTokens
-            )
+            val fallbackRequest = buildDialogueRequest(messages, useJsonFormat = false)
             val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
             val fallbackContent = fallbackResponse.choices.firstOrNull()?.message?.content ?: ""
             return parseAIResponse(fallbackContent).copy(
@@ -129,12 +185,7 @@ class AIService(
             ChatMessage(role = "user", content = prompt)
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = summaryTemperature,
-            maxTokens = summaryMaxTokens
-        )
+        val request = buildSummaryRequest(messages)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
@@ -161,8 +212,9 @@ class AIService(
               "protagonistBackground": "主角的详细背景故事",
               "worldHistory": "世界历史",
               "attributes": [
-                {"name": "生命值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 100, "description": "角色生命值"},
-                {"name": "金币", "type": "NUMERIC", "minValue": 0, "maxValue": 999999, "defaultValue": 100, "description": "游戏货币"}
+                {"name": "属性名称1", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
+                {"name": "属性名称2", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
+                {"name": "属性名称3", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"}
               ],
               "npcs": [
                 {
@@ -191,23 +243,12 @@ class AIService(
             ChatMessage(role = "user", content = "我想要一个这样的游戏世界：$userPrompt")
         )
 
-        val request = ChatCompletionRequest(
-            model = model,
-            messages = messages,
-            temperature = 1.0f,
-            maxTokens = 8000,
-            responseFormat = ResponseFormat(type = "json_object")
-        )
+        val request = buildDialogueRequest(messages, useJsonFormat = true, maxTokens = 8000)
 
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         if (content.isBlank()) {
-            val fallbackRequest = ChatCompletionRequest(
-                model = model,
-                messages = messages,
-                temperature = 1.0f,
-                maxTokens = 8000
-            )
+            val fallbackRequest = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 8000)
             val fallbackResponse = apiService.createChatCompletion(fallbackRequest)
             return parseGeneratedWorld(fallbackResponse.choices.firstOrNull()?.message?.content ?: "")
         }
@@ -248,6 +289,9 @@ class AIService(
         appendLine("        \"appearance\": \"外貌描述更新（添加新的细节变化）\",")
         appendLine("        \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）}")
         appendLine("      },")
+        appendLine("      \"要删除的NPC的ID（如npc_002）\": {")
+        appendLine("        \"is_deleted\": true")
+        appendLine("      },")
         appendLine("      \"新NPC的ID（新出现的角色，格式如npc_003）\": {")
         appendLine("        \"is_new\": true,")
         appendLine("        \"name\": \"NPC名称\",")
@@ -266,7 +310,8 @@ class AIService(
         appendLine("      \"event_trigger\": \"触发的事件名\",")
         appendLine("      \"flag_set\": {\"标记名\": true/false},")
         appendLine("      \"world_rules\": [")
-        appendLine("        {\"id\": \"worldrule_001\", \"content\": \"细则内容\"}")
+        appendLine("        {\"id\": \"worldrule_001\", \"content\": \"更新已有细则的完整新内容\"},")
+        appendLine("        {\"id\": \"worldrule_003\", \"content\": \"新建细则的内容\"}")
         appendLine("      ]")
         appendLine("    }")
         appendLine("  },")
@@ -289,17 +334,24 @@ class AIService(
         appendLine("13. 每个NPC都有一个唯一的ID（如npc_001、npc_002）。更新已有NPC时，必须使用其ID作为key；新出现的NPC也需要分配一个新ID（按照已有ID顺序递增），并且is_new必须设为true")
         appendLine("14. 已经在场的NPC不要重复设置is_new，只更新需要变化的字段，key用其ID")
         appendLine("15. name只是NPC的普通属性，不是身份标识，身份标识永远是npcId")
-        appendLine("16. NPC的所有字段都可以随着剧情发展更新：name（名称）、role（角色定位）、briefing（简介）、mood（当前情绪）、awareness（对主角的认知）、appearance（外貌）、personality（性格）、backstory（背景故事）。当剧情揭示了新的信息或状态发生变化时，必须及时更新对应的字段。特别注意：")
+        appendLine("16. 【NPC删除 - 重要】当某个NPC确认死亡、永久离开剧情、或不可能再出现在后续剧情中时，可以将其删除以节省token。删除规则：")
+        appendLine("    - 只有不重要的、跑龙套的NPC才能删除（如：路人甲、守卫、临时出现的小角色等）")
+        appendLine("    - 重要NPC、主线角色、有后续剧情的NPC绝对不能删除，即使暂时离开也不能删")
+        appendLine("    - 删除时，在npc对象中以该NPC的ID为key，设置\"is_deleted\": true即可，不需要其他字段")
+        appendLine("    - 删除NPC前，请确保该NPC的所有重要信息已经被记录在世界观细则或总结中（如果重要的话）")
+        appendLine("    - 如果不确定该不该删，就不要删，保留下来更安全")
+        appendLine("17. NPC的所有字段都可以随着剧情发展更新：name（名称）、role（角色定位）、briefing（简介）、mood（当前情绪）、awareness（对主角的认知）、appearance（外貌）、personality（性格）、backstory（背景故事）。当剧情揭示了新的信息或状态发生变化时，必须及时更新对应的字段。特别注意：")
         appendLine("    - backstory（背景故事）：返回完整的、自包含的内容，包含所有历史信息+最新动态，不是只返回增量。原有内容中仍然重要的信息必须保留并整合，再加上新发生的重大事件，绝不能用新内容直接覆盖历史")
         appendLine("    - appearance（外貌描述）：返回完整的、自包含的外貌描述，包含基础形象（面容、身材、气质、常服等）+ 最新变化（临时服装、受伤、表情等）。基础形象必须保留，新变化是在基础上补充，绝不能用临时状态覆盖整体形象")
         appendLine("    - 当NPC经历了重要事件后，必须在对应的字段中体现出来")
-        appendLine("17. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
-        appendLine("18. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
-        appendLine("19. 禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。")
-        appendLine("20. 引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。")
-        appendLine("21. 【世界观细则维护 - 重要】你必须主动维护世界观细则（game.world_rules），这是游戏世界的知识库：")
-        appendLine("    - 当剧情中揭示了新的世界设定、历史背景、魔法/力量体系规则、社会制度、文化习俗、地理信息、特殊规则等长期有效的信息时，必须添加新的世界观细则")
-        appendLine("    - 当已有世界观细则需要修正、补充或细化时，可以修改对应细则的内容")
+        appendLine("18. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
+        appendLine("19. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
+        appendLine("20. 禁止在attributes中创建新的属性名或修改属性类目！只能更新已存在的属性值。如果需要记录新的信息，请使用game.flag_set或其他方式。")
+        appendLine("21. 引擎会忽略你返回的任何不在原有属性列表中的属性名。如果你尝试添加新属性，该属性将被丢弃。")
+        appendLine("22. 【世界观细则维护 - 重要】你必须主动维护世界观细则（game.world_rules），这是游戏世界的知识库：")
+        appendLine("    - 当剧情中揭示了新的世界设定、历史背景、魔法/力量体系规则、社会制度、文化习俗、地理信息、特殊规则等长期有效的信息时，必须记录为世界观细则")
+        appendLine("    - 【优先更新】当新信息与已有细则属于同一主题时，必须更新已有细则的内容（合并、补充、修正），而不是新建条目。例如已有细则记录了某城市的描述，当剧情揭示了该城市的新信息时，应更新该条细则而非新建")
+        appendLine("    - 只有当信息属于全新的、与现有细则无关联的主题时，才新建细则")
         appendLine("    - 禁止删除任何已有的世界观细则，即使你认为它不再重要")
         appendLine("    - 新增细则时，id由你指定，格式为 worldrule_XXX（XXX为数字编号，按顺序递增，确保与已有细则的ID不冲突）")
         appendLine("    - 修改已有细则时必须填写该细则的id，id从上方\"世界观细则\"列表中获取")
@@ -355,45 +407,71 @@ class AIService(
         if (backgroundSetting.worldHistory.isNotEmpty()) {
             appendLine("世界历史：${backgroundSetting.worldHistory}")
         }
-        if (backgroundSetting.majorPlotThreads.isNotEmpty()) {
-            appendLine("主要剧情线：")
-            backgroundSetting.majorPlotThreads.forEach { appendLine("- $it") }
-        }
         appendLine()
         appendLine("请严格遵循以上设定进行游戏，保持角色性格和世界规则的一致性。")
+        appendLine()
+        appendLine("【本轮输出提醒】")
+        appendLine("请以纯JSON格式回复，格式和规则已在上方详细说明。")
+        appendLine("特别注意：")
+        appendLine("- narrative必须详细丰富，包含完整场景、动作、对话和心理描写")
+        appendLine("- 每次回复都要推动剧情发展")
+        appendLine("- attributes只返回变化的属性，引擎会保留其他属性不变")
+        appendLine("- 禁止创建新属性名或修改属性类目")
     }
 
-    private fun buildContextPrompt(
+    private fun buildWorldRulesPrompt(
+        worldRules: List<com.textgame.domain.model.WorldRule>
+    ): String = buildString {
+        if (worldRules.isNotEmpty()) {
+            appendLine("【世界观细则】")
+            worldRules.forEach { rule ->
+                appendLine("[${rule.id}] ${rule.content}")
+            }
+        } else {
+            appendLine("【世界观细则】暂无")
+        }
+    }
+
+    private fun buildDialogueHistoryPrompt(
         summary: Summary?,
         preSummaryDialogues: List<String>,
-        postSummaryDialogues: List<String>,
-        protagonist: Protagonist,
-        npcs: List<NPC>,
-        gameState: GameState,
-        attributeCategories: List<AttributeCategory> = emptyList(),
-        worldRules: List<com.textgame.domain.model.WorldRule> = emptyList()
+        postSummaryDialogues: List<String>
     ): String = buildString {
-        // 总结前的十轮对话（有总结时才写）
+        val hasContent = preSummaryDialogues.isNotEmpty() ||
+            (summary != null && summary.summaryText.isNotEmpty()) ||
+            postSummaryDialogues.isNotEmpty()
+
+        if (!hasContent) {
+            appendLine("【对话历史】暂无")
+            return@buildString
+        }
+
         if (preSummaryDialogues.isNotEmpty()) {
             appendLine("【总结前的对话记录（参考）】")
             preSummaryDialogues.forEach { appendLine(it) }
             appendLine()
         }
 
-        // 近期总结
         if (summary != null && summary.summaryText.isNotEmpty()) {
             appendLine("【近期进度总结】")
             appendLine(summary.summaryText)
             appendLine()
         }
 
-        // 上次总结后的对话
         if (postSummaryDialogues.isNotEmpty()) {
             appendLine("【上次总结后的对话记录】")
             postSummaryDialogues.forEach { appendLine(it) }
             appendLine()
         }
+    }
 
+    private fun buildGameStatePrompt(
+        protagonist: Protagonist,
+        npcs: List<NPC>,
+        gameState: GameState,
+        attributeCategories: List<AttributeCategory> = emptyList(),
+        majorPlotThreads: List<String> = emptyList()
+    ): String = buildString {
         appendLine("【主角状态】")
         appendLine("姓名：${protagonist.name}")
         appendLine("位置：${protagonist.location}")
@@ -464,11 +542,9 @@ class AIService(
             appendLine()
         }
 
-        if (worldRules.isNotEmpty()) {
-            appendLine("【世界观细则】")
-            worldRules.forEach { rule ->
-                appendLine("[${rule.id}] ${rule.content}")
-            }
+        if (majorPlotThreads.isNotEmpty()) {
+            appendLine("【主要剧情线】")
+            majorPlotThreads.forEach { appendLine("- $it") }
             appendLine()
         }
 
@@ -547,16 +623,6 @@ class AIService(
         appendLine()
         appendLine("请用简洁的条目式撰写，每个条目一行，方便后续检索。")
     }
-
-    private fun buildOutputInstruction(): String = """
-        【本轮输出提醒】
-        请以纯JSON格式回复，格式和规则已在system提示词中详细说明。
-        特别注意：
-        - narrative必须详细丰富，包含完整场景、动作、对话和心理描写
-        - 每次回复都要推动剧情发展
-        - attributes只返回变化的属性，引擎会保留其他属性不变
-        - 禁止创建新属性名或修改属性类目
-    """.trimIndent()
 
     private fun parseAIResponse(content: String): AIResponse {
         return try {

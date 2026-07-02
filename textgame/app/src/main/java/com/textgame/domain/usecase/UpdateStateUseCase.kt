@@ -26,27 +26,34 @@ class UpdateStateUseCase(
 
         if (stateChanges?.npc != null) {
             stateChanges.npc.forEach { (npcId, npcChanges) ->
-                val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
-                if (existingNpc != null) {
-                    val updatedNpc = updateNPC(existingNpc, npcChanges, now)
-                    gameRepository.updateNPC(updatedNpc)
+                if (npcChanges.isDeleted) {
+                    val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
+                    if (existingNpc != null) {
+                        gameRepository.deleteNPC(existingNpc.id)
+                    }
                 } else {
-                    // 新NPC：插入数据库
-                    val newNpc = NPC(
-                        sessionId = sessionId,
-                        npcId = npcId,
-                        name = npcChanges.name ?: "未知角色",
-                        role = npcChanges.role ?: "未知",
-                        briefing = npcChanges.briefing ?: "",
-                        attributes = npcChanges.attributes ?: emptyMap(),
-                        mood = npcChanges.mood ?: "neutral",
-                        awareness = npcChanges.awareness ?: "",
-                        appearance = npcChanges.appearance ?: "",
-                        personality = npcChanges.personality ?: "",
-                        backstory = npcChanges.backstory ?: "",
-                        updatedAt = now
-                    )
-                    gameRepository.saveNPC(newNpc)
+                    val existingNpc = gameRepository.getNPCByNpcId(sessionId, npcId)
+                    if (existingNpc != null) {
+                        val updatedNpc = updateNPC(existingNpc, npcChanges, now)
+                        gameRepository.updateNPC(updatedNpc)
+                    } else {
+                        // 新NPC：插入数据库
+                        val newNpc = NPC(
+                            sessionId = sessionId,
+                            npcId = npcId,
+                            name = npcChanges.name ?: "未知角色",
+                            role = npcChanges.role ?: "未知",
+                            briefing = npcChanges.briefing ?: "",
+                            attributes = npcChanges.attributes ?: emptyMap(),
+                            mood = npcChanges.mood ?: "neutral",
+                            awareness = npcChanges.awareness ?: "",
+                            appearance = npcChanges.appearance ?: "",
+                            personality = npcChanges.personality ?: "",
+                            backstory = npcChanges.backstory ?: "",
+                            updatedAt = now
+                        )
+                        gameRepository.saveNPC(newNpc)
+                    }
                 }
             }
         }
@@ -63,18 +70,34 @@ class UpdateStateUseCase(
                 if (worldSetting != null) {
                     val currentRules = worldSetting.worldRules.toMutableList()
                     worldRuleChanges.forEach { change ->
-                        val ruleId = change.id?.takeIf { it.isNotBlank() } ?: return@forEach
-                        val index = currentRules.indexOfFirst { it.id == ruleId }
-                        if (index >= 0) {
-                            currentRules[index] = currentRules[index].copy(content = change.content)
+                        val ruleId = change.id?.takeIf { it.isNotBlank() }
+                        if (ruleId != null) {
+                            // 有id：更新已有细则或按指定id新增
+                            val index = currentRules.indexOfFirst { it.id == ruleId }
+                            if (index >= 0) {
+                                currentRules[index] = currentRules[index].copy(content = change.content)
+                            } else {
+                                currentRules.add(WorldRule(id = ruleId, content = change.content))
+                            }
                         } else {
-                            currentRules.add(WorldRule(id = ruleId, content = change.content))
+                            // 无id：自动生成新id新增
+                            val newId = generateWorldRuleId(currentRules)
+                            currentRules.add(WorldRule(id = newId, content = change.content))
                         }
                     }
                     gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
                 }
             }
         }
+    }
+
+    private fun generateWorldRuleId(existingRules: List<WorldRule>): String {
+        var maxNum = 0
+        existingRules.forEach { rule ->
+            val num = rule.id.removePrefix("worldrule_").toIntOrNull() ?: 0
+            if (num > maxNum) maxNum = num
+        }
+        return "worldrule_%03d".format(maxNum + 1)
     }
 
     private fun updateProtagonist(

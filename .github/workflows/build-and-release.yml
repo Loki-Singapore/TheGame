@@ -33,6 +33,11 @@ jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
+    env:
+      SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+      SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+      SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+      SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
     outputs:
       version_name: ${{ steps.get_version.outputs.version_name }}
     steps:
@@ -65,6 +70,13 @@ jobs:
             build-tools;${{ env.ANDROID_BUILD_TOOLS }}
             platform-tools
 
+      - name: Decode signing keystore
+        if: env.SIGNING_KEYSTORE_BASE64 != ''
+        working-directory: ${{ env.PROJECT_DIR }}
+        run: |
+          echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > app/release.keystore
+          echo "Keystore decoded successfully"
+
       - name: Get app version
         id: get_version
         working-directory: ${{ env.PROJECT_DIR }}
@@ -78,11 +90,15 @@ jobs:
       - name: Build Debug APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleDebug --stacktrace --no-daemon
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ env.SIGNING_KEYSTORE_BASE64 != '' && 'app/release.keystore' || '' }}
 
       - name: Build Release APK
         working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleRelease --stacktrace --no-daemon
         continue-on-error: true
+        env:
+          SIGNING_KEYSTORE_PATH: ${{ env.SIGNING_KEYSTORE_BASE64 != '' && 'app/release.keystore' || '' }}
 
       - name: Find APK files
         id: find_apk

@@ -8,6 +8,25 @@ android {
     namespace = "com.textgame"
     compileSdk = 34
 
+    // 从环境变量读取签名配置（CI 通过 GitHub Secrets 注入）
+    val storeFilePath = System.getenv("SIGNING_KEYSTORE_PATH")
+    val storePwd = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+    val keyAliasValue = System.getenv("SIGNING_KEY_ALIAS")
+    val keyPwd = System.getenv("SIGNING_KEY_PASSWORD")
+    val hasReleaseSigning = !storeFilePath.isNullOrEmpty() && !storePwd.isNullOrEmpty() &&
+            !keyAliasValue.isNullOrEmpty() && !keyPwd.isNullOrEmpty()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(storeFilePath!!)
+                storePassword = storePwd
+                keyAlias = keyAliasValue
+                keyPassword = keyPwd
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.textgame"
         minSdk = 26
@@ -22,10 +41,20 @@ android {
     }
 
     buildTypes {
+        debug {
+            // CI 中使用固定签名，保证与 release 包签名一致，可互相覆盖安装
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
+        }
         release {
             isMinifyEnabled = false
             isDebuggable = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

@@ -24,6 +24,8 @@ object SettingsManager {
     private val SUMMARY_TEMPERATURE = floatPreferencesKey("summary_temperature")
     private val SUMMARY_MAX_TOKENS = intPreferencesKey("summary_max_tokens")
     private val MUSIC_ENABLED = booleanPreferencesKey("music_enabled")
+    private val THINKING_ENABLED = booleanPreferencesKey("thinking_enabled")
+    private val REASONING_EFFORT = stringPreferencesKey("reasoning_effort")
 
     val DEFAULTS = SettingsPreferences()
 
@@ -37,7 +39,9 @@ object SettingsManager {
                 dialogueMaxTokens = prefs[DIALOGUE_MAX_TOKENS] ?: DEFAULTS.dialogueMaxTokens,
                 summaryTemperature = prefs[SUMMARY_TEMPERATURE] ?: DEFAULTS.summaryTemperature,
                 summaryMaxTokens = prefs[SUMMARY_MAX_TOKENS] ?: DEFAULTS.summaryMaxTokens,
-                musicEnabled = prefs[MUSIC_ENABLED] ?: DEFAULTS.musicEnabled
+                musicEnabled = prefs[MUSIC_ENABLED] ?: DEFAULTS.musicEnabled,
+                thinkingEnabled = prefs[THINKING_ENABLED] ?: DEFAULTS.thinkingEnabled,
+                reasoningEffort = prefs[REASONING_EFFORT] ?: DEFAULTS.reasoningEffort
             )
         }
     }
@@ -52,6 +56,8 @@ object SettingsManager {
             prefs[SUMMARY_TEMPERATURE] = settings.summaryTemperature
             prefs[SUMMARY_MAX_TOKENS] = settings.summaryMaxTokens
             prefs[MUSIC_ENABLED] = settings.musicEnabled
+            prefs[THINKING_ENABLED] = settings.thinkingEnabled
+            prefs[REASONING_EFFORT] = settings.reasoningEffort
         }
     }
 

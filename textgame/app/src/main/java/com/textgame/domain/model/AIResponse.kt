@@ -40,6 +40,8 @@ data class ProtagonistChanges(
 data class NPCChanges(
     @SerializedName("is_new")
     val isNew: Boolean = false,
+    @SerializedName("is_deleted")
+    val isDeleted: Boolean = false,
     val name: String? = null,
     val briefing: String? = null,
     val role: String? = null,

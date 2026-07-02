@@ -131,7 +131,9 @@ object AppModule {
                 dialogueTemperature = settings.dialogueTemperature,
                 dialogueMaxTokens = settings.dialogueMaxTokens,
                 summaryTemperature = settings.summaryTemperature,
-                summaryMaxTokens = settings.summaryMaxTokens
+                summaryMaxTokens = settings.summaryMaxTokens,
+                thinkingEnabled = settings.thinkingEnabled,
+                reasoningEffort = settings.reasoningEffort
             )
         }
         return aiService!!
