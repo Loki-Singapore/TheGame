@@ -9,20 +9,20 @@ android {
     compileSdk = 34
 
     // 从环境变量读取签名配置（CI 通过 GitHub Secrets 注入）
-    val keystorePath = System.getenv("SIGNING_KEYSTORE_PATH")
-    val keystorePassword = System.getenv("SIGNING_KEYSTORE_PASSWORD")
-    val keyAlias = System.getenv("SIGNING_KEY_ALIAS")
-    val keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-    val hasReleaseSigning = keystorePath != null && keystorePassword != null &&
-            keyAlias != null && keyPassword != null
+    val storeFilePath = System.getenv("SIGNING_KEYSTORE_PATH")
+    val storePwd = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+    val keyAliasValue = System.getenv("SIGNING_KEY_ALIAS")
+    val keyPwd = System.getenv("SIGNING_KEY_PASSWORD")
+    val hasReleaseSigning = storeFilePath != null && storePwd != null &&
+            keyAliasValue != null && keyPwd != null
 
     signingConfigs {
         if (hasReleaseSigning) {
             create("release") {
-                storeFile = file(keystorePath!!)
-                storePassword = keystorePassword
-                keyAlias = keyAlias
-                keyPassword = keyPassword
+                storeFile = file(storeFilePath!!)
+                storePassword = storePwd
+                keyAlias = keyAliasValue
+                keyPassword = keyPwd
             }
         }
     }
