@@ -212,8 +212,9 @@ class AIService(
               "protagonistBackground": "主角的详细背景故事",
               "worldHistory": "世界历史",
               "attributes": [
-                {"name": "生命值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 100, "description": "角色生命值"},
-                {"name": "金币", "type": "NUMERIC", "minValue": 0, "maxValue": 999999, "defaultValue": 100, "description": "游戏货币"}
+                {"name": "属性名称1", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
+                {"name": "属性名称2", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
+                {"name": "属性名称3", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"}
               ],
               "npcs": [
                 {
