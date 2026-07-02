@@ -13,8 +13,8 @@ android {
     val storePwd = System.getenv("SIGNING_KEYSTORE_PASSWORD")
     val keyAliasValue = System.getenv("SIGNING_KEY_ALIAS")
     val keyPwd = System.getenv("SIGNING_KEY_PASSWORD")
-    val hasReleaseSigning = storeFilePath != null && storePwd != null &&
-            keyAliasValue != null && keyPwd != null
+    val hasReleaseSigning = !storeFilePath.isNullOrEmpty() && !storePwd.isNullOrEmpty() &&
+            !keyAliasValue.isNullOrEmpty() && !keyPwd.isNullOrEmpty()
 
     signingConfigs {
         if (hasReleaseSigning) {
