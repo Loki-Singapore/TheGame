@@ -128,27 +128,29 @@ fun SettingsScreen(
             Text("对话参数", style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
-            // 思考模式开关
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("思考模式", style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        "启用后模型会先思考再回答，提升回答质量（不支持 temperature）",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            // 思考模式开关（仅 v4 模型支持）
+            val supportsThinking = uiState.model.contains("v4")
+            if (supportsThinking) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("思考模式", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "启用后模型会先思考再回答，提升回答质量（不支持 temperature）",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = uiState.thinkingEnabled,
+                        onCheckedChange = viewModel::updateThinkingEnabled
                     )
                 }
-                Switch(
-                    checked = uiState.thinkingEnabled,
-                    onCheckedChange = viewModel::updateThinkingEnabled
-                )
+                Spacer(modifier = Modifier.height(12.dp))
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -157,7 +159,7 @@ fun SettingsScreen(
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    if (uiState.thinkingEnabled) {
+                    if (uiState.thinkingEnabled && supportsThinking) {
                         // 思考模式：显示思考强度选择
                         Text(
                             "思考强度: ${uiState.reasoningEffort}",
@@ -236,21 +238,48 @@ fun SettingsScreen(
                 )
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        "Temperature: ${"%.1f".format(uiState.summaryTemperature)}",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        "总结生成时建议使用较低值以保持准确性",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Slider(
-                        value = uiState.summaryTemperature,
-                        onValueChange = viewModel::updateSummaryTemperature,
-                        valueRange = 0f..2f,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    if (uiState.thinkingEnabled && supportsThinking) {
+                        // 思考模式：显示思考强度选择
+                        Text(
+                            "思考强度: ${uiState.reasoningEffort}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            "总结时使用相同思考强度，提升总结质量",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("high", "max").forEach { effort ->
+                                FilterChip(
+                                    selected = uiState.reasoningEffort == effort,
+                                    onClick = { viewModel.updateReasoningEffort(effort) },
+                                    label = { Text(effort) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    } else {
+                        // 普通模式：Temperature 滑块
+                        Text(
+                            "Temperature: ${"%.1f".format(uiState.summaryTemperature)}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            "总结生成时建议使用较低值以保持准确性",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Slider(
+                            value = uiState.summaryTemperature,
+                            onValueChange = viewModel::updateSummaryTemperature,
+                            valueRange = 0f..2f,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Max Tokens: ${uiState.summaryMaxTokens}",
