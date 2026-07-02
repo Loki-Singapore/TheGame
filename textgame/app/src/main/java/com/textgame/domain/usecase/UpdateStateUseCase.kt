@@ -70,18 +70,34 @@ class UpdateStateUseCase(
                 if (worldSetting != null) {
                     val currentRules = worldSetting.worldRules.toMutableList()
                     worldRuleChanges.forEach { change ->
-                        val ruleId = change.id?.takeIf { it.isNotBlank() } ?: return@forEach
-                        val index = currentRules.indexOfFirst { it.id == ruleId }
-                        if (index >= 0) {
-                            currentRules[index] = currentRules[index].copy(content = change.content)
+                        val ruleId = change.id?.takeIf { it.isNotBlank() }
+                        if (ruleId != null) {
+                            // 有id：更新已有细则或按指定id新增
+                            val index = currentRules.indexOfFirst { it.id == ruleId }
+                            if (index >= 0) {
+                                currentRules[index] = currentRules[index].copy(content = change.content)
+                            } else {
+                                currentRules.add(WorldRule(id = ruleId, content = change.content))
+                            }
                         } else {
-                            currentRules.add(WorldRule(id = ruleId, content = change.content))
+                            // 无id：自动生成新id新增
+                            val newId = generateWorldRuleId(currentRules)
+                            currentRules.add(WorldRule(id = newId, content = change.content))
                         }
                     }
                     gameRepository.updateWorldSetting(worldSetting.copy(worldRules = currentRules))
                 }
             }
         }
+    }
+
+    private fun generateWorldRuleId(existingRules: List<WorldRule>): String {
+        var maxNum = 0
+        existingRules.forEach { rule ->
+            val num = rule.id.removePrefix("worldrule_").toIntOrNull() ?: 0
+            if (num > maxNum) maxNum = num
+        }
+        return "worldrule_%03d".format(maxNum + 1)
     }
 
     private fun updateProtagonist(
