@@ -156,7 +156,7 @@ fun GameScreen(
                 )
             }
 
-            if (uiState.choices.isNotEmpty() && !uiState.isLoading) {
+            if (uiState.choices.isNotEmpty() && !uiState.isLoading && !uiState.isStreaming) {
                 var choicesExpanded by remember { mutableStateOf(true) }
                 Card(
                     modifier = Modifier
@@ -228,7 +228,7 @@ fun GameScreen(
                         viewModel.sendMessage(inputText)
                         inputText = ""
                     },
-                    enabled = inputText.isNotBlank() && !uiState.isLoading
+                    enabled = inputText.isNotBlank() && !uiState.isLoading && !uiState.isStreaming
                 ) {
                     Text("发送")
                 }

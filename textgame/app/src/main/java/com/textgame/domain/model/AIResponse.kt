@@ -14,6 +14,13 @@ data class AIResponse(
     val tokenUsage: TokenUsage? = null
 )
 
+sealed class StreamingChunk {
+    data class NarrativeDelta(val delta: String) : StreamingChunk()
+    data class DialogueDelta(val delta: String) : StreamingChunk()
+    data class Complete(val response: AIResponse) : StreamingChunk()
+    data class Error(val message: String) : StreamingChunk()
+}
+
 data class TokenUsage(
     val promptTokens: Int = 0,
     val completionTokens: Int = 0,

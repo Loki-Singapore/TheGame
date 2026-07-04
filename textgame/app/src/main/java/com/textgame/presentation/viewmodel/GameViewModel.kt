@@ -12,10 +12,12 @@ import com.textgame.domain.model.Dialogue
 import com.textgame.domain.model.GameState
 import com.textgame.domain.model.NPC
 import com.textgame.domain.model.Protagonist
+import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
 import com.textgame.domain.usecase.SendDialogueUseCase
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,6 +33,7 @@ data class GameUiState(
     val dialogues: List<DialogueDisplay> = emptyList(),
     val choices: List<String> = emptyList(),
     val isLoading: Boolean = false,
+    val isStreaming: Boolean = false,
     val error: String? = null,
     val pendingRegeneratePrompt: String? = null
 )
@@ -55,6 +58,8 @@ class GameViewModel(
 
     private val _uiState = MutableStateFlow(GameUiState())
     val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+    private var streamingJob: Job? = null
 
     init {
         loadGameData()
@@ -92,14 +97,14 @@ class GameViewModel(
 
                 if (gameState != null && gameState.turnCount == 0 && dialogueDisplays.isEmpty()) {
                     val narrative = "游戏开始！你发现自己身处${gameState.currentScene}..."
-                    addNarrative(narrative, 0)
-                    saveDialogueToDb(
+                    val newId = saveDialogueToDb(
                         speaker = "",
                         content = narrative,
                         isPlayer = false,
                         isNarrative = true,
                         turnNumber = 0
                     )
+                    addNarrativeWithId(newId, narrative, 0)
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = e.message)
@@ -108,37 +113,101 @@ class GameViewModel(
     }
 
     fun sendMessage(input: String) {
-        if (input.isBlank() || _uiState.value.isLoading) return
+        if (input.isBlank() || _uiState.value.isLoading || _uiState.value.isStreaming) return
 
         val currentTurn = _uiState.value.gameState?.turnCount ?: 0
         val nextTurn = currentTurn + 1
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        streamingJob = viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isStreaming = true, isLoading = true, error = null, choices = emptyList())
 
-            addPlayerDialogue(input, nextTurn)
-            saveDialogueToDb(
+            val playerId = saveDialogueToDb(
                 speaker = "你",
                 content = input,
                 isPlayer = true,
                 isNarrative = false,
                 turnNumber = nextTurn
             )
+            addPlayerDialogueWithId(playerId, input, nextTurn)
+
+            var narrativeId: Long = 0
+            var dialogueId: Long = 0
+            var currentNarrative = StringBuilder()
+            var currentDialogue = StringBuilder()
 
             try {
-                val response = sendDialogueUseCase.execute(sessionId, input)
-                handleAIResponse(response, nextTurn)
-                refreshGameData()
+                val flow = sendDialogueUseCase.executeStream(sessionId, input)
+                flow.collect { chunk ->
+                    when (chunk) {
+                        is StreamingChunk.NarrativeDelta -> {
+                            currentNarrative.append(chunk.delta)
+                            if (narrativeId == 0L) {
+                                narrativeId = saveDialogueToDb(
+                                    speaker = "",
+                                    content = currentNarrative.toString(),
+                                    isPlayer = false,
+                                    isNarrative = true,
+                                    turnNumber = nextTurn
+                                )
+                                addNarrativeWithId(narrativeId, currentNarrative.toString(), nextTurn)
+                            } else {
+                                updateDialogueContent(narrativeId, currentNarrative.toString())
+                                updateDialogueDisplayContent(narrativeId, currentNarrative.toString())
+                            }
+                        }
+                        is StreamingChunk.DialogueDelta -> {
+                            currentDialogue.append(chunk.delta)
+                            if (dialogueId == 0L) {
+                                val npcName = _uiState.value.npcs.firstOrNull()?.name ?: "NPC"
+                                dialogueId = saveDialogueToDb(
+                                    speaker = npcName,
+                                    content = currentDialogue.toString(),
+                                    isPlayer = false,
+                                    isNarrative = false,
+                                    turnNumber = nextTurn
+                                )
+                                addNPCDialogueWithId(dialogueId, npcName, currentDialogue.toString(), nextTurn)
+                            } else {
+                                updateDialogueContent(dialogueId, currentDialogue.toString())
+                                updateDialogueDisplayContent(dialogueId, currentDialogue.toString())
+                            }
+                        }
+                        is StreamingChunk.Complete -> {
+                            handleAIResponse(chunk.response, nextTurn, narrativeId, dialogueId)
+                            refreshGameData()
+                            _uiState.value = _uiState.value.copy(isStreaming = false, isLoading = false)
+                        }
+                        is StreamingChunk.Error -> {
+                            _uiState.value = _uiState.value.copy(
+                                error = "AI响应错误: ${chunk.message}",
+                                isStreaming = false,
+                                isLoading = false
+                            )
+                        }
+                    }
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     error = "AI响应错误: ${e.message}",
+                    isStreaming = false,
                     isLoading = false
                 )
             }
         }
     }
 
-    private suspend fun handleAIResponse(response: AIResponse, turnNumber: Int) {
+    private suspend fun updateDialogueContent(id: Long, content: String) {
+        gameRepository.updateDialogueContent(id, content)
+    }
+
+    private fun updateDialogueDisplayContent(id: Long, content: String) {
+        val newDialogues = _uiState.value.dialogues.map {
+            if (it.id == id) it.copy(content = content) else it
+        }
+        _uiState.value = _uiState.value.copy(dialogues = newDialogues)
+    }
+
+    private suspend fun handleAIResponse(response: AIResponse, turnNumber: Int, existingNarrativeId: Long = 0, existingDialogueId: Long = 0) {
         response.bgm?.let { bgmKeyword ->
             val track = BgmTrack.fromKeyword(bgmKeyword)
             if (track != null) {
@@ -148,27 +217,42 @@ class GameViewModel(
 
         if (response.dialogue.isNotEmpty()) {
             val npcName = _uiState.value.npcs.firstOrNull()?.name ?: "NPC"
-            addNPCDialogue(npcName, response.dialogue, turnNumber)
-            saveDialogueToDb(
-                speaker = npcName,
-                content = response.dialogue,
-                isPlayer = false,
-                isNarrative = false,
-                turnNumber = turnNumber
-            )
+            if (existingDialogueId == 0L) {
+                val newId = saveDialogueToDb(
+                    speaker = npcName,
+                    content = response.dialogue,
+                    isPlayer = false,
+                    isNarrative = false,
+                    turnNumber = turnNumber
+                )
+                addNPCDialogueWithId(newId, npcName, response.dialogue, turnNumber)
+            } else {
+                updateDialogueContent(existingDialogueId, response.dialogue)
+                updateDialogueDisplayContent(existingDialogueId, response.dialogue)
+            }
         }
         if (response.narrative.isNotEmpty()) {
-            addNarrative(response.narrative, turnNumber, response.tokenUsage)
-            saveDialogueToDb(
-                speaker = "",
-                content = response.narrative,
-                isPlayer = false,
-                isNarrative = true,
-                turnNumber = turnNumber
-            )
+            if (existingNarrativeId == 0L) {
+                val newId = saveDialogueToDb(
+                    speaker = "",
+                    content = response.narrative,
+                    isPlayer = false,
+                    isNarrative = true,
+                    turnNumber = turnNumber,
+                    tokenUsage = response.tokenUsage
+                )
+                addNarrativeWithId(newId, response.narrative, turnNumber, response.tokenUsage)
+            } else {
+                updateDialogueContent(existingNarrativeId, response.narrative)
+                updateDialogueDisplayContent(existingNarrativeId, response.narrative)
+                val newDialogues = _uiState.value.dialogues.map {
+                    if (it.id == existingNarrativeId) it.copy(tokenUsage = response.tokenUsage) else it
+                }
+                _uiState.value = _uiState.value.copy(dialogues = newDialogues)
+            }
         }
         val newChoices = response.choices ?: emptyList()
-        _uiState.value = _uiState.value.copy(isLoading = false, choices = newChoices)
+        _uiState.value = _uiState.value.copy(choices = newChoices)
     }
 
     private suspend fun saveDialogueToDb(
@@ -176,8 +260,9 @@ class GameViewModel(
         content: String,
         isPlayer: Boolean,
         isNarrative: Boolean,
-        turnNumber: Int
-    ) {
+        turnNumber: Int,
+        tokenUsage: com.textgame.domain.model.TokenUsage? = null
+    ): Long {
         val dialogue = Dialogue(
             sessionId = sessionId,
             turnNumber = turnNumber,
@@ -187,11 +272,12 @@ class GameViewModel(
             isNarrative = isNarrative,
             createdAt = System.currentTimeMillis()
         )
-        gameRepository.saveDialogue(dialogue)
+        return gameRepository.saveDialogue(dialogue)
     }
 
-    private fun addPlayerDialogue(content: String, turnNumber: Int) {
+    private fun addPlayerDialogueWithId(id: Long, content: String, turnNumber: Int) {
         val newDialogues = _uiState.value.dialogues + DialogueDisplay(
+            id = id,
             speaker = "你",
             content = content,
             isPlayer = true,
@@ -200,8 +286,9 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(dialogues = newDialogues)
     }
 
-    private fun addNPCDialogue(speaker: String, content: String, turnNumber: Int) {
+    private fun addNPCDialogueWithId(id: Long, speaker: String, content: String, turnNumber: Int) {
         val newDialogues = _uiState.value.dialogues + DialogueDisplay(
+            id = id,
             speaker = speaker,
             content = content,
             isPlayer = false,
@@ -210,8 +297,9 @@ class GameViewModel(
         _uiState.value = _uiState.value.copy(dialogues = newDialogues)
     }
 
-    private fun addNarrative(content: String, turnNumber: Int, tokenUsage: com.textgame.domain.model.TokenUsage? = null) {
+    private fun addNarrativeWithId(id: Long, content: String, turnNumber: Int, tokenUsage: com.textgame.domain.model.TokenUsage? = null) {
         val newDialogues = _uiState.value.dialogues + DialogueDisplay(
+            id = id,
             speaker = "",
             content = content,
             isNarrative = true,
@@ -264,12 +352,11 @@ class GameViewModel(
     }
 
     fun regenerateFromTurn(turnNumber: Int) {
+        streamingJob?.cancel()
         viewModelScope.launch {
             try {
-                // 尝试精确匹配该轮的快照
                 var snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
 
-                // 如果没有精确匹配，尝试找该轮之前最近的快照
                 if (snapshot == null) {
                     val allDialogues = gameRepository.getDialogues(sessionId)
                     val previousTurns = allDialogues.map { it.turnNumber }.filter { it < turnNumber }.toSet()
@@ -310,6 +397,8 @@ class GameViewModel(
                 _uiState.value = _uiState.value.copy(
                     dialogues = updatedDialogues,
                     choices = emptyList(),
+                    isStreaming = false,
+                    isLoading = false,
                     pendingRegeneratePrompt = pendingPrompt
                 )
                 refreshGameData()
@@ -335,5 +424,10 @@ class GameViewModel(
 
     fun stopBgm() {
         bgmManager.stop()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        streamingJob?.cancel()
     }
 }
