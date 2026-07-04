@@ -21,6 +21,7 @@ import java.io.InputStreamReader
 
 class AIService(
     private val apiService: DeepSeekApiService,
+    private val streamingApiService: DeepSeekApiService,
     private val apiKey: String,
     private val model: String = "deepseek-chat",
     private val dialogueTemperature: Float = 0.8f,
@@ -206,7 +207,7 @@ class AIService(
         )
 
         val request = buildDialogueRequest(messages, useJsonFormat = false).copy(stream = true)
-        val call = apiService.createChatCompletionStream(request)
+        val call = streamingApiService.createChatCompletionStream(request)
 
         try {
             val response = call.execute()
