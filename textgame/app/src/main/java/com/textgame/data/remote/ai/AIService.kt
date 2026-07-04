@@ -9,8 +9,20 @@ import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.GameState
 import com.textgame.domain.model.NPC
 import com.textgame.domain.model.Protagonist
+import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flowOn
+import okhttp3.ResponseBody
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class AIService(
     private val apiService: DeepSeekApiService,
@@ -168,6 +180,210 @@ class AIService(
                 )
             }
         )
+    }
+
+    fun streamDialogueResponse(
+        worldSetting: WorldSetting,
+        backgroundSetting: BackgroundSetting,
+        summary: Summary?,
+        preSummaryDialogues: List<String>,
+        postSummaryDialogues: List<String>,
+        protagonist: Protagonist,
+        npcs: List<NPC>,
+        gameState: GameState,
+        userInput: String
+    ): Flow<StreamingChunk> = callbackFlow {
+        val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
+        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
+        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
+        val gameStatePrompt = buildGameStatePrompt(
+            protagonist, npcs, gameState,
+            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
+        )
+        val userPrompt = buildUserPrompt(userInput)
+
+        val messages = listOf(
+            ChatMessage(role = "system", content = systemPrompt),
+            ChatMessage(role = "user", content = dialogueHistoryPrompt),
+            ChatMessage(role = "user", content = worldRulesPrompt),
+            ChatMessage(role = "user", content = gameStatePrompt),
+            ChatMessage(role = "user", content = userPrompt)
+        )
+
+        val request = buildDialogueRequest(messages, useJsonFormat = false).copy(stream = true)
+        val call = apiService.createChatCompletionStream(request)
+
+        call.enqueue(object : Callback<ResponseBody> {
+            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+                if (!response.isSuccessful) {
+                    trySend(StreamingChunk.Error("HTTP ${response.code()}: ${response.message()}"))
+                    close()
+                    return
+                }
+
+                val body = response.body() ?: run {
+                    trySend(StreamingChunk.Error("Empty response body"))
+                    close()
+                    return
+                }
+
+                Thread {
+                    var fullContent = StringBuilder()
+                    var lastNarrativeLen = 0
+                    var lastDialogueLen = 0
+                    val reader = BufferedReader(InputStreamReader(body.byteStream()))
+                    var line: String?
+
+                    try {
+                        while (reader.readLine().also { line = it } != null) {
+                            val currentLine = line ?: continue
+                            if (currentLine.startsWith("data: ")) {
+                                val data = currentLine.removePrefix("data: ").trim()
+                                if (data == "[DONE]") break
+
+                                try {
+                                    val streamResponse = gson.fromJson(data, ChatCompletionStreamResponse::class.java)
+                                    val delta = streamResponse.choices.firstOrNull()?.delta?.content ?: ""
+                                    if (delta.isNotEmpty()) {
+                                        fullContent.append(delta)
+                                        val currentFull = fullContent.toString()
+
+                                        val narrativeDelta = extractNarrativeDelta(currentFull, lastNarrativeLen)
+                                        if (narrativeDelta.isNotEmpty()) {
+                                            lastNarrativeLen += narrativeDelta.length
+                                            trySend(StreamingChunk.NarrativeDelta(narrativeDelta))
+                                        }
+
+                                        val dialogueDelta = extractDialogueDelta(currentFull, lastDialogueLen)
+                                        if (dialogueDelta.isNotEmpty()) {
+                                            lastDialogueLen += dialogueDelta.length
+                                            trySend(StreamingChunk.DialogueDelta(dialogueDelta))
+                                        }
+                                    }
+
+                                    if (streamResponse.choices.firstOrNull()?.finishReason != null) {
+                                        break
+                                    }
+                                } catch (_: Exception) {
+                                }
+                            }
+                        }
+
+                        val finalContent = fullContent.toString()
+                        val aiResponse = parseAIResponse(finalContent)
+                        trySend(StreamingChunk.Complete(aiResponse))
+                    } catch (e: Exception) {
+                        trySend(StreamingChunk.Error(e.message ?: "Stream error"))
+                    } finally {
+                        try {
+                            reader.close()
+                        } catch (_: Exception) {}
+                        close()
+                    }
+                }.start()
+            }
+
+            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                trySend(StreamingChunk.Error(t.message ?: "Network error"))
+                close()
+            }
+        })
+
+        awaitClose {
+            if (!call.isCanceled) {
+                call.cancel()
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private fun extractNarrativeDelta(fullContent: String, lastLen: Int): String {
+        val key = "\"narrative\""
+        val keyIndex = fullContent.indexOf(key)
+        if (keyIndex == -1) return ""
+
+        val valueStart = fullContent.indexOf('"', keyIndex + key.length)
+        if (valueStart == -1) return ""
+
+        var i = valueStart + 1
+        var currentValue = StringBuilder()
+        var inEscape = false
+
+        while (i < fullContent.length) {
+            val c = fullContent[i]
+            if (inEscape) {
+                currentValue.append(c)
+                inEscape = false
+            } else if (c == '\\') {
+                inEscape = true
+                currentValue.append(c)
+            } else if (c == '"') {
+                break
+            } else {
+                currentValue.append(c)
+            }
+            i++
+        }
+
+        val rawValue = currentValue.toString()
+        if (rawValue.length <= lastLen) return ""
+        return unescapeJsonString(rawValue.substring(lastLen))
+    }
+
+    private fun extractDialogueDelta(fullContent: String, lastLen: Int): String {
+        val key = "\"dialogue\""
+        val keyIndex = fullContent.indexOf(key)
+        if (keyIndex == -1) return ""
+
+        val valueStart = fullContent.indexOf('"', keyIndex + key.length)
+        if (valueStart == -1) return ""
+
+        var i = valueStart + 1
+        var currentValue = StringBuilder()
+        var inEscape = false
+
+        while (i < fullContent.length) {
+            val c = fullContent[i]
+            if (inEscape) {
+                currentValue.append(c)
+                inEscape = false
+            } else if (c == '\\') {
+                inEscape = true
+                currentValue.append(c)
+            } else if (c == '"') {
+                break
+            } else {
+                currentValue.append(c)
+            }
+            i++
+        }
+
+        val rawValue = currentValue.toString()
+        if (rawValue.length <= lastLen) return ""
+        return unescapeJsonString(rawValue.substring(lastLen))
+    }
+
+    private fun unescapeJsonString(s: String): String {
+        return buildString {
+            var i = 0
+            while (i < s.length) {
+                val c = s[i]
+                if (c == '\\' && i + 1 < s.length) {
+                    when (val next = s[i + 1]) {
+                        'n' -> append('\n')
+                        't' -> append('\t')
+                        'r' -> append('\r')
+                        '"' -> append('"')
+                        '\\' -> append('\\')
+                        '/' -> append('/')
+                        else -> append(next)
+                    }
+                    i += 2
+                } else {
+                    append(c)
+                    i++
+                }
+            }
+        }
     }
 
     suspend fun generateSummary(

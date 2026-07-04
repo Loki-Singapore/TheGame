@@ -4,7 +4,10 @@ import com.textgame.data.remote.ai.AIService
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.Dialogue
 import com.textgame.domain.model.StateSnapshot
+import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.repository.GameRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 class SendDialogueUseCase(
     private val gameRepository: GameRepository,
@@ -73,6 +76,71 @@ class SendDialogueUseCase(
         syncSettingsUseCase.execute(sessionId, aiResponse)
 
         return aiResponse
+    }
+
+    fun executeStream(sessionId: Long, userInput: String): Flow<StreamingChunk> = flow {
+        val worldSetting = gameRepository.getWorldSetting(sessionId)
+            ?: throw IllegalStateException("World setting not found")
+        val backgroundSetting = gameRepository.getBackgroundSetting(sessionId)
+            ?: throw IllegalStateException("Background setting not found")
+        val protagonist = gameRepository.getProtagonist(sessionId)
+            ?: throw IllegalStateException("Protagonist not found")
+        val npcs = gameRepository.getNPCList(sessionId)
+        val gameState = gameRepository.getGameState(sessionId)
+            ?: throw IllegalStateException("Game state not found")
+        val latestSummary = gameRepository.getLatestSummary(sessionId)
+
+        val snapshot = StateSnapshot(
+            sessionId = sessionId,
+            turnNumber = gameState.turnCount + 1,
+            protagonist = protagonist,
+            npcs = npcs,
+            gameState = gameState,
+            worldSetting = worldSetting,
+            backgroundSetting = backgroundSetting,
+            summary = latestSummary
+        )
+        gameRepository.saveStateSnapshot(snapshot)
+
+        val allDialogues = gameRepository.getDialogues(sessionId)
+        val (preSummaryDialogues, postSummaryDialogues) = buildDialogueHistory(
+            allDialogues, latestSummary
+        )
+
+        val flow = aiService.streamDialogueResponse(
+            worldSetting = worldSetting,
+            backgroundSetting = backgroundSetting,
+            summary = latestSummary,
+            preSummaryDialogues = preSummaryDialogues,
+            postSummaryDialogues = postSummaryDialogues,
+            protagonist = protagonist,
+            npcs = npcs,
+            gameState = gameState,
+            userInput = userInput
+        )
+
+        flow.collect { chunk ->
+            emit(chunk)
+            if (chunk is StreamingChunk.Complete) {
+                val aiResponse = chunk.response
+                val newTurn = gameState.turnCount + 1
+                gameRepository.updateCurrentTurn(sessionId, newTurn)
+
+                updateStateUseCase.execute(sessionId, aiResponse, userInput)
+
+                val updatedGameState = gameRepository.getGameState(sessionId) ?: gameState
+                val shouldGenerateSummary = generateSummaryUseCase.shouldGenerateSummary(
+                    currentTurn = newTurn,
+                    lastSummaryTurn = latestSummary?.turnRangeEnd ?: 0
+                )
+
+                if (shouldGenerateSummary) {
+                    generateSummaryUseCase.execute(sessionId)
+                }
+
+                syncSettingsUseCase.execute(sessionId, aiResponse)
+            }
+        }
     }
 
     private fun buildDialogueHistory(
