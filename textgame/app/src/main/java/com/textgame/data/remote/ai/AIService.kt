@@ -13,14 +13,9 @@ import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -192,7 +187,7 @@ class AIService(
         npcs: List<NPC>,
         gameState: GameState,
         userInput: String
-    ): Flow<StreamingChunk> = callbackFlow {
+    ): Flow<StreamingChunk> = flow {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
         val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
         val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
@@ -213,88 +208,201 @@ class AIService(
         val request = buildDialogueRequest(messages, useJsonFormat = false).copy(stream = true)
         val call = apiService.createChatCompletionStream(request)
 
-        call.enqueue(object : Callback<ResponseBody> {
-            override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-                if (!response.isSuccessful) {
-                    trySend(StreamingChunk.Error("HTTP ${response.code()}: ${response.message()}"))
-                    close()
-                    return
-                }
+        try {
+            val response = call.execute()
+            if (!response.isSuccessful) {
+                emit(StreamingChunk.Error("HTTP ${response.code()}: ${response.message()}"))
+                return@flow
+            }
 
-                val body = response.body() ?: run {
-                    trySend(StreamingChunk.Error("Empty response body"))
-                    close()
-                    return
-                }
+            val body = response.body() ?: run {
+                emit(StreamingChunk.Error("Empty response body"))
+                return@flow
+            }
 
-                Thread {
-                    var fullContent = StringBuilder()
-                    var lastNarrativeLen = 0
-                    var lastDialogueLen = 0
-                    val reader = BufferedReader(InputStreamReader(body.byteStream()))
-                    var line: String?
+            var fullContent = StringBuilder()
+            var lastNarrativeLen = 0
+            var lastDialogueLen = 0
+
+            val jsonParser = JsonStreamingParser()
+
+            val reader = BufferedReader(InputStreamReader(body.byteStream(), Charsets.UTF_8))
+            var line: String?
+
+            try {
+                while (true) {
+                    line = reader.readLine()
+                    if (line == null) break
+
+                    val trimmed = line.trim()
+                    if (trimmed.isEmpty()) continue
+
+                    val data = if (trimmed.startsWith("data:")) {
+                        trimmed.removePrefix("data:").trim()
+                    } else {
+                        continue
+                    }
+
+                    if (data == "[DONE]") break
+                    if (data.isEmpty()) continue
 
                     try {
-                        while (reader.readLine().also { line = it } != null) {
-                            val currentLine = line ?: continue
-                            if (currentLine.startsWith("data: ")) {
-                                val data = currentLine.removePrefix("data: ").trim()
-                                if (data == "[DONE]") break
+                        val streamResponse = gson.fromJson(data, ChatCompletionStreamResponse::class.java)
+                        val delta = streamResponse.choices.firstOrNull()?.delta?.content ?: ""
 
-                                try {
-                                    val streamResponse = gson.fromJson(data, ChatCompletionStreamResponse::class.java)
-                                    val delta = streamResponse.choices.firstOrNull()?.delta?.content ?: ""
-                                    if (delta.isNotEmpty()) {
-                                        fullContent.append(delta)
-                                        val currentFull = fullContent.toString()
+                        if (delta.isNotEmpty()) {
+                            fullContent.append(delta)
 
-                                        val narrativeDelta = extractNarrativeDelta(currentFull, lastNarrativeLen)
-                                        if (narrativeDelta.isNotEmpty()) {
-                                            lastNarrativeLen += narrativeDelta.length
-                                            trySend(StreamingChunk.NarrativeDelta(narrativeDelta))
-                                        }
+                            for (c in delta) {
+                                jsonParser.processChar(c)
+                            }
 
-                                        val dialogueDelta = extractDialogueDelta(currentFull, lastDialogueLen)
-                                        if (dialogueDelta.isNotEmpty()) {
-                                            lastDialogueLen += dialogueDelta.length
-                                            trySend(StreamingChunk.DialogueDelta(dialogueDelta))
-                                        }
-                                    }
+                            val narrativeResult = jsonParser.getFieldValue("narrative")
+                            val narrativeCurrentLen = narrativeResult.length
+                            if (narrativeCurrentLen > lastNarrativeLen) {
+                                val deltaStr = narrativeResult.substring(lastNarrativeLen)
+                                lastNarrativeLen = narrativeCurrentLen
+                                emit(StreamingChunk.NarrativeDelta(deltaStr))
+                            }
 
-                                    if (streamResponse.choices.firstOrNull()?.finishReason != null) {
-                                        break
-                                    }
-                                } catch (_: Exception) {
-                                }
+                            val dialogueResult = jsonParser.getFieldValue("dialogue")
+                            val dialogueCurrentLen = dialogueResult.length
+                            if (dialogueCurrentLen > lastDialogueLen) {
+                                val deltaStr = dialogueResult.substring(lastDialogueLen)
+                                lastDialogueLen = dialogueCurrentLen
+                                emit(StreamingChunk.DialogueDelta(deltaStr))
                             }
                         }
 
-                        val finalContent = fullContent.toString()
-                        val aiResponse = parseAIResponse(finalContent)
-                        trySend(StreamingChunk.Complete(aiResponse))
-                    } catch (e: Exception) {
-                        trySend(StreamingChunk.Error(e.message ?: "Stream error"))
-                    } finally {
-                        try {
-                            reader.close()
-                        } catch (_: Exception) {}
-                        close()
+                        if (streamResponse.choices.firstOrNull()?.finishReason != null) {
+                            break
+                        }
+                    } catch (_: Exception) {
                     }
-                }.start()
-            }
+                }
 
-            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                trySend(StreamingChunk.Error(t.message ?: "Network error"))
-                close()
+                val finalContent = fullContent.toString()
+                val aiResponse = parseAIResponse(finalContent)
+                emit(StreamingChunk.Complete(aiResponse))
+            } finally {
+                try {
+                    reader.close()
+                } catch (_: Exception) {}
             }
-        })
-
-        awaitClose {
+        } catch (e: Exception) {
+            emit(StreamingChunk.Error(e.message ?: "Stream error"))
+        } finally {
             if (!call.isCanceled) {
                 call.cancel()
             }
         }
     }.flowOn(Dispatchers.IO)
+
+    private class JsonStreamingParser {
+        private var state = State.INITIAL
+        private var currentField = StringBuilder()
+        private val fieldValues = mutableMapOf<String, StringBuilder>()
+        private var inEscape = false
+        private var targetField: String? = null
+
+        private enum class State {
+            INITIAL,
+            AFTER_BRACE,
+            IN_FIELD_NAME,
+            AFTER_FIELD_NAME,
+            AFTER_COLON,
+            IN_STRING_VALUE,
+            AFTER_STRING_VALUE
+        }
+
+        fun processChar(c: Char) {
+            when (state) {
+                State.INITIAL -> {
+                    if (c == '{') {
+                        state = State.AFTER_BRACE
+                    }
+                }
+                State.AFTER_BRACE -> {
+                    if (c == '"') {
+                        state = State.IN_FIELD_NAME
+                        currentField.clear()
+                    }
+                }
+                State.IN_FIELD_NAME -> {
+                    if (c == '"') {
+                        state = State.AFTER_FIELD_NAME
+                        val fieldName = currentField.toString()
+                        if (fieldName == "narrative" || fieldName == "dialogue") {
+                            targetField = fieldName
+                            if (!fieldValues.containsKey(fieldName)) {
+                                fieldValues[fieldName] = StringBuilder()
+                            }
+                        } else {
+                            targetField = null
+                        }
+                    } else {
+                        currentField.append(c)
+                    }
+                }
+                State.AFTER_FIELD_NAME -> {
+                    if (c == ':') {
+                        state = State.AFTER_COLON
+                    }
+                }
+                State.AFTER_COLON -> {
+                    if (c == '"') {
+                        state = State.IN_STRING_VALUE
+                        inEscape = false
+                    }
+                }
+                State.IN_STRING_VALUE -> {
+                    if (targetField != null) {
+                        val valueBuilder = fieldValues[targetField]
+                        if (valueBuilder != null) {
+                            if (inEscape) {
+                                when (c) {
+                                    'n' -> valueBuilder.append('\n')
+                                    't' -> valueBuilder.append('\t')
+                                    'r' -> valueBuilder.append('\r')
+                                    '"' -> valueBuilder.append('"')
+                                    '\\' -> valueBuilder.append('\\')
+                                    '/' -> valueBuilder.append('/')
+                                    else -> valueBuilder.append(c)
+                                }
+                                inEscape = false
+                            } else if (c == '\\') {
+                                inEscape = true
+                            } else if (c == '"') {
+                                state = State.AFTER_STRING_VALUE
+                                targetField = null
+                            } else {
+                                valueBuilder.append(c)
+                            }
+                        }
+                    } else {
+                        if (inEscape) {
+                            inEscape = false
+                        } else if (c == '\\') {
+                            inEscape = true
+                        } else if (c == '"') {
+                            state = State.AFTER_STRING_VALUE
+                        }
+                    }
+                }
+                State.AFTER_STRING_VALUE -> {
+                    if (c == ',') {
+                        state = State.AFTER_BRACE
+                    } else if (c == '}') {
+                        state = State.INITIAL
+                    }
+                }
+            }
+        }
+
+        fun getFieldValue(fieldName: String): String {
+            return fieldValues[fieldName]?.toString() ?: ""
+        }
+    }
 
     private fun extractNarrativeDelta(fullContent: String, lastLen: Int): String {
         val key = "\"narrative\""
