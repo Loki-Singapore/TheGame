@@ -304,6 +304,9 @@ class AIService(
         private val fieldValues = mutableMapOf<String, StringBuilder>()
         private var inEscape = false
         private var targetField: String? = null
+        private var nestingDepth = 0
+        private var skipInString = false
+        private var skipInEscape = false
 
         private enum class State {
             INITIAL,
@@ -312,7 +315,8 @@ class AIService(
             AFTER_FIELD_NAME,
             AFTER_COLON,
             IN_STRING_VALUE,
-            AFTER_STRING_VALUE
+            AFTER_STRING_VALUE,
+            SKIPPING_VALUE
         }
 
         fun processChar(c: Char) {
@@ -350,9 +354,22 @@ class AIService(
                     }
                 }
                 State.AFTER_COLON -> {
-                    if (c == '"') {
-                        state = State.IN_STRING_VALUE
-                        inEscape = false
+                    when {
+                        c == '"' -> {
+                            state = State.IN_STRING_VALUE
+                            inEscape = false
+                        }
+                        c == '{' || c == '[' -> {
+                            state = State.SKIPPING_VALUE
+                            nestingDepth = 1
+                            skipInString = false
+                            skipInEscape = false
+                        }
+                        c.isDigit() || c == '-' || c == 't' || c == 'f' || c == 'n' -> {
+                            state = State.SKIPPING_VALUE
+                            nestingDepth = 0
+                            skipInString = false
+                        }
                     }
                 }
                 State.IN_STRING_VALUE -> {
@@ -394,6 +411,33 @@ class AIService(
                         state = State.AFTER_BRACE
                     } else if (c == '}') {
                         state = State.INITIAL
+                    }
+                }
+                State.SKIPPING_VALUE -> {
+                    if (skipInString) {
+                        if (skipInEscape) {
+                            skipInEscape = false
+                        } else if (c == '\\') {
+                            skipInEscape = true
+                        } else if (c == '"') {
+                            skipInString = false
+                        }
+                    } else {
+                        when (c) {
+                            '"' -> skipInString = true
+                            '{', '[' -> nestingDepth++
+                            '}', ']' -> {
+                                nestingDepth--
+                                if (nestingDepth <= 0) {
+                                    state = State.AFTER_STRING_VALUE
+                                }
+                            }
+                            ',', '}' -> {
+                                if (nestingDepth == 0) {
+                                    state = if (c == ',') State.AFTER_BRACE else State.INITIAL
+                                }
+                            }
+                        }
                     }
                 }
             }
