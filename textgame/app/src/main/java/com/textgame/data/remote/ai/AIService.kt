@@ -581,9 +581,10 @@ class AIService(
               "protagonistBackground": "主角的详细背景故事",
               "worldHistory": "世界历史",
               "attributes": [
-                {"name": "属性名称1", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
-                {"name": "属性名称2", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"},
-                {"name": "属性名称3", "type": "NUMERIC/BOOLEAN/STRING", "minValue": 最小值（数字类型必填）, "maxValue": 最大值（数字类型必填）, "defaultValue": 默认值, "description": "属性描述"}
+                {"name": "生命值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 100, "description": "角色的生命值"},
+                {"name": "是否拥有灵视", "type": "BOOLEAN", "defaultValue": false, "description": "能否看见灵体"},
+                {"name": "阵营", "type": "ENUM", "enumOptions": ["守序善良", "中立善良", "混乱善良", "守序中立", "绝对中立", "混乱中立", "守序邪恶", "中立邪恶", "混乱邪恶"], "defaultValue": "绝对中立", "description": "角色的道德与秩序倾向"},
+                {"name": "职业", "type": "TEXT", "defaultValue": "无业游民", "description": "角色的职业身份"}
               ],
               "npcs": [
                 {
@@ -595,7 +596,7 @@ class AIService(
                   "appearance": "外貌描述"
                 }
               ]
-              
+
             NPC的ID会自动分配为npc_001, npc_002等格式，你不需要在JSON中提供npcId字段
             }
 
@@ -603,8 +604,11 @@ class AIService(
             1. 整个世界设定要完整、有创意、有故事性
             2. 主角背景要与世界设定紧密相关
             3. NPC要有鲜明的性格和与主角的关系
-            4. 属性要符合世界类型（奇幻可以有魔力值，科幻可以有科技值等）
-            5. 你的整个回复只能是JSON
+            4. 属性要符合世界类型（奇幻可以有魔力值、信仰阵营；科幻可以有能源值、赛博改造程度；武侠可以有内力、门派；都市可以有职业、社会地位等）
+            5. 属性类型必须多样化，不要全部使用NUMERIC：数值类用NUMERIC（如生命值、魔力值、金币等可量化数据）；是否类状态用BOOLEAN（如是否中毒、是否被通缉等）；有固定取值范围的用ENUM并必须提供enumOptions（如阵营、稀有度、阶级等）；自由文本类用TEXT（如职业、称号、外貌特征等）
+            6. 每种类型的字段要求：NUMERIC必须包含minValue和maxValue；BOOLEAN的defaultValue必须是true/false；ENUM必须提供enumOptions数组且defaultValue必须是其中之一；TEXT的defaultValue为字符串
+            7. 至少生成4-6个属性，且至少包含两种不同的类型
+            8. 你的整个回复只能是JSON
         """.trimIndent()
 
         val messages = listOf(
@@ -1026,26 +1030,46 @@ class AIService(
             val attributes = mutableListOf<com.textgame.domain.model.AttributeCategory>()
             if (json.has("attributes")) {
                 json.getAsJsonArray("attributes").forEach { elem ->
-                    val obj = elem.asJsonObject
-                    val typeStr = obj.get("type")?.asString ?: "NUMERIC"
-                    val type = com.textgame.domain.model.AttributeType.valueOf(typeStr.uppercase())
-                    val defaultVal = when (type) {
-                        com.textgame.domain.model.AttributeType.NUMERIC ->
-                            obj.get("defaultValue")?.asDouble ?: 0.0
-                        com.textgame.domain.model.AttributeType.BOOLEAN ->
-                            obj.get("defaultValue")?.asBoolean ?: false
-                        else -> obj.get("defaultValue")?.asString ?: ""
-                    }
-                    attributes.add(
-                        com.textgame.domain.model.AttributeCategory(
-                            name = obj.get("name")?.asString ?: "",
-                            type = type,
-                            minValue = obj.get("minValue")?.asDouble,
-                            maxValue = obj.get("maxValue")?.asDouble,
-                            defaultValue = defaultVal,
-                            description = obj.get("description")?.asString ?: ""
+                    try {
+                        val obj = elem.asJsonObject
+                        val typeStr = obj.get("type")?.asString ?: "NUMERIC"
+                        // 兼容历史 prompt 中可能出现的 STRING，映射到 TEXT
+                        val normalized = when (typeStr.uppercase()) {
+                            "STRING" -> "TEXT"
+                            else -> typeStr.uppercase()
+                        }
+                        val type = com.textgame.domain.model.AttributeType.values()
+                            .firstOrNull { it.name == normalized }
+                            ?: com.textgame.domain.model.AttributeType.TEXT
+                        val defaultVal = when (type) {
+                            com.textgame.domain.model.AttributeType.NUMERIC ->
+                                obj.get("defaultValue")?.asDouble ?: 0.0
+                            com.textgame.domain.model.AttributeType.BOOLEAN ->
+                                obj.get("defaultValue")?.asBoolean ?: false
+                            com.textgame.domain.model.AttributeType.ENUM ->
+                                obj.get("defaultValue")?.asString ?: ""
+                            com.textgame.domain.model.AttributeType.TEXT ->
+                                obj.get("defaultValue")?.asString ?: ""
+                        }
+                        val enumOptions = if (type == com.textgame.domain.model.AttributeType.ENUM) {
+                            obj.getAsJsonArray("enumOptions")?.map { it.asString } ?: emptyList()
+                        } else {
+                            emptyList()
+                        }
+                        attributes.add(
+                            com.textgame.domain.model.AttributeCategory(
+                                name = obj.get("name")?.asString ?: "",
+                                type = type,
+                                minValue = obj.get("minValue")?.asDouble,
+                                maxValue = obj.get("maxValue")?.asDouble,
+                                defaultValue = defaultVal,
+                                enumOptions = enumOptions,
+                                description = obj.get("description")?.asString ?: ""
+                            )
                         )
-                    )
+                    } catch (e: Exception) {
+                        // 单条属性解析失败不影响其他属性
+                    }
                 }
             }
 
