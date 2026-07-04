@@ -80,7 +80,15 @@ fun GameScreen(
         }
     }
 
+    // 对话条目数量变化时（新增对话）滚动到底部
     LaunchedEffect(uiState.dialogues.size) {
+        if (uiState.dialogues.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.dialogues.size - 1)
+        }
+    }
+
+    // 流式更新时，最后一条对话内容变化也自动滚动
+    LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming) {
         if (uiState.dialogues.isNotEmpty()) {
             listState.animateScrollToItem(uiState.dialogues.size - 1)
         }
