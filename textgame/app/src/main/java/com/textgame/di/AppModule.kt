@@ -99,9 +99,25 @@ object AppModule {
     fun getAIService(): AIService {
         if (aiService == null) {
             val settings = currentSettings
+
+            // 普通请求的OkHttpClient（带HEADERS日志）
             val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
+                level = HttpLoggingInterceptor.Level.HEADERS
             }
+
+            // 流式请求的OkHttpClient（不带BODY日志，避免缓冲整个响应体）
+            val streamingClient = OkHttpClient.Builder()
+                .addInterceptor { chain ->
+                    val request = chain.request().newBuilder()
+                        .header("Authorization", "Bearer ${settings.apiKey}")
+                        .header("Content-Type", "application/json")
+                        .build()
+                    chain.proceed(request)
+                }
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(300, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build()
 
             val client = OkHttpClient.Builder()
                 .addInterceptor(logging)
@@ -113,7 +129,7 @@ object AppModule {
                     chain.proceed(request)
                 }
                 .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(120, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build()
 
@@ -123,9 +139,18 @@ object AppModule {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
 
+            val streamingRetrofit = Retrofit.Builder()
+                .baseUrl(settings.baseUrl)
+                .client(streamingClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
             val apiService = retrofit.create(DeepSeekApiService::class.java)
+            val streamingApiService = streamingRetrofit.create(DeepSeekApiService::class.java)
+
             aiService = AIService(
                 apiService = apiService,
+                streamingApiService = streamingApiService,
                 apiKey = settings.apiKey,
                 model = settings.model,
                 dialogueTemperature = settings.dialogueTemperature,
