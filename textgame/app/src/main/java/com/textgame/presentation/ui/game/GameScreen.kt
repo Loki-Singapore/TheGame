@@ -81,11 +81,16 @@ fun GameScreen(
         }
     }
 
-    // 用户是否手动上滑离开底部（最后一个可见项不是列表末尾）
+    // 用户是否主动上滑离开底部：
+    // 最后一项底部已明显超出 viewport 底部（容忍 1/4 屏），才算"上滑"
     val isUserScrolledUp by remember {
         derivedStateOf {
-            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-            lastVisible >= 0 && lastVisible < uiState.dialogues.size - 1
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
+            val viewportHeight = layoutInfo.viewportSize.height
+            val lastItemBottom = lastVisible.offset + lastVisible.size
+            lastVisible.index < uiState.dialogues.size - 1 ||
+                lastItemBottom > viewportHeight + viewportHeight / 4
         }
     }
 
@@ -96,10 +101,10 @@ fun GameScreen(
         }
     }
 
-    // 流式更新时高频追底：用瞬时滚动，避免动画互相打断导致卡在中间
+    // 流式更新时高频追底：瞬时滚动 + 大偏移量，确保 item 底部（最新文字）对齐 viewport 底部
     LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming) {
         if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
-            listState.scrollToItem(uiState.dialogues.size - 1)
+            listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
         }
     }
 
