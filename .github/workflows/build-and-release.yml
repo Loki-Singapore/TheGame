@@ -30,8 +30,28 @@ env:
   PROJECT_DIR: 'textgame'
 
 jobs:
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      tree_sha: ${{ steps.tree.outputs.sha }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get tree hash (content fingerprint)
+        id: tree
+        run: |
+          TREE_SHA=$(git rev-parse HEAD^{tree})
+          echo "sha=${TREE_SHA}" >> $GITHUB_OUTPUT
+          echo "Tree hash: ${TREE_SHA}"
+
   build:
     name: Build APK
+    needs: prepare
+    concurrency:
+      group: build-tree-${{ needs.prepare.outputs.tree_sha }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     env:
       SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
@@ -44,19 +64,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get tree hash (content fingerprint)
-        id: tree
-        run: |
-          TREE_SHA=$(git rev-parse HEAD^{tree})
-          echo "sha=${TREE_SHA}" >> $GITHUB_OUTPUT
-          echo "Tree hash: ${TREE_SHA}"
-
       - name: Restore APK cache by tree hash
         id: cache
         uses: actions/cache@v4
         with:
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk
-          key: apk-${{ steps.tree.outputs.sha }}
+          key: apk-${{ needs.prepare.outputs.tree_sha }}
 
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         if: steps.cache.outputs.cache-hit != 'true'
@@ -123,7 +136,7 @@ jobs:
       - name: Report cache hit
         if: steps.cache.outputs.cache-hit == 'true'
         run: |
-          echo "✅ APK already built for tree ${{ steps.tree.outputs.sha }}, skipping build steps."
+          echo "✅ APK already built for tree ${{ needs.prepare.outputs.tree_sha }}, skipping build steps."
           ls -la ${{ env.PROJECT_DIR }}/app/build/outputs/apk/ || true
 
       - name: Find APK files
