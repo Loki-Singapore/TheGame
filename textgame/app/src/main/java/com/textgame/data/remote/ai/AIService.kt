@@ -661,7 +661,6 @@ class AIService(
         appendLine("  \"dialogue\": \"当前说话NPC的对话内容（如果有多个NPC轮流说话，用换行分隔，格式如：角色名：台词）\",")
         appendLine("  \"narrative\": \"场景描述、旁白、动作描写等叙述性内容，这是核心字段，必须详细丰富\",")
         appendLine("  \"bgm\": \"背景音乐关键词（可选，从下方BGM列表中选择一个最匹配当前剧情氛围的关键词，如果不需要切换则不填该字段）\",")
-        appendLine("  \"current_time\": \"当前剧情时间（可选，仅当剧情中时间发生明显变化时填写，见下方【时间推进规则】。必须使用与世界设定中时间设定相符的风格，如：'第三纪元 1247 年，深秋，黄昏'、'星历 3042 年，地球历 7 月 15 日 14:00'、'大明永乐三年，春末，午时三刻'、'灾变后第 189 天，黎明'等。若本轮时间无明显变化则不要填写该字段）\",")
         appendLine("  \"choices\": [")
         appendLine("    \"选项1的文字描述\",")
         appendLine("    \"选项2的文字描述\",")
@@ -768,12 +767,12 @@ class AIService(
         appendLine("5. 情绪类BGM（战斗、危险临近、胜利、爱情、未知的恐惧）在剧情氛围匹配时使用")
         appendLine()
         appendLine("【时间推进规则】")
-        appendLine("1. 当剧情中时间发生明显变化时（如：场景切换伴随时间流逝、时间跳跃、昼夜变化、季节更替、跨越数日/数月/数年、长途旅行后等），必须在回复中通过 current_time 字段输出当前的具体时间")
-        appendLine("2. 时间格式必须与世界设定中的时间设定风格保持一致，体现世界观的特色（如奇幻世界用纪元+季节+时段，科幻世界用星历+标准时间，武侠世界用年号+节气+时辰等）")
-        appendLine("3. current_time 应当比上一次的时间更具体或有所推进，体现时间的流逝感")
-        appendLine("4. 如果只是普通对话或短暂动作（如几句话的交谈、单次行动、一场战斗等），时间没有明显流逝，不要输出 current_time 字段")
-        appendLine("5. 在 narrative 中可以适当体现时间的流逝感（如环境光线变化、人物疲倦感、天气变化等），但具体的时间值通过 current_time 字段输出")
-        appendLine("6. 首轮回复时（如果当前时间为空），应当输出 current_time 来设定故事的起始具体时间")
+        appendLine("1. 当剧情中时间发生明显变化时（如：场景切换伴随时间流逝、时间跳跃、昼夜变化、季节更替、跨越数日/数月/数年、长途旅行后等），必须在 narrative 中明确写出当前的具体时间，让玩家清晰感知到时间流逝到了何时")
+        appendLine("2. 时间表述必须与世界设定中的时间设定风格保持一致，体现世界观的特色（如奇幻世界用'第三纪元1247年深秋，黄昏时分'；科幻世界用'星历3042年7月15日14:00'；武侠世界用'大明永乐三年春末，午时三刻'；末日世界用'灾变后第189天，黎明'；克苏鲁世界用'1923年10月，波士顿，雨夜'等）")
+        appendLine("3. 时间应当比上一次出现的时间有所推进，体现时间的流逝感，不要原地踏步")
+        appendLine("4. 时间应自然地融入 narrative 的场景描写中，可以放在叙述开头点明时间，或在环境描写中体现（如'晨光透过窗棂'、'子夜的钟声敲响'、'三日后，船队抵达...'等）")
+        appendLine("5. 如果只是普通对话或短暂动作（如几句话的交谈、单次行动、一场战斗等），时间没有明显流逝，不需要在 narrative 中强调具体时间")
+        appendLine("6. 首轮回复时，必须在 narrative 中设定故事的起始具体时间，作为时间推进的基点")
         appendLine()
         appendLine("你是一个文字冒险游戏的游戏主持人和NPC扮演助手。")
         appendLine("你的回复必须详细、丰富、生动，给玩家沉浸式的游戏体验。")
@@ -953,11 +952,6 @@ class AIService(
 
         appendLine("【当前场景】${gameState.currentScene}")
         appendLine("【当前轮次】${gameState.turnCount}")
-        if (gameState.currentTime.isNotEmpty()) {
-            appendLine("【当前剧情时间】${gameState.currentTime}")
-        } else {
-            appendLine("【当前剧情时间】暂无（首轮请通过 current_time 字段设定起始时间）")
-        }
     }
 
     private fun buildUserPrompt(userInput: String): String = buildString {
