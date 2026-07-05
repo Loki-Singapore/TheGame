@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,17 +81,25 @@ fun GameScreen(
         }
     }
 
-    // 对话条目数量变化时（新增对话）滚动到底部
+    // 用户是否手动上滑离开底部（最后一个可见项不是列表末尾）
+    val isUserScrolledUp by remember {
+        derivedStateOf {
+            val lastVisible = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= 0 && lastVisible < uiState.dialogues.size - 1
+        }
+    }
+
+    // 新增对话时，若用户仍在底部附近则平滑追底
     LaunchedEffect(uiState.dialogues.size) {
-        if (uiState.dialogues.isNotEmpty()) {
+        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
             listState.animateScrollToItem(uiState.dialogues.size - 1)
         }
     }
 
-    // 流式更新时，最后一条对话内容变化也自动滚动
+    // 流式更新时高频追底：用瞬时滚动，避免动画互相打断导致卡在中间
     LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming) {
-        if (uiState.dialogues.isNotEmpty()) {
-            listState.animateScrollToItem(uiState.dialogues.size - 1)
+        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
+            listState.scrollToItem(uiState.dialogues.size - 1)
         }
     }
 
