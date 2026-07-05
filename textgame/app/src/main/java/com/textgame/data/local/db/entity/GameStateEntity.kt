@@ -12,5 +12,6 @@ data class GameStateEntity(
     val activeEventsJson: String = "[]",
     val flagsJson: String = "{}",
     val lastAction: String = "",
+    val currentTime: String = "",
     val updatedAt: Long = 0
 )

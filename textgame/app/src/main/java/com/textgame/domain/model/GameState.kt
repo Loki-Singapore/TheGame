@@ -8,5 +8,6 @@ data class GameState(
     val activeEvents: List<String> = emptyList(),
     val flags: Map<String, Boolean> = emptyMap(),
     val lastAction: String = "",
+    val currentTime: String = "",
     val updatedAt: Long = 0
 )
