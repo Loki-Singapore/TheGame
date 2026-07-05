@@ -44,13 +44,29 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Get tree hash (content fingerprint)
+        id: tree
+        run: |
+          TREE_SHA=$(git rev-parse HEAD^{tree})
+          echo "sha=${TREE_SHA}" >> $GITHUB_OUTPUT
+          echo "Tree hash: ${TREE_SHA}"
+
+      - name: Restore APK cache by tree hash
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk
+          key: apk-${{ steps.tree.outputs.sha }}
+
       - name: Set up JDK ${{ env.JAVA_VERSION }}
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: actions/setup-java@v4
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
 
       - name: Setup Gradle
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: wrapper
@@ -58,10 +74,12 @@ jobs:
           validate-wrappers: false
 
       - name: Make gradlew executable
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.PROJECT_DIR }}
         run: chmod +x gradlew
 
       - name: Setup Android SDK
+        if: steps.cache.outputs.cache-hit != 'true'
         uses: android-actions/setup-android@v3
         with:
           cmdline-tools-version: ${{ env.ANDROID_SDK_TOOLS }}
@@ -71,7 +89,7 @@ jobs:
             platform-tools
 
       - name: Decode signing keystore
-        if: env.SIGNING_KEYSTORE_BASE64 != ''
+        if: env.SIGNING_KEYSTORE_BASE64 != '' && steps.cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.PROJECT_DIR }}
         run: |
           echo "$SIGNING_KEYSTORE_BASE64" | base64 -d > app/release.keystore
@@ -88,17 +106,25 @@ jobs:
           echo "Version: ${VERSION_NAME} (${VERSION_CODE})"
 
       - name: Build Debug APK
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleDebug --stacktrace --no-daemon
         env:
           SIGNING_KEYSTORE_PATH: ${{ env.SIGNING_KEYSTORE_BASE64 != '' && 'release.keystore' || '' }}
 
       - name: Build Release APK
+        if: steps.cache.outputs.cache-hit != 'true'
         working-directory: ${{ env.PROJECT_DIR }}
         run: ./gradlew assembleRelease --stacktrace --no-daemon
         continue-on-error: true
         env:
           SIGNING_KEYSTORE_PATH: ${{ env.SIGNING_KEYSTORE_BASE64 != '' && 'release.keystore' || '' }}
+
+      - name: Report cache hit
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          echo "✅ APK already built for tree ${{ steps.tree.outputs.sha }}, skipping build steps."
+          ls -la ${{ env.PROJECT_DIR }}/app/build/outputs/apk/ || true
 
       - name: Find APK files
         id: find_apk
