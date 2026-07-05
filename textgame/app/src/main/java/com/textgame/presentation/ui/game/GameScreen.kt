@@ -100,8 +100,10 @@ fun GameScreen(
                 title = {
                     Column {
                         Text(uiState.gameState?.currentScene ?: "游戏中")
+                        val turnText = "第 ${uiState.gameState?.turnCount ?: 0} 轮"
+                        val timeText = uiState.gameState?.currentTime?.takeIf { it.isNotBlank() }
                         Text(
-                            text = "第 ${uiState.gameState?.turnCount ?: 0} 轮",
+                            text = if (timeText != null) "$turnText · $timeText" else turnText,
                             style = MaterialTheme.typography.bodySmall
                         )
                     }

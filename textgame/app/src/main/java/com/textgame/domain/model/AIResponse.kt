@@ -11,6 +11,8 @@ data class AIResponse(
     @SerializedName("summary_update")
     val summaryUpdate: Boolean = false,
     val bgm: String? = null,
+    @SerializedName("current_time")
+    val currentTime: String? = null,
     val tokenUsage: TokenUsage? = null
 )
 
