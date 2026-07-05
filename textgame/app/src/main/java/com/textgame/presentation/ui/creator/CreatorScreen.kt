@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -171,9 +172,12 @@ fun CreatorScreen(
     }
 
     if (showAttributeDialog) {
-        AddAttributeDialog(
+        AttributeDialog(
+            initial = null,
+            title = "添加属性",
+            confirmText = "添加",
             onDismiss = { showAttributeDialog = false },
-            onAdd = { category ->
+            onConfirm = { category ->
                 viewModel.addAttributeCategory(category)
                 showAttributeDialog = false
             }
@@ -430,6 +434,8 @@ fun SpecialRulesSection(viewModel: CreatorViewModel) {
 @Composable
 fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.CreatorUiState())
+    var editingAttrIndex by remember { mutableStateOf<Int?>(null) }
+    var editingAttr by remember { mutableStateOf<AttributeCategory?>(null) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -446,6 +452,13 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
 
     Spacer(modifier = Modifier.height(8.dp))
 
+    if (uiState.attributeCategories.isEmpty()) {
+        Text(
+            text = "暂无属性，点击上方按钮添加",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
     uiState.attributeCategories.forEachIndexed { index, category ->
         Card(
             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
@@ -460,12 +473,44 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
                         text = "类型: ${category.type.name} | 默认值: ${category.defaultValue}",
                         style = MaterialTheme.typography.bodySmall
                     )
+                    if (category.description.isNotBlank()) {
+                        Text(
+                            text = category.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                IconButton(onClick = {
+                    editingAttrIndex = index
+                    editingAttr = category
+                }) {
+                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { viewModel.removeAttributeCategory(index) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除")
+                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
+    }
+
+    editingAttr?.let { category ->
+        AttributeDialog(
+            initial = category,
+            title = "编辑属性",
+            confirmText = "保存",
+            onDismiss = {
+                editingAttr = null
+                editingAttrIndex = null
+            },
+            onConfirm = { updated ->
+                editingAttrIndex?.let { index ->
+                    viewModel.updateAttributeCategory(index, updated)
+                }
+                editingAttr = null
+                editingAttrIndex = null
+            }
+        )
     }
 }
 
@@ -579,17 +624,30 @@ fun FinalStep(viewModel: CreatorViewModel) {
 }
 
 @Composable
-fun AddAttributeDialog(onDismiss: () -> Unit, onAdd: (AttributeCategory) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf(AttributeType.NUMERIC) }
-    var defaultValue by remember { mutableStateOf("") }
-    var minValue by remember { mutableStateOf("") }
-    var maxValue by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
+fun AttributeDialog(
+    initial: AttributeCategory?,
+    title: String,
+    confirmText: String,
+    onDismiss: () -> Unit,
+    onConfirm: (AttributeCategory) -> Unit
+) {
+    var name by remember { mutableStateOf(initial?.name ?: "") }
+    var type by remember { mutableStateOf(initial?.type ?: AttributeType.NUMERIC) }
+    var defaultValue by remember {
+        mutableStateOf(when (initial?.type) {
+            AttributeType.NUMERIC -> (initial.defaultValue as? Double)?.toString() ?: ""
+            AttributeType.BOOLEAN -> (initial.defaultValue as? Boolean)?.toString() ?: "false"
+            else -> initial?.defaultValue?.toString() ?: ""
+        })
+    }
+    var minValue by remember { mutableStateOf(initial?.minValue?.toString() ?: "") }
+    var maxValue by remember { mutableStateOf(initial?.maxValue?.toString() ?: "") }
+    var enumOptionsText by remember { mutableStateOf(initial?.enumOptions?.joinToString(",") ?: "") }
+    var description by remember { mutableStateOf(initial?.description ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加属性") },
+        title = { Text(title) },
         text = {
             Column {
                 OutlinedTextField(
@@ -605,20 +663,72 @@ fun AddAttributeDialog(onDismiss: () -> Unit, onAdd: (AttributeCategory) -> Unit
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (type == AttributeType.NUMERIC) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                when (type) {
+                    AttributeType.NUMERIC -> {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = minValue,
+                                onValueChange = { minValue = it },
+                                label = { Text("最小值") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = maxValue,
+                                onValueChange = { maxValue = it },
+                                label = { Text("最大值") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
-                            value = minValue,
-                            onValueChange = { minValue = it },
-                            label = { Text("最小值") },
-                            modifier = Modifier.weight(1f),
+                            value = defaultValue,
+                            onValueChange = { defaultValue = it },
+                            label = { Text("默认值（数字）") },
                             singleLine = true
                         )
+                    }
+                    AttributeType.BOOLEAN -> {
+                        val checked = defaultValue.toBoolean()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            androidx.compose.material3.Switch(
+                                checked = checked,
+                                onCheckedChange = { defaultValue = it.toString() }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(if (checked) "true" else "false")
+                        }
+                    }
+                    AttributeType.ENUM -> {
                         OutlinedTextField(
-                            value = maxValue,
-                            onValueChange = { maxValue = it },
-                            label = { Text("最大值") },
-                            modifier = Modifier.weight(1f),
+                            value = enumOptionsText,
+                            onValueChange = { enumOptionsText = it },
+                            label = { Text("可选项（用英文逗号分隔）") },
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        val options = enumOptionsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        if (options.isNotEmpty()) {
+                            Text(
+                                text = "当前默认值需为可选项之一：${options.joinToString(" / ")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+                        OutlinedTextField(
+                            value = defaultValue,
+                            onValueChange = { defaultValue = it },
+                            label = { Text("默认值（需在上面的可选项中）") },
+                            singleLine = true
+                        )
+                    }
+                    AttributeType.TEXT -> {
+                        OutlinedTextField(
+                            value = defaultValue,
+                            onValueChange = { defaultValue = it },
+                            label = { Text("默认值") },
                             singleLine = true
                         )
                     }
@@ -627,44 +737,50 @@ fun AddAttributeDialog(onDismiss: () -> Unit, onAdd: (AttributeCategory) -> Unit
                 Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
-                    value = defaultValue,
-                    onValueChange = { defaultValue = it },
-                    label = { Text("默认值") },
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("描述") },
-                    singleLine = true
+                    label = { Text("描述（属性如何影响游戏）") },
+                    modifier = Modifier.height(80.dp),
+                    maxLines = 3
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    val defaultVal = when (type) {
+                    val defaultVal: Any = when (type) {
                         AttributeType.NUMERIC -> defaultValue.toDoubleOrNull() ?: 0.0
                         AttributeType.BOOLEAN -> defaultValue.toBoolean()
-                        else -> defaultValue
+                        AttributeType.ENUM -> {
+                            val options = enumOptionsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                            if (options.isNotEmpty() && options.contains(defaultValue.trim())) {
+                                defaultValue.trim()
+                            } else {
+                                options.firstOrNull() ?: ""
+                            }
+                        }
+                        AttributeType.TEXT -> defaultValue
                     }
-                    onAdd(
+                    val enumOptions = if (type == AttributeType.ENUM) {
+                        enumOptionsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    } else {
+                        emptyList()
+                    }
+                    onConfirm(
                         AttributeCategory(
                             name = name,
                             type = type,
-                            minValue = minValue.toDoubleOrNull(),
-                            maxValue = maxValue.toDoubleOrNull(),
+                            minValue = if (type == AttributeType.NUMERIC) minValue.toDoubleOrNull() else null,
+                            maxValue = if (type == AttributeType.NUMERIC) maxValue.toDoubleOrNull() else null,
                             defaultValue = defaultVal,
+                            enumOptions = enumOptions,
                             description = description
                         )
                     )
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text("添加")
+                Text(confirmText)
             }
         },
         dismissButton = {

@@ -150,6 +150,14 @@ class CreatorViewModel : ViewModel() {
         )
     }
 
+    fun updateAttributeCategory(index: Int, category: AttributeCategory) {
+        val categories = _uiState.value.attributeCategories.toMutableList()
+        if (index in categories.indices) {
+            categories[index] = category
+            _uiState.value = _uiState.value.copy(attributeCategories = categories)
+        }
+    }
+
     fun removeAttributeCategory(index: Int) {
         val categories = _uiState.value.attributeCategories.toMutableList()
         if (index in categories.indices) {

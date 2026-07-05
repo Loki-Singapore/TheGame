@@ -581,10 +581,11 @@ class AIService(
               "protagonistBackground": "主角的详细背景故事",
               "worldHistory": "世界历史",
               "attributes": [
-                {"name": "生命值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 100, "description": "角色的生命值"},
-                {"name": "是否拥有灵视", "type": "BOOLEAN", "defaultValue": false, "description": "能否看见灵体"},
-                {"name": "阵营", "type": "ENUM", "enumOptions": ["守序善良", "中立善良", "混乱善良", "守序中立", "绝对中立", "混乱中立", "守序邪恶", "中立邪恶", "混乱邪恶"], "defaultValue": "绝对中立", "description": "角色的道德与秩序倾向"},
-                {"name": "职业", "type": "TEXT", "defaultValue": "无业游民", "description": "角色的职业身份"}
+                {"name": "生命值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 80, "description": "生命值归零即死亡，受伤时减少，休息或治疗时恢复"},
+                {"name": "理智值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 75, "description": "目睹恐怖事物或经历创伤会下降，归零则陷入疯狂，无法做出理性判断"},
+                {"name": "是否被通缉", "type": "BOOLEAN", "defaultValue": false, "description": "若为true，进入城镇时可能遭遇守卫追捕，需乔装或潜行"},
+                {"name": "阵营", "type": "ENUM", "enumOptions": ["守序善良", "中立善良", "混乱善良", "守序中立", "绝对中立", "混乱中立", "守序邪恶", "中立邪恶", "混乱邪恶"], "defaultValue": "中立善良", "description": "影响NPC对主角的态度及部分剧情走向的选择"},
+                {"name": "身份", "type": "TEXT", "defaultValue": "落魄贵族", "description": "主角的社会身份，会影响可对话人群和剧情分支"}
               ],
               "npcs": [
                 {
@@ -604,10 +605,15 @@ class AIService(
             1. 整个世界设定要完整、有创意、有故事性
             2. 主角背景要与世界设定紧密相关
             3. NPC要有鲜明的性格和与主角的关系
-            4. 属性要符合世界类型（奇幻可以有魔力值、信仰阵营；科幻可以有能源值、赛博改造程度；武侠可以有内力、门派；都市可以有职业、社会地位等）
-            5. 属性类型必须多样化，不要全部使用NUMERIC：数值类用NUMERIC（如生命值、魔力值、金币等可量化数据）；是否类状态用BOOLEAN（如是否中毒、是否被通缉等）；有固定取值范围的用ENUM并必须提供enumOptions（如阵营、稀有度、阶级等）；自由文本类用TEXT（如职业、称号、外貌特征等）
-            6. 每种类型的字段要求：NUMERIC必须包含minValue和maxValue；BOOLEAN的defaultValue必须是true/false；ENUM必须提供enumOptions数组且defaultValue必须是其中之一；TEXT的defaultValue为字符串
-            7. 至少生成4-6个属性，且至少包含两种不同的类型
+            4. 属性必须紧扣世界题材，富有设计感和可玩性。属性是游戏机制的核心，每一个属性都应该能在剧情中触发实际效果。具体要求：
+               - 不要只生成"生命值/金币"这类通用属性，必须根据题材设计有题材特色的属性（如：克苏鲁题材生成"理智值""禁忌知识"；赛博朋克生成"义体改造度""企业声望"；武侠生成"内力修为""门派声望"；末日生存生成"辐射剂量""幸存者信任度"等）
+               - 每个属性的description必须明确说明该属性如何影响游戏：何时增减、归零或极值时的后果、是否解锁特殊剧情或对话选项
+               - 属性之间应该互相关联或互相制约，形成策略选择（如高"声望"能开启某些任务但会引来仇家；高"禁忌知识"提升能力但消耗"理智值"）
+               - 至少包含一个会随剧情持续变化、可触发分支的属性（如声望、信任度、堕落值等）
+               - 至少包含一个能体现角色身份/立场的ENUM或TEXT属性
+            5. 属性类型必须多样化，不要全部使用NUMERIC：数值类用NUMERIC（可量化数据）；是否类状态用BOOLEAN（如是否中毒、是否被通缉等）；有固定取值范围的用ENUM并必须提供enumOptions（如阵营、稀有度、阶级等）；自由文本类用TEXT（如职业、称号、身份等）
+            6. 每种类型的字段要求：NUMERIC必须包含minValue和maxValue且defaultValue在范围内；BOOLEAN的defaultValue必须是true/false；ENUM必须提供enumOptions数组且defaultValue必须是其中之一；TEXT的defaultValue为字符串
+            7. 至少生成5-8个属性，且至少包含三种不同的类型
             8. 你的整个回复只能是JSON
         """.trimIndent()
 
