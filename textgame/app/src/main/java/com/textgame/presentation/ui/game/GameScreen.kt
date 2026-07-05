@@ -165,7 +165,7 @@ fun GameScreen(
             }
 
             if (uiState.choices.isNotEmpty() && !uiState.isLoading && !uiState.isStreaming) {
-                var choicesExpanded by remember { mutableStateOf(true) }
+                var choicesExpanded by remember { mutableStateOf(false) }
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
