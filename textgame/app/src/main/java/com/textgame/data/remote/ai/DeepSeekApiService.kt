@@ -35,7 +35,14 @@ data class ChatCompletionRequest(
     @SerializedName("reasoning_effort")
     val reasoningEffort: String? = null,
     val thinking: ThinkingConfig? = null,
-    val stream: Boolean = false
+    val stream: Boolean = false,
+    @SerializedName("stream_options")
+    val streamOptions: StreamOptions? = null
+)
+
+data class StreamOptions(
+    @SerializedName("include_usage")
+    val includeUsage: Boolean = true
 )
 
 data class ChatMessage(

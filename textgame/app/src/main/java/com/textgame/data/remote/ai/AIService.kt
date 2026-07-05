@@ -12,6 +12,7 @@ import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
+import com.textgame.domain.model.TokenUsage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -206,7 +207,10 @@ class AIService(
             ChatMessage(role = "user", content = userPrompt)
         )
 
-        val request = buildDialogueRequest(messages, useJsonFormat = false).copy(stream = true)
+        val request = buildDialogueRequest(messages, useJsonFormat = false).copy(
+            stream = true,
+            streamOptions = StreamOptions(includeUsage = true)
+        )
         val call = streamingApiService.createChatCompletionStream(request)
 
         try {
@@ -224,6 +228,7 @@ class AIService(
             var fullContent = StringBuilder()
             var lastNarrativeLen = 0
             var lastDialogueLen = 0
+            var capturedUsage: TokenUsage? = null
 
             val jsonParser = JsonStreamingParser()
 
@@ -250,6 +255,16 @@ class AIService(
                     try {
                         val streamResponse = gson.fromJson(data, ChatCompletionStreamResponse::class.java)
                         val delta = streamResponse.choices.firstOrNull()?.delta?.content ?: ""
+
+                        // 流式响应中 usage 通常出现在最后一个 chunk（choices 为空数组时），
+                        // 仅当开启了 stream_options.include_usage 时才会下发
+                        streamResponse.usage?.let { usage ->
+                            capturedUsage = TokenUsage(
+                                promptTokens = usage.promptTokens,
+                                completionTokens = usage.completionTokens,
+                                totalTokens = usage.totalTokens
+                            )
+                        }
 
                         if (delta.isNotEmpty()) {
                             fullContent.append(delta)
@@ -283,7 +298,7 @@ class AIService(
                 }
 
                 val finalContent = fullContent.toString()
-                val aiResponse = parseAIResponse(finalContent)
+                val aiResponse = parseAIResponse(finalContent).copy(tokenUsage = capturedUsage)
                 emit(StreamingChunk.Complete(aiResponse))
             } finally {
                 try {
