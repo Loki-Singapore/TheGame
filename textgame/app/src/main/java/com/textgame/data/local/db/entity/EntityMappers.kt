@@ -110,7 +110,6 @@ fun GameStateEntity.toDomain(): GameState {
         activeEvents = gson.fromJson(activeEventsJson, eventsType) ?: emptyList(),
         flags = gson.fromJson(flagsJson, flagsType) ?: emptyMap(),
         lastAction = lastAction,
-        currentTime = currentTime,
         updatedAt = updatedAt
     )
 }
@@ -123,7 +122,6 @@ fun GameState.toEntity(): GameStateEntity = GameStateEntity(
     activeEventsJson = gson.toJson(activeEvents),
     flagsJson = gson.toJson(flags),
     lastAction = lastAction,
-    currentTime = currentTime,
     updatedAt = updatedAt
 )
 

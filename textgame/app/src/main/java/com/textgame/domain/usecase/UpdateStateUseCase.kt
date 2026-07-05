@@ -60,9 +60,7 @@ class UpdateStateUseCase(
 
         val gameState = gameRepository.getGameState(sessionId)
         if (gameState != null) {
-            val updatedGameState = updateGameState(
-                gameState, stateChanges?.game, userInput, aiResponse.currentTime, now
-            )
+            val updatedGameState = updateGameState(gameState, stateChanges?.game, userInput, now)
             gameRepository.updateGameState(updatedGameState)
         }
 
@@ -152,14 +150,12 @@ class UpdateStateUseCase(
         gameState: GameState,
         changes: GameChanges?,
         userInput: String,
-        currentTime: String?,
         now: Long
     ): GameState {
         if (changes == null) {
             return gameState.copy(
                 turnCount = gameState.turnCount + 1,
                 lastAction = userInput,
-                currentTime = currentTime ?: gameState.currentTime,
                 updatedAt = now
             )
         }
@@ -176,7 +172,6 @@ class UpdateStateUseCase(
             activeEvents = updatedEvents,
             flags = updatedFlags,
             lastAction = userInput,
-            currentTime = currentTime ?: gameState.currentTime,
             updatedAt = now
         )
     }
