@@ -57,6 +57,8 @@ import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichText
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
