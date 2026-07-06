@@ -18,5 +18,6 @@ data class NPCStateEntity(
     val appearance: String = "",
     val personality: String = "",
     val backstory: String = "",
+    val hiddenAgenda: String = "",
     val updatedAt: Long = 0
 )

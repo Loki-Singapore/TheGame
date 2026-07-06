@@ -50,6 +50,7 @@ class UpdateStateUseCase(
                             appearance = npcChanges.appearance ?: "",
                             personality = npcChanges.personality ?: "",
                             backstory = npcChanges.backstory ?: "",
+                            hiddenAgenda = npcChanges.hiddenAgenda ?: "",
                             updatedAt = now
                         )
                         gameRepository.saveNPC(newNpc)
@@ -142,6 +143,7 @@ class UpdateStateUseCase(
             personality = changes.personality ?: npc.personality,
             backstory = changes.backstory ?: npc.backstory,
             role = changes.role ?: npc.role,
+            hiddenAgenda = changes.hiddenAgenda ?: npc.hiddenAgenda,
             updatedAt = now
         )
     }
