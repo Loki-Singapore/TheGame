@@ -41,10 +41,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -57,8 +57,10 @@ import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichText
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +77,23 @@ fun GameScreen(
 
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     var showStatusPanel by remember { mutableStateOf(false) }
+
+    // 用户是否主动上滑离开底部：可被发送消息重置
+    var isUserScrolledUp by remember { mutableStateOf(false) }
+
+    // 监听滚动位置：最后一项底部明显超出 viewport 底部（容忍 1/4 屏）视为"上滑"
+    LaunchedEffect(listState) {
+        snapshotFlow {
+            val layoutInfo = listState.layoutInfo
+            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@snapshotFlow false
+            val viewportHeight = layoutInfo.viewportSize.height
+            val lastItemBottom = lastVisible.offset + lastVisible.size
+            lastVisible.index < uiState.dialogues.size - 1 ||
+                lastItemBottom > viewportHeight + viewportHeight / 4
+        }.collect { up -> isUserScrolledUp = up }
+    }
 
     LaunchedEffect(sessionId) {
         snapshotFlow { uiState.dialogues.size }
@@ -90,19 +108,6 @@ fun GameScreen(
         uiState.pendingRegeneratePrompt?.let { prompt ->
             inputText = prompt
             viewModel.consumePendingRegeneratePrompt()
-        }
-    }
-
-    // 用户是否主动上滑离开底部：
-    // 最后一项底部已明显超出 viewport 底部（容忍 1/4 屏），才算"上滑"
-    val isUserScrolledUp by remember {
-        derivedStateOf {
-            val layoutInfo = listState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@derivedStateOf false
-            val viewportHeight = layoutInfo.viewportSize.height
-            val lastItemBottom = lastVisible.offset + lastVisible.size
-            lastVisible.index < uiState.dialogues.size - 1 ||
-                lastItemBottom > viewportHeight + viewportHeight / 4
         }
     }
 
@@ -223,6 +228,12 @@ fun GameScreen(
                                     onClick = {
                                         viewModel.sendMessage(choice)
                                         inputText = ""
+                                        isUserScrolledUp = false
+                                        scope.launch {
+                                            if (uiState.dialogues.isNotEmpty()) {
+                                                listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
+                                            }
+                                        }
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp)
@@ -261,6 +272,12 @@ fun GameScreen(
                     onClick = {
                         viewModel.sendMessage(inputText)
                         inputText = ""
+                        isUserScrolledUp = false
+                        scope.launch {
+                            if (uiState.dialogues.isNotEmpty()) {
+                                listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
+                            }
+                        }
                     },
                     enabled = inputText.isNotBlank() && !uiState.isLoading && !uiState.isStreaming
                 ) {
