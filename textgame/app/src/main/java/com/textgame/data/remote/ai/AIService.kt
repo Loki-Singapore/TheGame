@@ -133,15 +133,15 @@ class AIService(
             protagonist, npcs, gameState,
             worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
         )
-        val userPrompt = buildUserPrompt(userInput)
+        val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
 
         // 消息按稳定性从高到低排列，最大化DeepSeek上下文缓存命中率：
         // 1. system: 静态规则+世界观+背景设定+输出指令（几乎不变）
         // 2. dialogueHistory: 对话历史（纯追加，已有前缀永远不变，缓存命中最高）
         // 3. worldRules: 世界观细则（偶尔增长或修改已有条目，不如对话历史稳定）
-        // 4. gameState: 当前游戏状态（每轮变化）
+        // 4. gameState: 当前游戏状态（主角/NPC/场景，无turnCount后可跨轮命中）
         // 5. directorDirective: 导演指令（每轮不同，玩家不可见）
-        // 6. userInput: 玩家输入（每轮不同）
+        // 6. userInput: 玩家输入 + 轮次号（每轮不同）
         val messages = buildList {
             add(ChatMessage(role = "system", content = systemPrompt))
             add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
@@ -203,7 +203,7 @@ class AIService(
             protagonist, npcs, gameState,
             worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
         )
-        val userPrompt = buildUserPrompt(userInput)
+        val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
 
         val messages = buildList {
             add(ChatMessage(role = "system", content = systemPrompt))
@@ -979,11 +979,11 @@ class AIService(
         }
 
         appendLine("【当前场景】${gameState.currentScene}")
-        appendLine("【当前轮次】${gameState.turnCount}")
+        // ponytail: turnCount 移到 userPrompt——每轮必然+1，留在 gameStatePrompt 会把整块拖下水。
     }
 
-    private fun buildUserPrompt(userInput: String): String = buildString {
-        appendLine("【玩家输入】")
+    private fun buildUserPrompt(userInput: String, turnCount: Int): String = buildString {
+        appendLine("【玩家输入】（轮次 $turnCount）")
         appendLine(userInput)
     }
 
