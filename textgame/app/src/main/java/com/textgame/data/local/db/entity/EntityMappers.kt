@@ -77,6 +77,7 @@ fun NPCStateEntity.toDomain(): NPC {
         appearance = appearance,
         personality = personality,
         backstory = backstory,
+        hiddenAgenda = hiddenAgenda,
         updatedAt = updatedAt
     )
 }
@@ -95,6 +96,7 @@ fun NPC.toEntity(): NPCStateEntity = NPCStateEntity(
     appearance = appearance,
     personality = personality,
     backstory = backstory,
+    hiddenAgenda = hiddenAgenda,
     updatedAt = updatedAt
 )
 

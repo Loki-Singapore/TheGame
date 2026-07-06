@@ -3,6 +3,7 @@ package com.textgame.domain.usecase
 import com.textgame.data.remote.ai.AIService
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.Dialogue
+import com.textgame.domain.model.DirectorDirective
 import com.textgame.domain.model.StateSnapshot
 import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.repository.GameRepository
@@ -46,6 +47,8 @@ class SendDialogueUseCase(
             allDialogues, latestSummary
         )
 
+        val directive = DirectorDirective.roll(gameState.turnCount + 1, npcs)
+
         val aiResponse = aiService.generateDialogueResponse(
             worldSetting = worldSetting,
             backgroundSetting = backgroundSetting,
@@ -55,7 +58,8 @@ class SendDialogueUseCase(
             protagonist = protagonist,
             npcs = npcs,
             gameState = gameState,
-            userInput = userInput
+            userInput = userInput,
+            directorDirective = directive
         )
 
         val newTurn = gameState.turnCount + 1
@@ -107,6 +111,8 @@ class SendDialogueUseCase(
             allDialogues, latestSummary
         )
 
+        val directive = DirectorDirective.roll(gameState.turnCount + 1, npcs)
+
         val flow = aiService.streamDialogueResponse(
             worldSetting = worldSetting,
             backgroundSetting = backgroundSetting,
@@ -116,7 +122,8 @@ class SendDialogueUseCase(
             protagonist = protagonist,
             npcs = npcs,
             gameState = gameState,
-            userInput = userInput
+            userInput = userInput,
+            directorDirective = directive
         )
 
         flow.collect { chunk ->

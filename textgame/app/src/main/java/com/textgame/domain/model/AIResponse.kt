@@ -57,6 +57,9 @@ data class NPCChanges(
     val appearance: String? = null,
     val personality: String? = null,
     val backstory: String? = null,
+    // ponytail: 隐藏动机更新。AI可写入，玩家不可见。返回完整的新内容而非增量。
+    @SerializedName("hidden_agenda")
+    val hiddenAgenda: String? = null,
     // AI返回NPC的完整属性状态，引擎直接替换，不做加减
     val attributes: Map<String, Any>? = null
 )

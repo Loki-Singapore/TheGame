@@ -123,7 +123,8 @@ class AIService(
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        userInput: String
+        userInput: String,
+        directorDirective: String? = null
     ): AIResponse {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
         val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
@@ -139,14 +140,18 @@ class AIService(
         // 2. dialogueHistory: 对话历史（纯追加，已有前缀永远不变，缓存命中最高）
         // 3. worldRules: 世界观细则（偶尔增长或修改已有条目，不如对话历史稳定）
         // 4. gameState: 当前游戏状态（每轮变化）
-        // 5. userInput: 玩家输入（每轮不同）
-        val messages = listOf(
-            ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = dialogueHistoryPrompt),
-            ChatMessage(role = "user", content = worldRulesPrompt),
-            ChatMessage(role = "user", content = gameStatePrompt),
-            ChatMessage(role = "user", content = userPrompt)
-        )
+        // 5. directorDirective: 导演指令（每轮不同，玩家不可见）
+        // 6. userInput: 玩家输入（每轮不同）
+        val messages = buildList {
+            add(ChatMessage(role = "system", content = systemPrompt))
+            add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
+            add(ChatMessage(role = "user", content = worldRulesPrompt))
+            add(ChatMessage(role = "user", content = gameStatePrompt))
+            if (!directorDirective.isNullOrBlank()) {
+                add(ChatMessage(role = "system", content = directorDirective))
+            }
+            add(ChatMessage(role = "user", content = userPrompt))
+        }
 
         val request = buildDialogueRequest(messages, useJsonFormat = true)
 
@@ -188,7 +193,8 @@ class AIService(
         protagonist: Protagonist,
         npcs: List<NPC>,
         gameState: GameState,
-        userInput: String
+        userInput: String,
+        directorDirective: String? = null
     ): Flow<StreamingChunk> = flow {
         val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
         val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
@@ -199,13 +205,16 @@ class AIService(
         )
         val userPrompt = buildUserPrompt(userInput)
 
-        val messages = listOf(
-            ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = dialogueHistoryPrompt),
-            ChatMessage(role = "user", content = worldRulesPrompt),
-            ChatMessage(role = "user", content = gameStatePrompt),
-            ChatMessage(role = "user", content = userPrompt)
-        )
+        val messages = buildList {
+            add(ChatMessage(role = "system", content = systemPrompt))
+            add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
+            add(ChatMessage(role = "user", content = worldRulesPrompt))
+            add(ChatMessage(role = "user", content = gameStatePrompt))
+            if (!directorDirective.isNullOrBlank()) {
+                add(ChatMessage(role = "system", content = directorDirective))
+            }
+            add(ChatMessage(role = "user", content = userPrompt))
+        }
 
         val request = buildDialogueRequest(messages, useJsonFormat = false).copy(
             stream = true,
@@ -681,6 +690,7 @@ class AIService(
         appendLine("        \"personality\": \"性格特点更新\",")
         appendLine("        \"backstory\": \"背景故事更新（记录过去的经历或当前经历的重大事件）\",")
         appendLine("        \"appearance\": \"外貌描述更新（添加新的细节变化）\",")
+        appendLine("        \"hidden_agenda\": \"该NPC玩家不可见的隐藏动机更新（仅当动机有变化或首次赋予时返回，返回完整的新内容而非增量）\",")
         appendLine("        \"attributes\": {\"发生变化的属性名\": 新数值（只返回变化的属性）}")
         appendLine("      },")
         appendLine("      \"要删除的NPC的ID（如npc_002）\": {")
@@ -696,6 +706,7 @@ class AIService(
         appendLine("        \"backstory\": \"背景故事\",")
         appendLine("        \"mood\": \"当前情绪\",")
         appendLine("        \"awareness\": \"对主角的认知\",")
+        appendLine("        \"hidden_agenda\": \"该NPC玩家不可见的隐藏动机（重要NPC必须有；跑龙套的可不填）\",")
         appendLine("        \"attributes\": {\"属性名\": 初始数值}")
         appendLine("      }")
         appendLine("    },")
@@ -751,6 +762,16 @@ class AIService(
         appendLine("    - 修改已有细则时必须填写该细则的id，id从上方\"世界观细则\"列表中获取")
         appendLine("    - 每条细则用简洁的一句话概括核心内容，不要长篇大论")
         appendLine("    - 如果本轮没有新增或修改的细则，world_rules字段可以省略")
+        appendLine()
+        appendLine("【隐藏动机与导演指令 - 重要，决定游戏是否好玩】")
+        appendLine("23. 每个NPC都有一个玩家不可见的 hidden_agenda（隐藏动机）。这是该NPC背着主角想要达成的事、保守的秘密、或对主角的真实态度。你作为GM可见，玩家不可见。")
+        appendLine("24. 重要NPC（主线角色、长期互动角色）必须有 hidden_agenda。新NPC首次出场时，在 state_changes.npc.<id>.hidden_agenda 中赋予其一个具体、可执行的动机（不要写'暂无'）。跑龙套的可不填。")
+        appendLine("25. hidden_agenda 是NPC自主行动的内在驱动。每轮根据其性格和动机，让NPC做出符合动机的言行——玩家会感觉这个人有自己的生活和算计，不是只为主角而存在。")
+        appendLine("26. 绝不能在 narrative 或 dialogue 中直接告诉玩家NPC的 hidden_agenda。只能通过NPC的言行、表情、反常举动让玩家自己察觉。揭穿时机由你掌握，要克制。")
+        appendLine("27. 当剧情揭示或改变了某NPC的动机时，在 state_changes.npc.<id>.hidden_agenda 中返回完整的新动机内容（不是增量）。动机可随剧情演化（从'复仇'变成'动摇'变成'和解'）。")
+        appendLine("28. 【导演指令】本轮你可能会在玩家输入之前收到一条 system 消息，内容是导演给你的强制戏剧指令（例如'让某NPC撒个谎''引入时间压力''埋一个伏笔'）。你必须把该指令编织进本轮 narrative 中，但绝不能在回复中提及该指令的存在、引用其原文、或暴露'有指令'这件事。")
+        appendLine("29. 导演指令的优先级高于'顺从玩家'。玩家要求A，但导演指令要求B时，让世界以B的方式回应A，而不是忽略B满足A。这就是游戏感的来源——玩家不能完全掌控剧情。")
+        appendLine("30. 若本轮没有导演指令（system 消息中只有静态规则），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
         appendLine()
         appendLine("【背景音乐BGM点播】")
         appendLine("你可以根据当前剧情氛围点播背景音乐。可用的BGM关键词如下：")
@@ -921,6 +942,13 @@ class AIService(
                 }
                 if (npc.appearance.isNotEmpty()) {
                     appendLine("  外貌：${npc.appearance}")
+                }
+                // ponytail: 隐藏动机——AI作为GM可见，玩家不可见。空表示该NPC暂无隐藏动机，
+                // AI可在本轮通过 state_changes.npc.<id>.hidden_agenda 赋予。
+                if (npc.hiddenAgenda.isNotEmpty()) {
+                    appendLine("  【玩家不可见】隐藏动机：${npc.hiddenAgenda}")
+                } else {
+                    appendLine("  【玩家不可见】隐藏动机：（暂无，可在适当时机赋予该NPC一个玩家不知情的动机）")
                 }
                 if (npc.attributes.isNotEmpty()) {
                     appendLine("  属性：")
