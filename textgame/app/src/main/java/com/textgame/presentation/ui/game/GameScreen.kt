@@ -51,6 +51,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
@@ -83,15 +84,18 @@ fun GameScreen(
     // 用户是否主动上滑离开底部：可被发送消息重置
     var isUserScrolledUp by remember { mutableStateOf(false) }
 
-    // 监听滚动位置：最后一项底部明显超出 viewport 底部（容忍 1/4 屏）视为"上滑"
-    LaunchedEffect(listState) {
+    // 离开底部的判定阈值：小值，确保用户第一次轻微上拖即被识别，避免被流式追底弹回
+    val scrollUpThresholdPx = with(LocalDensity.current) { 24.dp.toPx() }.toInt()
+
+    // 监听滚动位置：最后一项底部超过 viewport 底部一定阈值即视为"上滑"
+    LaunchedEffect(listState, scrollUpThresholdPx) {
         snapshotFlow {
             val layoutInfo = listState.layoutInfo
             val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@snapshotFlow false
             val viewportHeight = layoutInfo.viewportSize.height
             val lastItemBottom = lastVisible.offset + lastVisible.size
             lastVisible.index < uiState.dialogues.size - 1 ||
-                lastItemBottom > viewportHeight + viewportHeight / 4
+                lastItemBottom > viewportHeight + scrollUpThresholdPx
         }.collect { up -> isUserScrolledUp = up }
     }
 
@@ -119,7 +123,8 @@ fun GameScreen(
     }
 
     // 流式更新时高频追底：瞬时滚动 + 大偏移量，确保 item 底部（最新文字）对齐 viewport 底部
-    LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming) {
+    // isUserScrolledUp 作为 key：用户上滑时立即取消挂起的 scrollToItem，避免松手后弹回
+    LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming, isUserScrolledUp) {
         if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
             listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
         }
