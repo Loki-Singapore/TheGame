@@ -46,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -73,6 +74,15 @@ fun GameScreen(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     var showStatusPanel by remember { mutableStateOf(false) }
+
+    LaunchedEffect(sessionId) {
+        snapshotFlow { uiState.dialogues.size }
+            .filter { it > 0 }
+            .first()
+            .let {
+                listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
+            }
+    }
 
     LaunchedEffect(uiState.pendingRegeneratePrompt) {
         uiState.pendingRegeneratePrompt?.let { prompt ->
