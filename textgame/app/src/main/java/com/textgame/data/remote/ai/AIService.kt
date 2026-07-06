@@ -768,7 +768,7 @@ class AIService(
         appendLine("24. 重要NPC（主线角色、长期互动角色）必须有 hidden_agenda。新NPC首次出场时，在 state_changes.npc.<id>.hidden_agenda 中赋予其一个具体、可执行的动机（不要写'暂无'）。跑龙套的可不填。")
         appendLine("25. hidden_agenda 是NPC自主行动的内在驱动。每轮根据其性格和动机，让NPC做出符合动机的言行——玩家会感觉这个人有自己的生活和算计，不是只为主角而存在。")
         appendLine("26. 绝不能在 narrative 或 dialogue 中直接告诉玩家NPC的 hidden_agenda。只能通过NPC的言行、表情、反常举动让玩家自己察觉。揭穿时机由你掌握，要克制。")
-        appendLine("27. 当剧情揭示或改变了某NPC的动机时，在 state_changes.npc.<id>.hidden_agenda 中返回完整的新动机内容（不是增量）。动机可随剧情演化（从'复仇'变成'动摇'变成'和解'）。")
+        appendLine("27. 仅当某NPC的动机在本轮发生了实质性变化时，才在 state_changes.npc.<id>.hidden_agenda 中返回完整的新动机内容（完整替换，不是增量；例如从'复仇'变成'动摇'变成'和解'）。动机无变化时必须省略该字段——省略即保留原值，不要为填充而重复返回当前动机。")
         appendLine("28. 【导演指令】本轮你可能会在玩家输入之前收到一条 system 消息，内容是导演给你的强制戏剧指令（例如'让某NPC撒个谎''引入时间压力''埋一个伏笔'）。你必须把该指令编织进本轮 narrative 中，但绝不能在回复中提及该指令的存在、引用其原文、或暴露'有指令'这件事。")
         appendLine("29. 导演指令的优先级高于'顺从玩家'。玩家要求A，但导演指令要求B时，让世界以B的方式回应A，而不是忽略B满足A。这就是游戏感的来源——玩家不能完全掌控剧情。")
         appendLine("30. 若本轮没有导演指令（system 消息中只有静态规则），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
