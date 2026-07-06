@@ -47,6 +47,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +60,7 @@ import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +78,8 @@ fun GameScreen(
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
     var showStatusPanel by remember { mutableStateOf(false) }
+    // 发送消息后强制滚动到底部（忽略用户上滑状态）
+    var forceScrollToBottom by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionId) {
         snapshotFlow { uiState.dialogues.size }
@@ -106,10 +110,11 @@ fun GameScreen(
         }
     }
 
-    // 新增对话时，若用户仍在底部附近则平滑追底
+    // 新增对话时，若用户仍在底部附近则平滑追底；发送消息后强制追底
     LaunchedEffect(uiState.dialogues.size) {
-        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
+        if (uiState.dialogues.isNotEmpty() && (!isUserScrolledUp || forceScrollToBottom)) {
             listState.animateScrollToItem(uiState.dialogues.size - 1)
+            forceScrollToBottom = false
         }
     }
 
@@ -223,6 +228,7 @@ fun GameScreen(
                                     onClick = {
                                         viewModel.sendMessage(choice)
                                         inputText = ""
+                                        forceScrollToBottom = true
                                     },
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(12.dp)
