@@ -59,6 +59,7 @@ import com.halilibo.richtext.ui.RichText
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -84,19 +85,26 @@ fun GameScreen(
     // 用户是否主动上滑离开底部：可被发送消息重置
     var isUserScrolledUp by remember { mutableStateOf(false) }
 
-    // 离开底部的判定阈值：小值，确保用户第一次轻微上拖即被识别，避免被流式追底弹回
+    // 离开底部的判定阈值
     val scrollUpThresholdPx = with(LocalDensity.current) { 24.dp.toPx() }.toInt()
 
-    // 监听滚动位置：最后一项底部超过 viewport 底部一定阈值即视为"上滑"
+    // 仅在滚动停止时（用户松手）判定"上滑"：
+    // 流式内容增长会改变 lastItemBottom 但不会触发 isScrollInProgress，
+    // 因此用 isScrollInProgress 区分"用户拖动"与"内容增长"，避免误判。
+    // 程序滚动用瞬时 scrollToItem（不触发 isScrollInProgress），故该信号仅由用户拖动产生。
     LaunchedEffect(listState, scrollUpThresholdPx) {
-        snapshotFlow {
-            val layoutInfo = listState.layoutInfo
-            val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@snapshotFlow false
-            val viewportHeight = layoutInfo.viewportSize.height
-            val lastItemBottom = lastVisible.offset + lastVisible.size
-            lastVisible.index < uiState.dialogues.size - 1 ||
-                lastItemBottom > viewportHeight + scrollUpThresholdPx
-        }.collect { up -> isUserScrolledUp = up }
+        snapshotFlow { listState.isScrollInProgress }
+            .distinctUntilChanged()
+            .filter { !it }
+            .collect {
+                val layoutInfo = listState.layoutInfo
+                val lastVisible = layoutInfo.visibleItemsInfo.lastOrNull() ?: return@collect
+                val viewportHeight = layoutInfo.viewportSize.height
+                val lastItemBottom = lastVisible.offset + lastVisible.size
+                val atBottom = lastVisible.index >= uiState.dialogues.size - 1 &&
+                    lastItemBottom <= viewportHeight + scrollUpThresholdPx
+                isUserScrolledUp = !atBottom
+            }
     }
 
     LaunchedEffect(sessionId) {
@@ -115,17 +123,18 @@ fun GameScreen(
         }
     }
 
-    // 新增对话时，若用户仍在底部附近则平滑追底
+    // 新增对话时追底：瞬时滚动到底部，避免 animateScrollToItem 触发 isScrollInProgress 干扰判定
     LaunchedEffect(uiState.dialogues.size) {
-        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
-            listState.animateScrollToItem(uiState.dialogues.size - 1)
+        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp && !listState.isScrollInProgress) {
+            listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
         }
     }
 
     // 流式更新时高频追底：瞬时滚动 + 大偏移量，确保 item 底部（最新文字）对齐 viewport 底部
     // isUserScrolledUp 作为 key：用户上滑时立即取消挂起的 scrollToItem，避免松手后弹回
+    // !isScrollInProgress：用户拖动期间跳过，避免与拖动抢位置
     LaunchedEffect(uiState.dialogues.lastOrNull()?.content, uiState.isStreaming, isUserScrolledUp) {
-        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp) {
+        if (uiState.dialogues.isNotEmpty() && !isUserScrolledUp && !listState.isScrollInProgress) {
             listState.scrollToItem(uiState.dialogues.size - 1, Int.MAX_VALUE)
         }
     }
