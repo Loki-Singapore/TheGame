@@ -17,6 +17,7 @@ import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
 import com.textgame.domain.usecase.SendDialogueUseCase
+import com.textgame.service.StreamingForegroundService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -135,6 +136,10 @@ class GameViewModel(
             var currentNarrative = StringBuilder()
             var currentDialogue = StringBuilder()
 
+            // Keep the process in a foreground state while streaming so that switching
+            // apps does not let the OS kill the streaming HTTP socket. The service hosts
+            // a low-priority notification and is stopped in finally / onCleared.
+            StreamingForegroundService.start(context)
             try {
                 val flow = sendDialogueUseCase.executeStream(sessionId, input)
                 flow.collect { chunk ->
@@ -192,6 +197,8 @@ class GameViewModel(
                     isStreaming = false,
                     isLoading = false
                 )
+            } finally {
+                StreamingForegroundService.stop(context)
             }
         }
     }
@@ -429,5 +436,9 @@ class GameViewModel(
     override fun onCleared() {
         super.onCleared()
         streamingJob?.cancel()
+        // Safety net: ensure the foreground service is released if the ViewModel is
+        // torn down (e.g. user navigates away mid-stream) and the finally block above
+        // did not get a chance to run.
+        StreamingForegroundService.stop(context)
     }
 }
