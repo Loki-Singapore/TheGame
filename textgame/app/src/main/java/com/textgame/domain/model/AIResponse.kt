@@ -72,10 +72,34 @@ data class GameChanges(
     @SerializedName("flag_set")
     val flagSet: Map<String, Boolean>? = null,
     @SerializedName("world_rules")
-    val worldRules: List<WorldRuleChange>? = null
+    val worldRules: List<WorldRuleChange>? = null,
+    @SerializedName("attribute_categories")
+    val attributeCategories: List<AttributeCategoryChange>? = null
 )
 
 data class WorldRuleChange(
     val id: String? = null,
     val content: String
+)
+
+/**
+ * AI 返回的属性类目变更指令。按 name 匹配已有类目：
+ * - is_deleted=true：删除该类目，并从主角/NPC的attributes中移除该键
+ * - name 已存在：按提供的字段部分更新（未提供的字段保持不变）
+ * - name 不存在且 is_deleted=false：新增类目（type 必填），引擎会用 defaultValue 初始化主角的对应属性
+ */
+data class AttributeCategoryChange(
+    val name: String,
+    val type: String? = null,
+    @SerializedName("minValue")
+    val minValue: Double? = null,
+    @SerializedName("maxValue")
+    val maxValue: Double? = null,
+    @SerializedName("defaultValue")
+    val defaultValue: Any? = null,
+    @SerializedName("enumOptions")
+    val enumOptions: List<String>? = null,
+    val description: String? = null,
+    @SerializedName("is_deleted")
+    val isDeleted: Boolean = false
 )
