@@ -363,13 +363,20 @@ class GameViewModel(
         viewModelScope.launch {
             try {
                 var snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
+                // effectiveTurn：实际回退到的轮次。当目标轮快照缺失时回退到最近可用快照，
+                // 用它统一控制删除范围与待重发输入，保证"恢复到的状态"与"保留的对话"在轮次上一致，
+                // 避免状态回退到 M 却只删除 N 及以后的对话而导致轮次错位。
+                var effectiveTurn = turnNumber
 
                 if (snapshot == null) {
                     val allDialogues = gameRepository.getDialogues(sessionId)
                     val previousTurns = allDialogues.map { it.turnNumber }.filter { it < turnNumber }.toSet()
                     for (prevTurn in previousTurns.sortedDescending()) {
                         snapshot = gameRepository.getStateSnapshotByTurn(sessionId, prevTurn)
-                        if (snapshot != null) break
+                        if (snapshot != null) {
+                            effectiveTurn = prevTurn
+                            break
+                        }
                     }
                 }
 
@@ -379,7 +386,7 @@ class GameViewModel(
                     snapshot.worldSetting?.let { gameRepository.updateWorldSetting(it) }
                     snapshot.backgroundSetting?.let { gameRepository.updateBackgroundSetting(it) }
 
-                    gameRepository.deleteSummariesOverlappingTurn(sessionId, turnNumber)
+                    gameRepository.deleteSummariesOverlappingTurn(sessionId, effectiveTurn)
                     val summary = snapshot.summary
                     if (summary != null) {
                         gameRepository.upsertSummary(summary)
@@ -392,15 +399,20 @@ class GameViewModel(
                 }
 
                 val regeneratingDialogues = gameRepository.getDialogues(sessionId)
-                    .filter { it.turnNumber >= turnNumber && it.isPlayer }
+                    .filter { it.turnNumber >= effectiveTurn && it.isPlayer }
                     .sortedBy { it.turnNumber }
                 val pendingPrompt = regeneratingDialogues.firstOrNull()?.content
-                    ?: regeneratingDialogues.lastOrNull()?.content
 
-                gameRepository.deleteDialoguesFromTurn(sessionId, turnNumber)
-                gameRepository.deleteStateSnapshotsFromTurn(sessionId, turnNumber)
+                gameRepository.deleteDialoguesFromTurn(sessionId, effectiveTurn)
+                gameRepository.deleteStateSnapshotsFromTurn(sessionId, effectiveTurn)
 
-                val updatedDialogues = _uiState.value.dialogues.filter { it.turnNumber < turnNumber }
+                // 必须先刷新 gameState 到回退后的状态，再设置 pendingRegeneratePrompt。
+                // 否则 LaunchedEffect 触发后用户立即发送时，sendMessage 会读到 stale 的
+                // gameState.turnCount，导致玩家消息轮次号比快照轮次号大，进而触发快照缺失
+                // 回退，表现为"从上一轮重新生成"。
+                refreshGameData()
+
+                val updatedDialogues = _uiState.value.dialogues.filter { it.turnNumber < effectiveTurn }
                 _uiState.value = _uiState.value.copy(
                     dialogues = updatedDialogues,
                     choices = emptyList(),
@@ -408,7 +420,6 @@ class GameViewModel(
                     isLoading = false,
                     pendingRegeneratePrompt = pendingPrompt
                 )
-                refreshGameData()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = "重新生成失败: ${e.message}")
             }

@@ -11,7 +11,7 @@ interface StateSnapshotDao {
     @Insert
     suspend fun insertSnapshot(snapshot: StateSnapshotEntity): Long
 
-    @Query("SELECT * FROM state_snapshots WHERE sessionId = :sessionId AND turnNumber = :turnNumber LIMIT 1")
+    @Query("SELECT * FROM state_snapshots WHERE sessionId = :sessionId AND turnNumber = :turnNumber ORDER BY id DESC LIMIT 1")
     suspend fun getSnapshotByTurn(sessionId: Long, turnNumber: Int): StateSnapshotEntity?
 
     @Query("SELECT * FROM state_snapshots WHERE sessionId = :sessionId ORDER BY turnNumber DESC LIMIT 1")
