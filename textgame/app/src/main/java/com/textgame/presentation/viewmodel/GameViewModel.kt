@@ -141,7 +141,7 @@ class GameViewModel(
             // a low-priority notification and is stopped in finally / onCleared.
             StreamingForegroundService.start(context)
             try {
-                val flow = sendDialogueUseCase.executeStream(sessionId, input)
+                val flow = sendDialogueUseCase.executeStream(sessionId, input, nextTurn)
                 flow.collect { chunk ->
                     when (chunk) {
                         is StreamingChunk.NarrativeDelta -> {
