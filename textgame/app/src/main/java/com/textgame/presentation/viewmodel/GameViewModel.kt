@@ -365,16 +365,20 @@ class GameViewModel(
         streamingJob?.cancel()
         viewModelScope.launch {
             try {
+                android.util.Log.d("RegenDebug", "regenerateFromTurn called with turnNumber=$turnNumber")
+
                 if (turnNumber <= 0) {
                     _uiState.value = _uiState.value.copy(error = "该轮次无法重新生成")
                     return@launch
                 }
 
+                val allDialoguesBefore = gameRepository.getDialogues(sessionId)
+                android.util.Log.d("RegenDebug", "Dialogues before delete: " +
+                    allDialoguesBefore.joinToString { "turn${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+
                 val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
+                android.util.Log.d("RegenDebug", "snapshot for turn $turnNumber: ${if (snapshot != null) "found, snapshot.turnCount=${snapshot.gameState?.turnCount}" else "NULL"}")
                 if (snapshot == null) {
-                    // 不回退到上一轮——回退会导致 effectiveTurn != turnNumber，
-                    // 用户看到的 pendingPrompt 和保留的对话都变成上一轮的，
-                    // 表现为"从选中那轮的上一轮重新生成"。直接告知用户快照缺失。
                     _uiState.value = _uiState.value.copy(
                         error = "找不到轮次 $turnNumber 的状态快照，无法重新生成"
                     )
@@ -383,8 +387,6 @@ class GameViewModel(
 
                 snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
                 snapshot.gameState?.let { gs ->
-                    // 显式设置 turnCount = turnNumber - 1，确保恢复后的轮次与点击的气泡一致，
-                    // 不依赖快照内容是否正确。
                     gameRepository.updateGameState(gs.copy(turnCount = turnNumber - 1))
                 }
                 snapshot.worldSetting?.let { gameRepository.updateWorldSetting(it) }
@@ -401,16 +403,18 @@ class GameViewModel(
                     gameRepository.saveNPC(npc.copy(id = 0))
                 }
 
-                val pendingPrompt = gameRepository.getDialogues(sessionId)
+                val pendingPrompt = allDialoguesBefore
                     .filter { it.turnNumber == turnNumber && it.isPlayer }
                     .firstOrNull()?.content
+                android.util.Log.d("RegenDebug", "pendingPrompt=${pendingPrompt?.take(30)}")
 
                 gameRepository.deleteDialoguesFromTurn(sessionId, turnNumber)
                 gameRepository.deleteStateSnapshotsFromTurn(sessionId, turnNumber)
 
-                // 从 DB 读对话列表（而非用 UI 缓存），确保 UI 与 DB 一致，
-                // 避免流式残留等导致 UI 有 DB 没有的"幽灵"对话。
                 val dbDialogues = gameRepository.getDialogues(sessionId)
+                android.util.Log.d("RegenDebug", "Dialogues after delete: " +
+                    dbDialogues.joinToString { "turn${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+
                 val dialogueDisplays = dbDialogues.map {
                     DialogueDisplay(
                         id = it.id,
