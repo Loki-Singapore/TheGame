@@ -350,13 +350,15 @@ fun DialogueItem(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false }
                         ) {
-                            DropdownMenuItem(
-                                text = { Text("从此轮重新生成") },
-                                onClick = {
-                                    showMenu = false
-                                    onRegenerate(dialogue.turnNumber)
-                                }
-                            )
+                            if (dialogue.turnNumber > 0) {
+                                DropdownMenuItem(
+                                    text = { Text("从此轮重新生成") },
+                                    onClick = {
+                                        showMenu = false
+                                        onRegenerate(dialogue.turnNumber)
+                                    }
+                                )
+                            }
                         }
                     }
                 }

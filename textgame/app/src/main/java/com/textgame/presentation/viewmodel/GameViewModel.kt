@@ -116,10 +116,13 @@ class GameViewModel(
     fun sendMessage(input: String) {
         if (input.isBlank() || _uiState.value.isLoading || _uiState.value.isStreaming) return
 
-        val currentTurn = _uiState.value.gameState?.turnCount ?: 0
-        val nextTurn = currentTurn + 1
-
         streamingJob = viewModelScope.launch {
+            // 从 DB 读 gameState 算 nextTurn，不依赖 UI 状态（UI 可能 stale），
+            // 确保玩家对话 turnNumber 与快照 turnNumber 一致。
+            val dbGameState = gameRepository.getGameState(sessionId)
+            val currentTurn = dbGameState?.turnCount ?: 0
+            val nextTurn = currentTurn + 1
+
             _uiState.value = _uiState.value.copy(isStreaming = true, isLoading = true, error = null, choices = emptyList())
 
             val playerId = saveDialogueToDb(
@@ -362,59 +365,67 @@ class GameViewModel(
         streamingJob?.cancel()
         viewModelScope.launch {
             try {
-                var snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
-                // effectiveTurn：实际回退到的轮次。当目标轮快照缺失时回退到最近可用快照，
-                // 用它统一控制删除范围与待重发输入，保证"恢复到的状态"与"保留的对话"在轮次上一致，
-                // 避免状态回退到 M 却只删除 N 及以后的对话而导致轮次错位。
-                var effectiveTurn = turnNumber
+                if (turnNumber <= 0) {
+                    _uiState.value = _uiState.value.copy(error = "该轮次无法重新生成")
+                    return@launch
+                }
 
+                val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
                 if (snapshot == null) {
-                    val allDialogues = gameRepository.getDialogues(sessionId)
-                    val previousTurns = allDialogues.map { it.turnNumber }.filter { it < turnNumber }.toSet()
-                    for (prevTurn in previousTurns.sortedDescending()) {
-                        snapshot = gameRepository.getStateSnapshotByTurn(sessionId, prevTurn)
-                        if (snapshot != null) {
-                            effectiveTurn = prevTurn
-                            break
-                        }
-                    }
+                    // 不回退到上一轮——回退会导致 effectiveTurn != turnNumber，
+                    // 用户看到的 pendingPrompt 和保留的对话都变成上一轮的，
+                    // 表现为"从选中那轮的上一轮重新生成"。直接告知用户快照缺失。
+                    _uiState.value = _uiState.value.copy(
+                        error = "找不到轮次 $turnNumber 的状态快照，无法重新生成"
+                    )
+                    return@launch
                 }
 
-                if (snapshot != null) {
-                    snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
-                    snapshot.gameState?.let { gameRepository.updateGameState(it) }
-                    snapshot.worldSetting?.let { gameRepository.updateWorldSetting(it) }
-                    snapshot.backgroundSetting?.let { gameRepository.updateBackgroundSetting(it) }
+                snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
+                snapshot.gameState?.let { gs ->
+                    // 显式设置 turnCount = turnNumber - 1，确保恢复后的轮次与点击的气泡一致，
+                    // 不依赖快照内容是否正确。
+                    gameRepository.updateGameState(gs.copy(turnCount = turnNumber - 1))
+                }
+                snapshot.worldSetting?.let { gameRepository.updateWorldSetting(it) }
+                snapshot.backgroundSetting?.let { gameRepository.updateBackgroundSetting(it) }
 
-                    gameRepository.deleteSummariesOverlappingTurn(sessionId, effectiveTurn)
-                    val summary = snapshot.summary
-                    if (summary != null) {
-                        gameRepository.upsertSummary(summary)
-                    }
-
-                    gameRepository.deleteAllNPCs(sessionId)
-                    snapshot.npcs.forEach { npc ->
-                        gameRepository.saveNPC(npc.copy(id = 0))
-                    }
+                gameRepository.deleteSummariesOverlappingTurn(sessionId, turnNumber)
+                val summary = snapshot.summary
+                if (summary != null) {
+                    gameRepository.upsertSummary(summary)
                 }
 
-                val regeneratingDialogues = gameRepository.getDialogues(sessionId)
-                    .filter { it.turnNumber >= effectiveTurn && it.isPlayer }
-                    .sortedBy { it.turnNumber }
-                val pendingPrompt = regeneratingDialogues.firstOrNull()?.content
+                gameRepository.deleteAllNPCs(sessionId)
+                snapshot.npcs.forEach { npc ->
+                    gameRepository.saveNPC(npc.copy(id = 0))
+                }
 
-                gameRepository.deleteDialoguesFromTurn(sessionId, effectiveTurn)
-                gameRepository.deleteStateSnapshotsFromTurn(sessionId, effectiveTurn)
+                val pendingPrompt = gameRepository.getDialogues(sessionId)
+                    .filter { it.turnNumber == turnNumber && it.isPlayer }
+                    .firstOrNull()?.content
 
-                // 必须先刷新 gameState 到回退后的状态，再设置 pendingRegeneratePrompt。
-                // 否则 LaunchedEffect 触发后用户立即发送时，sendMessage 会读到 stale 的
-                // gameState.turnCount，导致玩家消息轮次号比快照轮次号大，进而触发快照缺失
-                // 回退，表现为"从上一轮重新生成"。
+                gameRepository.deleteDialoguesFromTurn(sessionId, turnNumber)
+                gameRepository.deleteStateSnapshotsFromTurn(sessionId, turnNumber)
+
+                // 从 DB 读对话列表（而非用 UI 缓存），确保 UI 与 DB 一致，
+                // 避免流式残留等导致 UI 有 DB 没有的"幽灵"对话。
+                val dbDialogues = gameRepository.getDialogues(sessionId)
+                val dialogueDisplays = dbDialogues.map {
+                    DialogueDisplay(
+                        id = it.id,
+                        turnNumber = it.turnNumber,
+                        speaker = it.speaker,
+                        content = it.content,
+                        isPlayer = it.isPlayer,
+                        isNarrative = it.isNarrative
+                    )
+                }
+
                 refreshGameData()
 
-                val updatedDialogues = _uiState.value.dialogues.filter { it.turnNumber < effectiveTurn }
                 _uiState.value = _uiState.value.copy(
-                    dialogues = updatedDialogues,
+                    dialogues = dialogueDisplays,
                     choices = emptyList(),
                     isStreaming = false,
                     isLoading = false,
