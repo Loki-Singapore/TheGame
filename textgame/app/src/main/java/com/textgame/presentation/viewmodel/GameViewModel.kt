@@ -379,7 +379,7 @@ class GameViewModel(
 
                 val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
                 if (snapshot == null) {
-                    log.appendLine("【快照】NULL - 找不到turn $turnNumber的快照")
+                    log.appendLine("【快照】NULL - 找不到turn ${turnNumber}的快照")
                     _uiState.value = _uiState.value.copy(
                         error = "找不到轮次 $turnNumber 的状态快照，无法重新生成",
                         debugLog = log.toString()
