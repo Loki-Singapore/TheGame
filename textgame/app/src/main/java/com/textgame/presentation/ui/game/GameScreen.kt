@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichText
+import com.textgame.BuildConfig
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.collect
@@ -209,50 +210,52 @@ fun GameScreen(
                 )
             }
 
-            uiState.debugLog?.let { debugLog ->
-                var expanded by remember { mutableStateOf(true) }
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "调试信息",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                            Row {
-                                TextButton(onClick = {
-                                    // 复制到剪贴板
-                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("debug", debugLog))
-                                }) { Text("复制") }
-                                TextButton(onClick = { expanded = !expanded }) {
-                                    Text(if (expanded) "收起" else "展开")
+            if (BuildConfig.DEBUG) {
+                uiState.debugLog?.let { debugLog ->
+                    var expanded by remember { mutableStateOf(true) }
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "调试信息",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                                Row {
+                                    TextButton(onClick = {
+                                        // 复制到剪贴板
+                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("debug", debugLog))
+                                    }) { Text("复制") }
+                                    TextButton(onClick = { expanded = !expanded }) {
+                                        Text(if (expanded) "收起" else "展开")
+                                    }
                                 }
                             }
-                        }
-                        if (expanded) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = debugLog,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .verticalScroll(rememberScrollState())
-                                    .heightIn(max = 320.dp)
-                            )
+                            if (expanded) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = debugLog,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .verticalScroll(rememberScrollState())
+                                        .heightIn(max = 320.dp)
+                                )
+                            }
                         }
                     }
                 }
