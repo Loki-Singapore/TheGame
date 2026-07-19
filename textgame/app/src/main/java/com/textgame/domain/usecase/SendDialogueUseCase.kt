@@ -131,7 +131,10 @@ class SendDialogueUseCase(
         )
 
         flow.collect { chunk ->
-            emit(chunk)
+            // 关键：先更新 DB（NPC/protagonist/gameState），再 emit 给下游。
+            // emit 是挂起函数，会等下游消费完才返回；若 emit 在前，
+            // GameViewModel 的 refreshGameData() 会读到上一轮的 DB 状态，
+            // 导致状态面板的 NPC 列表/属性不更新。
             if (chunk is StreamingChunk.Complete) {
                 val aiResponse = chunk.response
                 gameRepository.updateCurrentTurn(sessionId, turnNumber)
@@ -150,6 +153,7 @@ class SendDialogueUseCase(
 
                 syncSettingsUseCase.execute(sessionId, aiResponse)
             }
+            emit(chunk)
         }
     }
 
