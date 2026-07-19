@@ -36,7 +36,8 @@ data class GameUiState(
     val isLoading: Boolean = false,
     val isStreaming: Boolean = false,
     val error: String? = null,
-    val pendingRegeneratePrompt: String? = null
+    val pendingRegeneratePrompt: String? = null,
+    val debugLog: String? = null
 )
 
 data class DialogueDisplay(
@@ -365,7 +366,7 @@ class GameViewModel(
         streamingJob?.cancel()
         viewModelScope.launch {
             try {
-                android.util.Log.d("RegenDebug", "regenerateFromTurn called with turnNumber=$turnNumber")
+                val log = StringBuilder()
 
                 if (turnNumber <= 0) {
                     _uiState.value = _uiState.value.copy(error = "该轮次无法重新生成")
@@ -373,21 +374,26 @@ class GameViewModel(
                 }
 
                 val allDialoguesBefore = gameRepository.getDialogues(sessionId)
-                android.util.Log.d("RegenDebug", "Dialogues before delete: " +
-                    allDialoguesBefore.joinToString { "turn${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+                log.appendLine("【传入turnNumber】$turnNumber")
+                log.appendLine("【删除前对话】" + allDialoguesBefore.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
 
                 val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
-                android.util.Log.d("RegenDebug", "snapshot for turn $turnNumber: ${if (snapshot != null) "found, snapshot.turnCount=${snapshot.gameState?.turnCount}, npcs=${snapshot.npcs.size}, protag=${snapshot.protagonist?.name}, protagAttrs=${snapshot.protagonist?.attributes}" else "NULL"}")
                 if (snapshot == null) {
+                    log.appendLine("【快照】NULL - 找不到turn $turnNumber的快照")
                     _uiState.value = _uiState.value.copy(
-                        error = "找不到轮次 $turnNumber 的状态快照，无法重新生成"
+                        error = "找不到轮次 $turnNumber 的状态快照，无法重新生成",
+                        debugLog = log.toString()
                     )
                     return@launch
                 }
+                log.appendLine("【快照】找到 turnCount=${snapshot.gameState?.turnCount} npc数=${snapshot.npcs.size} 主角=${snapshot.protagonist?.name}")
+                log.appendLine("【快照主角属性】${snapshot.protagonist?.attributes}")
+                snapshot.npcs.forEach { log.appendLine("  快照NPC: ${it.name} attrs=${it.attributes}") }
 
                 val protagBefore = gameRepository.getProtagonist(sessionId)
                 val npcsBefore = gameRepository.getNPCList(sessionId)
-                android.util.Log.d("RegenDebug", "BEFORE restore: protagAttrs=${protagBefore?.attributes}, npcs=${npcsBefore.map { "${it.name}:${it.attributes}" }}")
+                log.appendLine("【恢复前DB主角属性】${protagBefore?.attributes}")
+                npcsBefore.forEach { log.appendLine("  恢复前DB NPC: ${it.name} attrs=${it.attributes}") }
 
                 snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
                 snapshot.gameState?.let { gs ->
@@ -409,19 +415,19 @@ class GameViewModel(
 
                 val protagAfter = gameRepository.getProtagonist(sessionId)
                 val npcsAfter = gameRepository.getNPCList(sessionId)
-                android.util.Log.d("RegenDebug", "AFTER restore: protagAttrs=${protagAfter?.attributes}, npcs=${npcsAfter.map { "${it.name}:${it.attributes}" }}")
+                log.appendLine("【恢复后DB主角属性】${protagAfter?.attributes}")
+                npcsAfter.forEach { log.appendLine("  恢复后DB NPC: ${it.name} attrs=${it.attributes}") }
 
                 val pendingPrompt = allDialoguesBefore
                     .filter { it.turnNumber == turnNumber && it.isPlayer }
                     .firstOrNull()?.content
-                android.util.Log.d("RegenDebug", "pendingPrompt=${pendingPrompt?.take(30)}")
+                log.appendLine("【pendingPrompt】${pendingPrompt?.take(50)}")
 
                 gameRepository.deleteDialoguesFromTurn(sessionId, turnNumber)
                 gameRepository.deleteStateSnapshotsFromTurn(sessionId, turnNumber)
 
                 val dbDialogues = gameRepository.getDialogues(sessionId)
-                android.util.Log.d("RegenDebug", "Dialogues after delete: " +
-                    dbDialogues.joinToString { "turn${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+                log.appendLine("【删除后对话】" + dbDialogues.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
 
                 val dialogueDisplays = dbDialogues.map {
                     DialogueDisplay(
@@ -441,10 +447,14 @@ class GameViewModel(
                     choices = emptyList(),
                     isStreaming = false,
                     isLoading = false,
-                    pendingRegeneratePrompt = pendingPrompt
+                    pendingRegeneratePrompt = pendingPrompt,
+                    debugLog = log.toString()
                 )
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "重新生成失败: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = "重新生成失败: ${e.message}",
+                    debugLog = "异常: ${e.stackTraceToString()}"
+                )
             }
         }
     }
