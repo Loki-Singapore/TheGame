@@ -377,13 +377,17 @@ class GameViewModel(
                     allDialoguesBefore.joinToString { "turn${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
 
                 val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
-                android.util.Log.d("RegenDebug", "snapshot for turn $turnNumber: ${if (snapshot != null) "found, snapshot.turnCount=${snapshot.gameState?.turnCount}" else "NULL"}")
+                android.util.Log.d("RegenDebug", "snapshot for turn $turnNumber: ${if (snapshot != null) "found, snapshot.turnCount=${snapshot.gameState?.turnCount}, npcs=${snapshot.npcs.size}, protag=${snapshot.protagonist?.name}, protagAttrs=${snapshot.protagonist?.attributes}" else "NULL"}")
                 if (snapshot == null) {
                     _uiState.value = _uiState.value.copy(
                         error = "找不到轮次 $turnNumber 的状态快照，无法重新生成"
                     )
                     return@launch
                 }
+
+                val protagBefore = gameRepository.getProtagonist(sessionId)
+                val npcsBefore = gameRepository.getNPCList(sessionId)
+                android.util.Log.d("RegenDebug", "BEFORE restore: protagAttrs=${protagBefore?.attributes}, npcs=${npcsBefore.map { "${it.name}:${it.attributes}" }}")
 
                 snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
                 snapshot.gameState?.let { gs ->
@@ -402,6 +406,10 @@ class GameViewModel(
                 snapshot.npcs.forEach { npc ->
                     gameRepository.saveNPC(npc.copy(id = 0))
                 }
+
+                val protagAfter = gameRepository.getProtagonist(sessionId)
+                val npcsAfter = gameRepository.getNPCList(sessionId)
+                android.util.Log.d("RegenDebug", "AFTER restore: protagAttrs=${protagAfter?.attributes}, npcs=${npcsAfter.map { "${it.name}:${it.attributes}" }}")
 
                 val pendingPrompt = allDialoguesBefore
                     .filter { it.turnNumber == turnNumber && it.isPlayer }
