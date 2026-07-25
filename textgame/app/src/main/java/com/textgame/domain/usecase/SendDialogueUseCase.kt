@@ -3,6 +3,7 @@ package com.textgame.domain.usecase
 import com.textgame.data.remote.ai.AIService
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.Dialogue
+import com.textgame.domain.model.DirectorContext
 import com.textgame.domain.model.DirectorDirective
 import com.textgame.domain.model.StateSnapshot
 import com.textgame.domain.model.StreamingChunk
@@ -50,7 +51,16 @@ class SendDialogueUseCase(
             allDialogues, latestSummary
         )
 
-        val directive = DirectorDirective.roll(turnNumber, npcs)
+        val directive = DirectorDirective.roll(
+            DirectorContext(
+                turnCount = turnNumber,
+                npcs = npcs,
+                protagonist = protagonist,
+                gameState = gameState,
+                summary = latestSummary,
+                majorPlotThreads = backgroundSetting.majorPlotThreads
+            )
+        )
 
         val aiResponse = aiService.generateDialogueResponse(
             worldSetting = worldSetting,
@@ -115,7 +125,16 @@ class SendDialogueUseCase(
             allDialogues, latestSummary
         )
 
-        val directive = DirectorDirective.roll(turnNumber, npcs)
+        val directive = DirectorDirective.roll(
+            DirectorContext(
+                turnCount = turnNumber,
+                npcs = npcs,
+                protagonist = protagonist,
+                gameState = gameState,
+                summary = latestSummary,
+                majorPlotThreads = backgroundSetting.majorPlotThreads
+            )
+        )
 
         val flow = aiService.streamDialogueResponse(
             worldSetting = worldSetting,
