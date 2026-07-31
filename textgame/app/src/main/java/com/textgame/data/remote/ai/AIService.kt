@@ -609,7 +609,8 @@ class AIService(
                 {"name": "理智值", "type": "NUMERIC", "minValue": 0, "maxValue": 100, "defaultValue": 75, "description": "目睹恐怖事物或经历创伤会下降，归零则陷入疯狂，无法做出理性判断"},
                 {"name": "是否被通缉", "type": "BOOLEAN", "defaultValue": false, "description": "若为true，进入城镇时可能遭遇守卫追捕，需乔装或潜行"},
                 {"name": "阵营", "type": "ENUM", "enumOptions": ["守序善良", "中立善良", "混乱善良", "守序中立", "绝对中立", "混乱中立", "守序邪恶", "中立邪恶", "混乱邪恶"], "defaultValue": "中立善良", "description": "影响NPC对主角的态度及部分剧情走向的选择"},
-                {"name": "身份", "type": "TEXT", "defaultValue": "落魄贵族", "description": "主角的社会身份，会影响可对话人群和剧情分支"}
+                {"name": "身份", "type": "TEXT", "defaultValue": "落魄贵族", "description": "主角的社会身份，会影响可对话人群和剧情分支"},
+                {"name": "技能表", "type": "TABLE", "columns": [{"name": "技能名", "type": "TEXT"}, {"name": "等级", "type": "NUMERIC"}, {"name": "类型", "type": "ENUM", "enumOptions": ["主动", "被动", "buff"]}], "defaultValue": [{"技能名": "基础剑术", "等级": 1, "类型": "主动"}], "description": "主角已掌握的技能清单，随修炼/学习增删行，每行的等级、类型可随剧情变化"}
               ],
               "npcs": [
                 {
@@ -635,8 +636,8 @@ class AIService(
                - 属性之间应该互相关联或互相制约，形成策略选择（如高"声望"能开启某些任务但会引来仇家；高"禁忌知识"提升能力但消耗"理智值"）
                - 至少包含一个会随剧情持续变化、可触发分支的属性（如声望、信任度、堕落值等）
                - 至少包含一个能体现角色身份/立场的ENUM或TEXT属性
-            5. 属性类型必须多样化，不要全部使用NUMERIC：数值类用NUMERIC（可量化数据）；是否类状态用BOOLEAN（如是否中毒、是否被通缉等）；有固定取值范围的用ENUM并必须提供enumOptions（如阵营、稀有度、阶级等）；自由文本类用TEXT（如职业、称号、身份等）
-            6. 每种类型的字段要求：NUMERIC必须包含minValue和maxValue且defaultValue在范围内；BOOLEAN的defaultValue必须是true/false；ENUM必须提供enumOptions数组且defaultValue必须是其中之一；TEXT的defaultValue为字符串
+            5. 属性类型必须多样化，不要全部使用NUMERIC：数值类用NUMERIC（可量化数据）；是否类状态用BOOLEAN（如是否中毒、是否被通缉等）；有固定取值范围的用ENUM并必须提供enumOptions（如阵营、稀有度、阶级等）；自由文本类用TEXT（如职业、称号、身份等）；结构化清单类用TABLE（如技能列表、装备栏、任务清单、人际关系网络等，每行是一条记录，由columns定义字段）
+            6. 每种类型的字段要求：NUMERIC必须包含minValue和maxValue且defaultValue在范围内；BOOLEAN的defaultValue必须是true/false；ENUM必须提供enumOptions数组且defaultValue必须是其中之一；TEXT的defaultValue为字符串；TABLE必须提供columns数组（每列含name和type，列type只能是NUMERIC/BOOLEAN/ENUM/TEXT，ENUM列需提供enumOptions），defaultValue为一组行对象数组（如[{"技能名":"基础剑术","等级":1}]），每行的字段名需与columns的name对应
             7. 至少生成5-8个属性，且至少包含三种不同的类型
             8. 你的整个回复只能是JSON
         """.trimIndent()
@@ -720,6 +721,7 @@ class AIService(
         appendLine("      ],")
         appendLine("      \"attribute_categories\": [")
         appendLine("        {\"name\": \"新属性名\", \"type\": \"NUMERIC\", \"minValue\": 0, \"maxValue\": 100, \"defaultValue\": 50, \"description\": \"该属性如何影响游戏\"},")
+        appendLine("        {\"name\": \"新表格属性名\", \"type\": \"TABLE\", \"columns\": [{\"name\": \"列名1\", \"type\": \"TEXT\"}, {\"name\": \"列名2\", \"type\": \"NUMERIC\"}], \"defaultValue\": [{\"列名1\": \"示例\", \"列名2\": 1}], \"description\": \"该清单如何影响游戏\"},")
         appendLine("        {\"name\": \"已有属性名\", \"maxValue\": 200, \"description\": \"只写需要修改的字段，未写出的字段保持不变\"},")
         appendLine("        {\"name\": \"要删除的属性名\", \"is_deleted\": true}")
         appendLine("      ]")
@@ -757,10 +759,11 @@ class AIService(
         appendLine("18. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
         appendLine("19. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
         appendLine("20. 【属性类目维护 - 高级操作，谨慎使用】你可以通过 state_changes.game.attribute_categories 增删改属性类目，让属性体系随剧情演进：")
-        appendLine("    - 新增：当剧情引入了全新的、需要长期量化追踪的机制时（如主角解锁'腐化度'系统、获得'灵力'修炼体系、被加入'通缉等级'），新增类目。必须提供：name、type、defaultValue，以及对应类型所需的约束（NUMERIC需要minValue/maxValue；ENUM需要enumOptions）。description必须明确说明该属性如何影响游戏。引擎会自动把defaultValue应用到主角身上。")
-        appendLine("    - 修改：当某属性的取值范围或语义需要随剧情调整时（如主角升级导致生命值上限提高、剧情揭示了新的枚举选项、描述需要补充），按name匹配已有类目，只写需要修改的字段，未写出的字段保持不变。type不可更改（如需更换类型应先删除再新增）。")
+        appendLine("    - 新增：当剧情引入了全新的、需要长期量化追踪的机制时（如主角解锁'腐化度'系统、获得'灵力'修炼体系、被加入'通缉等级'，或获得一个需要逐条记录的'技能表'/'装备栏'/'任务清单'），新增类目。必须提供：name、type、defaultValue，以及对应类型所需的约束（NUMERIC需要minValue/maxValue；ENUM需要enumOptions；TABLE需要columns数组，每列含name和type，列type只能是NUMERIC/BOOLEAN/ENUM/TEXT，ENUM列需提供enumOptions，TABLE的defaultValue是一组行对象数组）。description必须明确说明该属性如何影响游戏。引擎会自动把defaultValue应用到主角身上。")
+        appendLine("    - 修改：当某属性的取值范围或语义需要随剧情调整时（如主角升级导致生命值上限提高、剧情揭示了新的枚举选项、描述需要补充，或为TABLE属性增删/调整列定义），按name匹配已有类目，只写需要修改的字段，未写出的字段保持不变。type不可更改（如需更换类型应先删除再新增）。修改TABLE列时，columns按列name匹配：已存在的列按提供的字段部分更新，新列名追加，未提及的列保留。")
         appendLine("    - 删除：当某属性永久失去意义时（如临时机制结束、属性被剧情事件彻底移除），按name匹配并设置\"is_deleted\": true。重要NPC属性、长期追踪的属性、有剧情意义的属性绝不能删除。删除时引擎会同步从主角和所有NPC的attributes中移除该键。")
         appendLine("    - 谨慎原则：每次修改属性类目都需要充分的剧情理由，不要为了方便而频繁增删，这会破坏游戏稳定性。如果只是想记录一次性事件，使用game.flag_set；如果只是想记录长期背景信息，使用game.world_rules。")
+        appendLine("    - 【TABLE属性更新】TABLE类属性的值是一组行（List<Map>）。在 protagonist.attributes 或 npc.attributes 中更新TABLE属性时，必须返回完整的新表（所有行），引擎会整体替换，不做增量。增删行或修改某行字段都要返回完整的新表。")
         appendLine("21. protagonist.attributes 和 npc.attributes 只接受当前属性类目列表中存在的属性名（包括本轮新增的）。引擎会忽略任何不在类目列表中的属性名。")
         appendLine("22. 【世界观细则维护 - 重要】你必须主动维护世界观细则（game.world_rules），这是游戏世界的知识库：")
         appendLine("    - 当剧情中揭示了新的世界设定、历史背景、魔法/力量体系规则、社会制度、文化习俗、地理信息、特殊规则等长期有效的信息时，必须记录为世界观细则")
@@ -897,6 +900,67 @@ class AIService(
         }
     }
 
+    /**
+     * 格式化单条属性供 AI 阅读。
+     * - 标量属性：单行展示 "  名称: 值  [类型:... 最小:... 最大:... - 描述]"
+     * - TABLE 属性：先展示列定义与元信息，再逐行展示表格内容，便于 AI 理解结构。
+     */
+    private fun formatAttributeLine(
+        indent: String,
+        key: String,
+        value: Any?,
+        cat: AttributeCategory?
+    ): String = buildString {
+        if (cat?.type == AttributeType.TABLE) {
+            appendLine("${indent}$key: [TABLE] 列=[${cat.columns.joinToString(", ") { it.name + ":" + it.type.name.lowercase() }}]" +
+                if (cat.description.isNotBlank()) " - ${cat.description}" else "")
+            val rows = extractTableRows(value)
+            if (rows.isEmpty()) {
+                append("${indent}  (空表)")
+            } else {
+                rows.forEachIndexed { i, row ->
+                    val cells = cat.columns.joinToString(", ") { col ->
+                        "${col.name}=${row[col.name] ?: ""}"
+                    }
+                    append("${indent}  #${i + 1}  $cells")
+                    if (i < rows.size - 1) appendLine()
+                }
+            }
+        } else {
+            val meta = buildString {
+                if (cat != null) {
+                    append("类型:${cat.type.name.lowercase()}")
+                    if (cat.minValue != null) append(" 最小:${cat.minValue}")
+                    if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
+                    if (cat.description.isNotBlank()) append(" - ${cat.description}")
+                }
+            }
+            if (meta.isNotEmpty()) {
+                append("$indent$key: $value  [$meta]")
+            } else {
+                append("$indent$key: $value")
+            }
+        }
+    }
+
+    /**
+     * 把 TABLE 属性值（可能来自 Gson 反序列化为 List<Map<String, Any>>，
+     * 也可能来自旧数据为 List<LinkedTreeMap>）统一成 List<Map<String, Any>>。
+     */
+    private fun extractTableRows(value: Any?): List<Map<String, Any>> {
+        if (value == null) return emptyList()
+        return when (value) {
+            is List<*> -> value.mapNotNull { row ->
+                when (row) {
+                    is Map<*, *> -> row.entries.associate { (k, v) -> k.toString() to (v ?: "") }
+                    else -> null
+                }
+            }
+            is Map<*, *> -> listOf(value.entries.associate { (k, v) -> k.toString() to (v ?: "") })
+            else -> emptyList()
+        }
+    }
+
     private fun buildGameStatePrompt(
         protagonist: Protagonist,
         npcs: List<NPC>,
@@ -911,19 +975,7 @@ class AIService(
             appendLine("属性：")
             protagonist.attributes.forEach { (key, value) ->
                 val cat = attributeCategories.find { it.name == key }
-                val meta = buildString {
-                    if (cat != null) {
-                        append("类型:${cat.type.name.lowercase()}")
-                        if (cat.minValue != null) append(" 最小:${cat.minValue}")
-                        if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
-                        if (cat.description.isNotBlank()) append(" - ${cat.description}")
-                    }
-                }
-                if (meta.isNotEmpty()) {
-                    appendLine("  $key: $value  [$meta]")
-                } else {
-                    appendLine("  $key: $value")
-                }
+                appendLine(formatAttributeLine("  ", key, value, cat))
             }
         }
         if (protagonist.inventory.isNotEmpty()) {
@@ -963,18 +1015,7 @@ class AIService(
                     appendLine("  属性：")
                     npc.attributes.forEach { (key, value) ->
                         val cat = attributeCategories.find { it.name == key }
-                        val meta = buildString {
-                            if (cat != null) {
-                                append("类型:${cat.type.name.lowercase()}")
-                                if (cat.minValue != null) append(" 最小:${cat.minValue}")
-                                if (cat.maxValue != null) append(" 最大:${cat.maxValue}")
-                            }
-                        }
-                        if (meta.isNotEmpty()) {
-                            appendLine("    $key: $value  [$meta]")
-                        } else {
-                            appendLine("    $key: $value")
-                        }
+                        appendLine(formatAttributeLine("    ", key, value, cat))
                     }
                 }
             }
@@ -1107,7 +1148,7 @@ class AIService(
                         val type = com.textgame.domain.model.AttributeType.values()
                             .firstOrNull { it.name == normalized }
                             ?: com.textgame.domain.model.AttributeType.TEXT
-                        val defaultVal = when (type) {
+                        val defaultVal: Any = when (type) {
                             com.textgame.domain.model.AttributeType.NUMERIC ->
                                 obj.get("defaultValue")?.asDouble ?: 0.0
                             com.textgame.domain.model.AttributeType.BOOLEAN ->
@@ -1116,9 +1157,47 @@ class AIService(
                                 obj.get("defaultValue")?.asString ?: ""
                             com.textgame.domain.model.AttributeType.TEXT ->
                                 obj.get("defaultValue")?.asString ?: ""
+                            com.textgame.domain.model.AttributeType.TABLE -> {
+                                // defaultValue 为一组行对象数组：List<Map<String, Any>>
+                                val arr = obj.getAsJsonArray("defaultValue")
+                                if (arr != null) {
+                                    arr.map { rowElem ->
+                                        rowElem.asJsonObject.entrySet().associate { (k, v) ->
+                                            k to parseScalarJsonValue(v)
+                                        }
+                                    }
+                                } else {
+                                    emptyList<Map<String, Any>>()
+                                }
+                            }
                         }
                         val enumOptions = if (type == com.textgame.domain.model.AttributeType.ENUM) {
                             obj.getAsJsonArray("enumOptions")?.map { it.asString } ?: emptyList()
+                        } else {
+                            emptyList()
+                        }
+                        val columns = if (type == com.textgame.domain.model.AttributeType.TABLE) {
+                            obj.getAsJsonArray("columns")?.mapNotNull { colElem ->
+                                try {
+                                    val colObj = colElem.asJsonObject
+                                    val colTypeStr = colObj.get("type")?.asString ?: "TEXT"
+                                    val colNormalized = when (colTypeStr.uppercase()) {
+                                        "STRING" -> "TEXT"
+                                        else -> colTypeStr.uppercase()
+                                    }
+                                    val colType = com.textgame.domain.model.AttributeType.values()
+                                        .firstOrNull { it.name == colNormalized && it != com.textgame.domain.model.AttributeType.TABLE }
+                                        ?: com.textgame.domain.model.AttributeType.TEXT
+                                    com.textgame.domain.model.TableColumn(
+                                        name = colObj.get("name")?.asString ?: "",
+                                        type = colType,
+                                        enumOptions = colObj.getAsJsonArray("enumOptions")?.map { it.asString } ?: emptyList(),
+                                        description = colObj.get("description")?.asString ?: ""
+                                    )
+                                } catch (_: Exception) {
+                                    null
+                                }
+                            } ?: emptyList()
                         } else {
                             emptyList()
                         }
@@ -1130,7 +1209,8 @@ class AIService(
                                 maxValue = obj.get("maxValue")?.asDouble,
                                 defaultValue = defaultVal,
                                 enumOptions = enumOptions,
-                                description = obj.get("description")?.asString ?: ""
+                                description = obj.get("description")?.asString ?: "",
+                                columns = columns
                             )
                         )
                     } catch (e: Exception) {
@@ -1186,6 +1266,25 @@ class AIService(
             content.substring(jsonStart, jsonEnd + 1)
         } else {
             content
+        }
+    }
+
+    /**
+     * 解析 TABLE 单元格的标量值。Gson 的 JsonElement 已经携带类型信息，
+     * 这里转成 Kotlin 友好的 Any（Double / Boolean / String）。
+     */
+    private fun parseScalarJsonValue(v: com.google.gson.JsonElement): Any {
+        return when {
+            v.isJsonPrimitive -> {
+                val prim = v.asJsonPrimitive
+                when {
+                    prim.isBoolean -> prim.asBoolean
+                    prim.isNumber -> prim.asDouble
+                    else -> prim.asString
+                }
+            }
+            v.isJsonNull -> ""
+            else -> v.toString()
         }
     }
 }

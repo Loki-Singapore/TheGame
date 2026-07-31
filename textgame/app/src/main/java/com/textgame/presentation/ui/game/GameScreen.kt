@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,7 +24,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoStories
+import androidx.compose.material.icons.filled.Backpack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -30,14 +41,19 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -52,11 +68,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichText
 import com.textgame.BuildConfig
+import com.textgame.domain.model.AttributeCategory
+import com.textgame.domain.model.AttributeType
+import com.textgame.domain.model.NPC
+import com.textgame.domain.model.Protagonist
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.collect
@@ -498,82 +520,572 @@ fun DialogueItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.GameUiState())
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
 
-    AlertDialog(
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text("状态面板") },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 480.dp)
-                    .verticalScroll(scrollState)
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 720.dp)
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
+        ) {
+            // 顶部标题栏
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                uiState.protagonist?.let { protag ->
-                    Text("主角: ${protag.name}", style = MaterialTheme.typography.titleMedium)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("位置: ${protag.location}")
-                    if (protag.attributes.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("属性:")
-                        protag.attributes.forEach { (key, value) ->
-                            Text("  $key: $value")
-                        }
-                    }
-                    if (protag.inventory.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("物品: ${protag.inventory.joinToString("、")}")
+                Text(
+                    text = "状态面板",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "关闭")
+                }
+            }
+            uiState.gameState?.let { gs ->
+                Text(
+                    text = "第 ${gs.turnCount} 轮 · ${gs.currentScene}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 主角卡片
+            uiState.protagonist?.let { protag ->
+                SectionCard(
+                    title = "主角",
+                    icon = { Icon(Icons.Default.Person, contentDescription = null) }
+                ) {
+                    ProtagonistContent(
+                        protagonist = protag,
+                        categories = uiState.worldSetting?.attributeCategories ?: emptyList()
+                    )
+                }
+            }
+
+            // NPC 卡片
+            if (uiState.npcs.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                SectionCard(
+                    title = "在场角色 (${uiState.npcs.size})",
+                    icon = { Icon(Icons.Default.Group, contentDescription = null) }
+                ) {
+                    uiState.npcs.forEachIndexed { index, npc ->
+                        if (index > 0) Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        NpcContent(npc = npc)
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (uiState.npcs.isNotEmpty()) {
-                    Text("NPC:", style = MaterialTheme.typography.titleMedium)
-                    uiState.npcs.forEach { npc ->
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("${npc.name} (${npc.role})")
-                        if (npc.briefing.isNotEmpty()) {
-                            Text("  简介: ${npc.briefing}")
-                        }
-                        Text("  情绪: ${npc.mood}")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                uiState.worldSetting?.let { world ->
-                    if (world.worldRules.isNotEmpty()) {
-                        Text("世界观细则:", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(4.dp))
+            // 世界观细则卡片
+            uiState.worldSetting?.let { world ->
+                if (world.worldRules.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SectionCard(
+                        title = "世界观细则 (${world.worldRules.size})",
+                        icon = { Icon(Icons.Default.Public, contentDescription = null) }
+                    ) {
                         world.worldRules.forEach { rule ->
-                            Text("• ${rule.content}", style = MaterialTheme.typography.bodySmall)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "•",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(end = 8.dp)
+                                )
+                                Text(
+                                    text = rule.content,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
                 }
+            }
 
-                uiState.summary?.let { summary ->
-                    if (summary.summaryText.isNotEmpty()) {
-                        Text("进度总结:", style = MaterialTheme.typography.titleMedium)
-                        Spacer(modifier = Modifier.height(4.dp))
+            // 进度总结卡片
+            uiState.summary?.let { summary ->
+                if (summary.summaryText.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    SectionCard(
+                        title = "进度总结",
+                        icon = { Icon(Icons.Default.AutoStories, contentDescription = null) }
+                    ) {
                         RichText {
                             Markdown(summary.summaryText)
                         }
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("关闭")
+
+            Spacer(modifier = Modifier.height(8.dp))
+            // 底部关闭按钮，便于单手操作
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Text("关闭面板")
             }
         }
+    }
+}
+
+/**
+ * 通用分区卡片：左侧图标 + 标题，下方为内容。
+ */
+@Composable
+private fun SectionCard(
+    title: String,
+    icon: @androidx.compose.runtime.Composable () -> Unit,
+    content: @androidx.compose.runtime.Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(28.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(8.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    icon()
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+private fun ProtagonistContent(
+    protagonist: Protagonist,
+    categories: List<AttributeCategory>
+) {
+    Text(
+        text = protagonist.name,
+        style = MaterialTheme.typography.titleMedium,
+        fontWeight = FontWeight.Bold
     )
+    if (protagonist.location.isNotBlank()) {
+        Spacer(modifier = Modifier.height(2.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Place,
+                contentDescription = null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = protagonist.location,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    if (protagonist.attributes.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(10.dp))
+        Text(
+            text = "属性",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        protagonist.attributes.forEach { (key, value) ->
+            val cat = categories.find { it.name == key }
+            AttributeRow(name = key, value = value, category = cat)
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+    }
+
+    if (protagonist.inventory.isNotEmpty()) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                Icons.Default.Backpack,
+                contentDescription = null,
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "物品",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        // 物品用 chip 形式横排，自动换行，移动端更紧凑
+        FlowChips(items = protagonist.inventory)
+    }
+}
+
+@Composable
+private fun NpcContent(npc: NPC) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = npc.name,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold
+        )
+        if (npc.role.isNotBlank()) {
+            Spacer(modifier = Modifier.width(6.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Text(
+                    text = npc.role,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+    if (npc.briefing.isNotBlank()) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = npc.briefing,
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+    if (npc.mood.isNotBlank()) {
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = "情绪：",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.tertiaryContainer
+            ) {
+                Text(
+                    text = npc.mood,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 单条属性展示。按 [category] 的类型分别渲染：
+ * - NUMERIC 且有 maxValue：用进度条展示当前值/最大值
+ * - BOOLEAN：用 chip 展示 是/否
+ * - ENUM：用 chip 展示当前选项
+ * - TEXT：直接展示文本
+ * - TABLE：展示列头 + 逐行单元格（紧凑网格，适合手机）
+ */
+@Composable
+private fun AttributeRow(
+    name: String,
+    value: Any?,
+    category: AttributeCategory?
+) {
+    val type = category?.type
+    val displayValue = formatScalarValue(value)
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+
+            when (type) {
+                AttributeType.BOOLEAN -> {
+                    val checked = value?.toString()?.equals("true", ignoreCase = true) == true
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(if (checked) "是" else "否", style = MaterialTheme.typography.labelSmall) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = if (checked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+                AttributeType.ENUM -> {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text(displayValue, style = MaterialTheme.typography.labelSmall) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    )
+                }
+                else -> {
+                    Text(
+                        text = displayValue,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
+        }
+
+        when (type) {
+            AttributeType.NUMERIC -> {
+                val max = category?.maxValue
+                val numValue = (value as? Number)?.toDouble()
+                if (max != null && max > 0 && numValue != null) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val progress = (numValue / max).coerceIn(0.0, 1.0).toFloat()
+                    LinearProgressIndicator(
+                        progress = progress,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(6.dp),
+                        color = progressColor(progress),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                    if (category.minValue != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "${category.minValue}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "$max",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+            AttributeType.TABLE -> {
+                Spacer(modifier = Modifier.height(6.dp))
+                TableAttributeView(
+                    value = value,
+                    columns = category?.columns ?: emptyList()
+                )
+            }
+            else -> {}
+        }
+    }
+}
+
+/**
+ * TABLE 属性的紧凑网格展示。手机端宽度有限，采用：
+ * - 表头：列名，使用浅色背景
+ * - 每行：按列顺序渲染单元格，单元格用浅边框分隔
+ */
+@Composable
+private fun TableAttributeView(
+    value: Any?,
+    columns: List<com.textgame.domain.model.TableColumn>
+) {
+    val rows = extractTableRowsForUi(value)
+    if (columns.isEmpty()) {
+        Text(
+            text = "（未定义列）",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+    if (rows.isEmpty()) {
+        Text(
+            text = "（空表）",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // 表头
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .padding(horizontal = 8.dp, vertical = 6.dp)
+            ) {
+                columns.forEachIndexed { i, col ->
+                    Text(
+                        text = col.name,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (i < columns.size - 1) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+            }
+            // 数据行
+            rows.forEachIndexed { rowIndex, row ->
+                if (rowIndex > 0) {
+                    Divider(
+                        thickness = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    )
+                }
+                Row(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    columns.forEachIndexed { i, col ->
+                        Text(
+                            text = formatScalarValue(row[col.name]),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (i < columns.size - 1) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 简单的横排自动换行 chip 容器，用于物品等短文本列表。
+ */
+@Composable
+private fun FlowChips(items: List<String>) {
+    // Compose BOM 2023.08 没有 FlowRow 稳定 API，这里手动折行。
+    // 按字符宽度估算每行容纳数量，简单可靠。
+    val rows = mutableListOf<MutableList<String>>()
+    var currentRow = mutableListOf<String>()
+    var currentLen = 0
+    items.forEach { item ->
+        val itemLen = item.length + 2
+        if (currentLen + itemLen > 24 && currentRow.isNotEmpty()) {
+            rows.add(currentRow)
+            currentRow = mutableListOf()
+            currentLen = 0
+        }
+        currentRow.add(item)
+        currentLen += itemLen
+    }
+    if (currentRow.isNotEmpty()) rows.add(currentRow)
+
+    rows.forEach { rowItems ->
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            rowItems.forEach { item ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        text = item,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun progressColor(progress: Float): Color {
+    return when {
+        progress < 0.25f -> MaterialTheme.colorScheme.error
+        progress < 0.5f -> Color(0xFFFFA000) // amber
+        else -> Color(0xFF2E7D32) // green
+    }
+}
+
+private fun formatScalarValue(value: Any?): String {
+    if (value == null) return ""
+    return when (value) {
+        is Boolean -> value.toString()
+        is Double -> if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+        is Number -> value.toString()
+        is String -> value
+        is Map<*, *> -> value.entries.joinToString(", ") { "${it.key}=${it.value}" }
+        is List<*> -> value.joinToString(", ") { it.toString() }
+        else -> value.toString()
+    }
+}
+
+/**
+ * 把 TABLE 属性值统一成 List<Map<String, Any>>，兼容 Gson 反序列化结果。
+ */
+private fun extractTableRowsForUi(value: Any?): List<Map<String, Any>> {
+    if (value == null) return emptyList()
+    return when (value) {
+        is List<*> -> value.mapNotNull { row ->
+            when (row) {
+                is Map<*, *> -> row.entries.associate { (k, v) -> k.toString() to (v ?: "") }
+                else -> null
+            }
+        }
+        is Map<*, *> -> listOf(value.entries.associate { (k, v) -> k.toString() to (v ?: "") })
+        else -> emptyList()
+    }
 }
 
 class GameViewModelFactory(

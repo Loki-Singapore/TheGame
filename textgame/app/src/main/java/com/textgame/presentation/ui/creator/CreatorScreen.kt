@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.AttributeType
 import com.textgame.domain.model.NPC
+import com.textgame.domain.model.TableColumn
 import com.textgame.presentation.viewmodel.CreatorViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -469,10 +470,17 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(category.name, style = MaterialTheme.typography.titleSmall)
-                    Text(
-                        text = "类型: ${category.type.name} | 默认值: ${category.defaultValue}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                    if (category.type == AttributeType.TABLE) {
+                        Text(
+                            text = "类型: TABLE | 列: ${category.columns.joinToString(", ") { it.name }}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    } else {
+                        Text(
+                            text = "类型: ${category.type.name} | 默认值: ${category.defaultValue}",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
                     if (category.description.isNotBlank()) {
                         Text(
                             text = category.description,
@@ -644,6 +652,10 @@ fun AttributeDialog(
     var maxValue by remember { mutableStateOf(initial?.maxValue?.toString() ?: "") }
     var enumOptionsText by remember { mutableStateOf(initial?.enumOptions?.joinToString(",") ?: "") }
     var description by remember { mutableStateOf(initial?.description ?: "") }
+    // TABLE 列编辑器状态：初始为已有类目的列定义，或空表
+    var columns by remember {
+        mutableStateOf(initial?.columns?.map { it.copy() } ?: emptyList<TableColumn>())
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -732,6 +744,12 @@ fun AttributeDialog(
                             singleLine = true
                         )
                     }
+                    AttributeType.TABLE -> {
+                        TableColumnsEditor(
+                            columns = columns,
+                            onColumnsChange = { columns = it }
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -760,12 +778,14 @@ fun AttributeDialog(
                             }
                         }
                         AttributeType.TEXT -> defaultValue
+                        AttributeType.TABLE -> emptyList<Map<String, Any>>()
                     }
                     val enumOptions = if (type == AttributeType.ENUM) {
                         enumOptionsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                     } else {
                         emptyList()
                     }
+                    val finalColumns = if (type == AttributeType.TABLE) columns else emptyList()
                     onConfirm(
                         AttributeCategory(
                             name = name,
@@ -774,11 +794,12 @@ fun AttributeDialog(
                             maxValue = if (type == AttributeType.NUMERIC) maxValue.toDoubleOrNull() else null,
                             defaultValue = defaultVal,
                             enumOptions = enumOptions,
-                            description = description
+                            description = description,
+                            columns = finalColumns
                         )
                     )
                 },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank() && (type != AttributeType.TABLE || columns.isNotEmpty())
             ) {
                 Text(confirmText)
             }
@@ -801,7 +822,7 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
         onExpandedChange = { expanded = !expanded }
     ) {
         OutlinedTextField(
-            value = selected.name,
+            value = attributeTypeLabel(selected),
             onValueChange = { },
             readOnly = true,
             label = { Text("属性类型") },
@@ -814,7 +835,7 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
         ) {
             AttributeType.values().forEach { type ->
                 DropdownMenuItem(
-                    text = { Text(type.name) },
+                    text = { Text(attributeTypeLabel(type)) },
                     onClick = {
                         onSelected(type)
                         expanded = false
@@ -822,6 +843,131 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
                 )
             }
         }
+    }
+}
+
+private fun attributeTypeLabel(type: AttributeType): String = when (type) {
+    AttributeType.NUMERIC -> "NUMERIC（数值）"
+    AttributeType.BOOLEAN -> "BOOLEAN（布尔）"
+    AttributeType.ENUM -> "ENUM（枚举）"
+    AttributeType.TEXT -> "TEXT（文本）"
+    AttributeType.TABLE -> "TABLE（表格）"
+}
+
+/**
+ * TABLE 属性的列定义编辑器。每列含名称、类型（不可为 TABLE）、ENUM 列的可选项。
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TableColumnsEditor(
+    columns: List<TableColumn>,
+    onColumnsChange: (List<TableColumn>) -> Unit
+) {
+    Text("表格列定义", style = MaterialTheme.typography.titleSmall)
+    Spacer(modifier = Modifier.height(4.dp))
+    Text(
+        text = "每行属性即一条记录，列类型只能是 NUMERIC/BOOLEAN/ENUM/TEXT",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
+    if (columns.isEmpty()) {
+        Text(
+            text = "暂无列，点击下方按钮添加至少一列",
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
+    columns.forEachIndexed { index, col ->
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = col.name,
+                        onValueChange = { newName ->
+                            onColumnsChange(columns.toMutableList().also {
+                                it[index] = col.copy(name = newName)
+                            })
+                        },
+                        label = { Text("列名") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true
+                    )
+                    IconButton(onClick = {
+                        onColumnsChange(columns.toMutableList().also { it.removeAt(index) })
+                    }) {
+                        Icon(Icons.Default.Delete, contentDescription = "删除列", tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                // 列类型选择：枚举除 TABLE 外的四种标量类型
+                val scalarTypes = AttributeType.values().filter { it != AttributeType.TABLE }
+                var colTypeExpanded by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = colTypeExpanded,
+                    onExpandedChange = { colTypeExpanded = !colTypeExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = col.type.name,
+                        onValueChange = { },
+                        readOnly = true,
+                        label = { Text("列类型") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colTypeExpanded) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = colTypeExpanded,
+                        onDismissRequest = { colTypeExpanded = false }
+                    ) {
+                        scalarTypes.forEach { t ->
+                            DropdownMenuItem(
+                                text = { Text(t.name) },
+                                onClick = {
+                                    onColumnsChange(columns.toMutableList().also {
+                                        it[index] = col.copy(type = t, enumOptions = if (t == AttributeType.ENUM) col.enumOptions else emptyList())
+                                    })
+                                    colTypeExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                if (col.type == AttributeType.ENUM) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    var enumText by remember(col.name, col.enumOptions) {
+                        mutableStateOf(col.enumOptions.joinToString(","))
+                    }
+                    OutlinedTextField(
+                        value = enumText,
+                        onValueChange = {
+                            enumText = it
+                            val opts = it.split(",").map { s -> s.trim() }.filter { it.isNotEmpty() }
+                            onColumnsChange(columns.toMutableList().also { list ->
+                                list[index] = col.copy(enumOptions = opts)
+                            })
+                        },
+                        label = { Text("可选项（英文逗号分隔）") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+
+    Spacer(modifier = Modifier.height(4.dp))
+    Button(
+        onClick = {
+            onColumnsChange(columns + TableColumn(name = "列${columns.size + 1}", type = AttributeType.TEXT))
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Default.Add, contentDescription = null)
+        Spacer(modifier = Modifier.width(4.dp))
+        Text("添加列")
     }
 }
 
