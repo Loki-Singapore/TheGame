@@ -87,6 +87,10 @@ data class WorldRuleChange(
  * - is_deleted=true：删除该类目，并从主角/NPC的attributes中移除该键
  * - name 已存在：按提供的字段部分更新（未提供的字段保持不变）
  * - name 不存在且 is_deleted=false：新增类目（type 必填），引擎会用 defaultValue 初始化主角的对应属性
+ *
+ * 当 type == TABLE 时，columns 字段定义表格的列结构；每列形如
+ * {"name": "列名", "type": "NUMERIC|BOOLEAN|ENUM|TEXT", "enumOptions": [...], "description": "..."}。
+ * 此时 defaultValue 应为一组行：List<Map<String, Any>>。
  */
 data class AttributeCategoryChange(
     val name: String,
@@ -100,6 +104,18 @@ data class AttributeCategoryChange(
     @SerializedName("enumOptions")
     val enumOptions: List<String>? = null,
     val description: String? = null,
+    val columns: List<TableColumnChange>? = null,
     @SerializedName("is_deleted")
     val isDeleted: Boolean = false
+)
+
+/**
+ * 表格属性的列定义变更。type 仅可为 NUMERIC / BOOLEAN / ENUM / TEXT，不允许嵌套 TABLE。
+ */
+data class TableColumnChange(
+    val name: String,
+    val type: String? = null,
+    @SerializedName("enumOptions")
+    val enumOptions: List<String>? = null,
+    val description: String? = null
 )

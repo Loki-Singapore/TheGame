@@ -10,6 +10,8 @@ import com.textgame.domain.model.NPC
 import com.textgame.domain.model.NPCChanges
 import com.textgame.domain.model.Protagonist
 import com.textgame.domain.model.ProtagonistChanges
+import com.textgame.domain.model.TableColumn
+import com.textgame.domain.model.TableColumnChange
 import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
@@ -133,6 +135,12 @@ class UpdateStateUseCase(
                     // 修改：按提供的字段部分更新，未提供的字段保留原值
                     val existing = currentCategories[existingIndex]
                     val parsedType = parseAttributeType(change.type) ?: existing.type
+                    val mergedColumns = mergeTableColumns(
+                        change.columns,
+                        existing.columns,
+                        existing.type,
+                        parsedType
+                    )
                     currentCategories[existingIndex] = AttributeCategory(
                         name = name,
                         type = parsedType,
@@ -140,11 +148,13 @@ class UpdateStateUseCase(
                         maxValue = change.maxValue ?: existing.maxValue,
                         defaultValue = change.defaultValue ?: existing.defaultValue,
                         enumOptions = change.enumOptions ?: existing.enumOptions,
-                        description = change.description ?: existing.description
+                        description = change.description ?: existing.description,
+                        columns = mergedColumns
                     )
                 } else {
                     // 新增：type 必填，否则跳过该条变更
                     val parsedType = parseAttributeType(change.type) ?: return@forEach
+                    val parsedColumns = parseTableColumns(change.columns, parsedType)
                     val newCategory = AttributeCategory(
                         name = name,
                         type = parsedType,
@@ -152,7 +162,8 @@ class UpdateStateUseCase(
                         maxValue = change.maxValue,
                         defaultValue = change.defaultValue,
                         enumOptions = change.enumOptions ?: emptyList(),
-                        description = change.description ?: ""
+                        description = change.description ?: "",
+                        columns = parsedColumns
                     )
                     currentCategories.add(newCategory)
                     // 引擎自动用 defaultValue 初始化主角的该属性
@@ -217,6 +228,76 @@ class UpdateStateUseCase(
             else -> typeStr.uppercase()
         }
         return AttributeType.values().firstOrNull { it.name == normalized }
+    }
+
+    /**
+     * 解析新增 TABLE 类目时的列定义。仅当目标类型是 TABLE 时生效，否则返回空列表。
+     * 列类型不允许嵌套 TABLE。
+     */
+    private fun parseTableColumns(
+        columns: List<TableColumnChange>?,
+        parentType: AttributeType
+    ): List<TableColumn> {
+        if (parentType != AttributeType.TABLE || columns.isNullOrEmpty()) return emptyList()
+        return columns.mapNotNull { col ->
+            if (col.name.isBlank()) return@mapNotNull null
+            val colType = parseAttributeType(col.type) ?: AttributeType.TEXT
+            // 列不允许嵌套 TABLE
+            if (colType == AttributeType.TABLE) return@mapNotNull null
+            TableColumn(
+                name = col.name.trim(),
+                type = colType,
+                enumOptions = col.enumOptions ?: emptyList(),
+                description = col.description ?: ""
+            )
+        }
+    }
+
+    /**
+     * 合并 TABLE 类目的列定义。AI 可以按列名匹配进行部分更新：
+     * - 已有列：按提供的字段部分更新
+     * - 新列名：追加
+     * - 未提及的列：保留原值
+     * 仅当最终类型是 TABLE 时才保留列；若类型被改为非 TABLE，清空列。
+     */
+    private fun mergeTableColumns(
+        newColumns: List<TableColumnChange>?,
+        existingColumns: List<TableColumn>,
+        oldType: AttributeType,
+        newType: AttributeType
+    ): List<TableColumn> {
+        if (newType != AttributeType.TABLE) return emptyList()
+        if (newColumns.isNullOrEmpty()) {
+            // 类型未变且没提供新列，沿用原列
+            return if (oldType == AttributeType.TABLE) existingColumns else emptyList()
+        }
+        val merged = existingColumns.toMutableList()
+        newColumns.forEach { change ->
+            if (change.name.isBlank()) return@forEach
+            val colName = change.name.trim()
+            val idx = merged.indexOfFirst { it.name == colName }
+            val colType = parseAttributeType(change.type)?.takeIf { it != AttributeType.TABLE }
+            if (idx >= 0) {
+                val existing = merged[idx]
+                merged[idx] = TableColumn(
+                    name = colName,
+                    type = colType ?: existing.type,
+                    enumOptions = change.enumOptions ?: existing.enumOptions,
+                    description = change.description ?: existing.description
+                )
+            } else {
+                val parsedType = colType ?: AttributeType.TEXT
+                merged.add(
+                    TableColumn(
+                        name = colName,
+                        type = parsedType,
+                        enumOptions = change.enumOptions ?: emptyList(),
+                        description = change.description ?: ""
+                    )
+                )
+            }
+        }
+        return merged
     }
 
     private fun generateWorldRuleId(existingRules: List<WorldRule>): String {
