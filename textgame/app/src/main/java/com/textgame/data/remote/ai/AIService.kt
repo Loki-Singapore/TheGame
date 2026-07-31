@@ -5,6 +5,7 @@ import com.google.gson.JsonParser
 import com.textgame.data.audio.BgmTrack
 import com.textgame.domain.model.AIResponse
 import com.textgame.domain.model.AttributeCategory
+import com.textgame.domain.model.AttributeType
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.GameState
 import com.textgame.domain.model.NPC
