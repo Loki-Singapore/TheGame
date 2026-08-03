@@ -1,6 +1,9 @@
 package com.textgame.presentation.viewmodel
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.textgame.data.local.SettingsPreferences
@@ -8,10 +11,22 @@ import com.textgame.data.remote.ai.ImagePromptStyle
 import com.textgame.data.seedream.SeedreamService
 import com.textgame.di.AppModule
 import com.textgame.domain.usecase.GenerateImagePromptUseCase
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.util.concurrent.TimeUnit
+
+private val imageBitmapClients by lazy {
+    OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(120, TimeUnit.SECONDS)
+        .build()
+}
 
 enum class ImageGenPhase {
     PROMPT_INPUT,
@@ -27,6 +42,8 @@ data class ImageGenerationUiState(
     val isSaving: Boolean = false,
     val imageUrl: String? = null,
     val imageBase64: String? = null,
+    // 预解码的 Bitmap，供全屏预览直接使用，避免 Dialog 环境下 Coil 网络加载失败
+    val imageBitmap: Bitmap? = null,
     val revisedPrompt: String? = null,
     val size: String = "2K",
     val availableSizes: List<String> = listOf("1K", "2K", "4K"),
@@ -148,15 +165,22 @@ class ImageGenerationViewModel(
                     prompt = _uiState.value.prompt,
                     size = _uiState.value.size
                 )
+                // 预解码 Bitmap，供全屏预览使用（避免 Dialog 环境下 Coil 加载失败）
+                val bitmap = decodeBitmap(result.url, result.base64)
                 _uiState.value = _uiState.value.copy(
                     isGeneratingImage = false,
                     imageUrl = result.url,
                     imageBase64 = result.base64,
+                    imageBitmap = bitmap,
                     revisedPrompt = result.revisedPrompt
                 )
                 if (!result.hasUrl() && !result.hasBase64()) {
                     _uiState.value = _uiState.value.copy(
                         error = "生图响应中未包含图片数据"
+                    )
+                } else if (bitmap == null) {
+                    _uiState.value = _uiState.value.copy(
+                        error = "图片解码失败：URL=${result.url?.take(50)}, base64长度=${result.base64?.length}"
                     )
                 }
             } catch (e: Exception) {
@@ -167,6 +191,33 @@ class ImageGenerationViewModel(
             }
         }
     }
+
+    /**
+     * 预解码 Bitmap：优先用 base64，否则下载 URL。
+     * 在 IO 线程执行，失败返回 null（错误信息由调用方处理）。
+     */
+    private suspend fun decodeBitmap(url: String?, base64: String?): Bitmap? =
+        withContext(Dispatchers.IO) {
+            try {
+                when {
+                    !base64.isNullOrBlank() -> {
+                        val bytes = Base64.decode(base64, Base64.DEFAULT)
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    }
+                    !url.isNullOrBlank() -> {
+                        val request = Request.Builder().url(url).build()
+                        imageBitmapClients.newCall(request).execute().use { response ->
+                            if (!response.isSuccessful) return@withContext null
+                            val bytes = response.body?.bytes() ?: return@withContext null
+                            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        }
+                    }
+                    else -> null
+                }
+            } catch (e: Exception) {
+                null
+            }
+        }
 
     fun saveImage() {
         if (_uiState.value.isSaving) return
