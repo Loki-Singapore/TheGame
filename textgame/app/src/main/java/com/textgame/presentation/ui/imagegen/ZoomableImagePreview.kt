@@ -1,5 +1,6 @@
 package com.textgame.presentation.ui.imagegen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -29,25 +30,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 /**
  * 全屏可缩放图片预览。
  *
+ * 用 Popup(focusable = true) 而非 Dialog：
+ * Dialog 在 Android 上 window 默认 wrap-content 高度，fillMaxSize 会塌缩导致图片不显示；
+ * Popup 创建独立 window 且能真正撑满屏幕，content 的 fillMaxSize 才生效。
+ *
  * 交互：
  * - 双指捏合缩放（1x ~ 6x）
  * - 双指拖动平移（仅放大状态下生效）
  * - 双击在 1x 与 2x 之间切换
  * - 单击空白处或右上角按钮关闭
- *
- * 手势分发说明：
- * - Box 自身用 detectTransformGestures 处理双指缩放与拖动
- * - Box 自身另一个 pointerInput 用 detectTapGestures 区分单击（关闭）与双击（切换 1x/2x）
- * - detectTapGestures 自带 onDoubleTap 回调，避免手动判断时间窗口，可靠性更好
+ * - 系统返回键关闭
  *
  * @param model Coil 可加载的模型：URL 字符串、data URI、File 等
  * @param onDismiss 关闭回调
@@ -74,18 +76,23 @@ fun ZoomableImagePreview(
         offsetY.snapTo(0f)
     }
 
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(
-            usePlatformDefaultWidth = false,
-            dismissOnClickOutside = false,
-            dismissOnBackPress = true
+    // 处理系统返回键
+    BackHandler(enabled = true) { onDismiss() }
+
+    Popup(
+        alignment = Alignment.TopStart,
+        offset = IntOffset(0, 0),
+        onDismissRequest = null,
+        properties = PopupProperties(
+            focusable = true,
+            dismissOnBackPress = true,
+            dismissOnClickOutside = false
         )
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.95f))
+                .background(Color.Black)
                 // 双指变换手势（缩放 + 拖动）
                 .pointerInput(model) {
                     detectTransformGestures { _, pan, zoom, _ ->
@@ -131,7 +138,7 @@ fun ZoomableImagePreview(
                     )
             )
 
-            // 右上角关闭按钮：独立 Box 之上，不会被缩放变换影响
+            // 右上角关闭按钮：不受 graphicsLayer 缩放影响
             Surface(
                 shape = CircleShape,
                 color = Color.Black.copy(alpha = 0.5f),
