@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">ต้องมีการตรวจสอบสิทธิ์</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"ยุบ Bottom Sheet"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"ปิด Bottom Sheet"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"แฮนเดิลการลาก"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"วันที่เริ่มต้น"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"เลือกวันที่"</string>
     <string msgid="8038256446254964252" name="default_error_message">"อินพุตไม่ถูกต้อง"</string>
+    <string name="default_notification_channel_name">กำลังเล่น</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"หน้าต่างป๊อปอัป"</string>
     <string msgid="4057925834421392736" name="dialog">"กล่องโต้ตอบ"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"เมนูแบบเลื่อนลง"</string>
+    <string name="exo_download_completed">การดาวน์โหลดเสร็จสมบูรณ์</string>
+    <string name="exo_download_description">ดาวน์โหลด</string>
+    <string name="exo_download_downloading">กำลังดาวน์โหลด</string>
+    <string name="exo_download_failed">การดาวน์โหลดล้มเหลว</string>
+    <string name="exo_download_notification_channel_name">ดาวน์โหลด</string>
+    <string name="exo_download_paused">การดาวน์โหลดหยุดชั่วคราว</string>
+    <string name="exo_download_paused_for_network">กำลังรอเครือข่ายเพื่อดาวน์โหลด</string>
+    <string name="exo_download_paused_for_wifi">กำลังรอ Wi-Fi เพื่อดาวน์โหลด</string>
+    <string name="exo_download_removing">กำลังนำรายการที่ดาวน์โหลดออก</string>
     <string msgid="5974471714631304645" name="expanded">"ขยาย"</string>
     <string msgid="6827826412747255547" name="in_progress">"กำลังดำเนินการ"</string>
     <string msgid="7933458017204019916" name="indeterminate">"เลือกบางส่วน"</string>
+    <string name="media3_controls_pause_description">หยุดชั่วคราว</string>
+    <string name="media3_controls_play_description">เล่น</string>
+    <string name="media3_controls_seek_back_description">กรอกลับ</string>
+    <string name="media3_controls_seek_forward_description">กรอไปข้างหน้า</string>
+    <string name="media3_controls_seek_to_next_description">กรอไปยังรายการถัดไป</string>
+    <string name="media3_controls_seek_to_previous_description">กรอไปยังรายการก่อนหน้า</string>
     <string msgid="542007171693138492" name="navigation_menu">"เมนูการนำทาง"</string>
     <string msgid="6610465462668679431" name="not_selected">"ไม่ได้เลือก"</string>
     <string msgid="875452955155264703" name="off">"ปิด"</string>

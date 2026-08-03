@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">Haqiqiylikni tekshirish talab etiladi</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"Quyi ekranni yigʻish"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"Quyi ekranni yopish"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"Surish dastagi"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Boshlanish sanasi"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Sanalarni tanlang"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Kiritilgan axborot xato"</string>
+    <string name="default_notification_channel_name">Bu qaysi musiqa</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Qalqib chiquvchi oyna"</string>
     <string msgid="4057925834421392736" name="dialog">"Muloqot oynasi"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Pastga ochiluvchi menyu"</string>
+    <string name="exo_download_completed">Yuklab olindi</string>
+    <string name="exo_download_description">Yuklab olish</string>
+    <string name="exo_download_downloading">Yuklab olinmoqda</string>
+    <string name="exo_download_failed">Yuklab olinmadi</string>
+    <string name="exo_download_notification_channel_name">Yuklanmalar</string>
+    <string name="exo_download_paused">Yuklanmalar pauzada</string>
+    <string name="exo_download_paused_for_network">Yuklanmalar internetga ulanishni kutmoqda</string>
+    <string name="exo_download_paused_for_wifi">Yuklanmalar Wi-Fi aloqasini kutmoqda</string>
+    <string name="exo_download_removing">Yuklanmalar olib tashlanmoqda</string>
     <string msgid="5974471714631304645" name="expanded">"Yoyilgan"</string>
     <string msgid="6827826412747255547" name="in_progress">"Bajarilmoqda"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Qisman belgilandi"</string>
+    <string name="media3_controls_pause_description">Pauza</string>
+    <string name="media3_controls_play_description">Ijro</string>
+    <string name="media3_controls_seek_back_description">Orqaga surish</string>
+    <string name="media3_controls_seek_forward_description">Oldinga surish</string>
+    <string name="media3_controls_seek_to_next_description">Keyingi trekka oʻtish</string>
+    <string name="media3_controls_seek_to_previous_description">Avvalgi trekka oʻtish</string>
     <string msgid="542007171693138492" name="navigation_menu">"Navigatsiya menyusi"</string>
     <string msgid="6610465462668679431" name="not_selected">"Tanlanmagan"</string>
     <string msgid="875452955155264703" name="off">"Oʻchiq"</string>

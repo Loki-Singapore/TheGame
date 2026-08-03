@@ -100,7 +100,7 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
 
   @Override
   public Object insertSnapshot(final StateSnapshotEntity snapshot,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -113,12 +113,12 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteSnapshotsFromTurn(final long sessionId, final int fromTurn,
-      final Continuation<? super Unit> arg2) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -137,12 +137,12 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
           __preparedStmtOfDeleteSnapshotsFromTurn.release(_stmt);
         }
       }
-    }, arg2);
+    }, $completion);
   }
 
   @Override
   public Object deleteSnapshotsBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -159,13 +159,13 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
           __preparedStmtOfDeleteSnapshotsBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getSnapshotByTurn(final long sessionId, final int turnNumber,
-      final Continuation<? super StateSnapshotEntity> arg2) {
-    final String _sql = "SELECT * FROM state_snapshots WHERE sessionId = ? AND turnNumber = ? LIMIT 1";
+      final Continuation<? super StateSnapshotEntity> $completion) {
+    final String _sql = "SELECT * FROM state_snapshots WHERE sessionId = ? AND turnNumber = ? ORDER BY id DESC LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
     int _argIndex = 1;
     _statement.bindLong(_argIndex, sessionId);
@@ -243,12 +243,12 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
           _statement.release();
         }
       }
-    }, arg2);
+    }, $completion);
   }
 
   @Override
   public Object getLatestSnapshot(final long sessionId,
-      final Continuation<? super StateSnapshotEntity> arg1) {
+      final Continuation<? super StateSnapshotEntity> $completion) {
     final String _sql = "SELECT * FROM state_snapshots WHERE sessionId = ? ORDER BY turnNumber DESC LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -325,7 +325,7 @@ public final class StateSnapshotDao_Impl implements StateSnapshotDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">Perlu autentikasi</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"Menciutkan sheet bawah"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"Menutup sheet bawah"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"Handel geser"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Tanggal mulai"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Pilih tanggal"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Input tidak valid"</string>
+    <string name="default_notification_channel_name">Sedang diputar</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Jendela Pop-Up"</string>
     <string msgid="4057925834421392736" name="dialog">"Dialog"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Menu dropdown"</string>
+    <string name="exo_download_completed">Download selesai</string>
+    <string name="exo_download_description">Download</string>
+    <string name="exo_download_downloading">Mendownload</string>
+    <string name="exo_download_failed">Download gagal</string>
+    <string name="exo_download_notification_channel_name">Download</string>
+    <string name="exo_download_paused">Download dijeda</string>
+    <string name="exo_download_paused_for_network">Download menunggu konektivitas jaringan</string>
+    <string name="exo_download_paused_for_wifi">Download menunggu konektivitas Wi-Fi</string>
+    <string name="exo_download_removing">Menghapus download</string>
     <string msgid="5974471714631304645" name="expanded">"Diluaskan"</string>
     <string msgid="6827826412747255547" name="in_progress">"Dalam proses"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Diperiksa sebagian"</string>
+    <string name="media3_controls_pause_description">Jeda</string>
+    <string name="media3_controls_play_description">Putar</string>
+    <string name="media3_controls_seek_back_description">Mundur</string>
+    <string name="media3_controls_seek_forward_description">Maju</string>
+    <string name="media3_controls_seek_to_next_description">Cari item berikutnya</string>
+    <string name="media3_controls_seek_to_previous_description">Cari item sebelumnya</string>
     <string msgid="542007171693138492" name="navigation_menu">"Menu navigasi"</string>
     <string msgid="6610465462668679431" name="not_selected">"Tidak dipilih"</string>
     <string msgid="875452955155264703" name="off">"Nonaktif"</string>

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">المصادقة مطلوبة</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"تصغير البطاقة السفلية"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"إغلاق البطاقة السفلية"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"مقبض السحب"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"تاريخ البدء"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"اختيار التواريخ"</string>
     <string msgid="8038256446254964252" name="default_error_message">"إدخال غير صالح"</string>
+    <string name="default_notification_channel_name">قيد التشغيل الآن</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"نافذة منبثقة"</string>
     <string msgid="4057925834421392736" name="dialog">"مربّع حوار"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"قائمة منسدلة"</string>
+    <string name="exo_download_completed">اكتمل التنزيل</string>
+    <string name="exo_download_description">تنزيل</string>
+    <string name="exo_download_downloading">جارٍ التنزيل.</string>
+    <string name="exo_download_failed">تعذّر التنزيل</string>
+    <string name="exo_download_notification_channel_name">عمليات التنزيل</string>
+    <string name="exo_download_paused">تمّ إيقاف عمليات التنزيل مؤقتًا.</string>
+    <string name="exo_download_paused_for_network">عمليات التنزيل في انتظار الاتصال بالشبكة</string>
+    <string name="exo_download_paused_for_wifi">عمليات التنزيل في انتظار اتصال Wi-Fi.</string>
+    <string name="exo_download_removing">تجري إزالة المحتوى الذي تم تنزيله</string>
     <string msgid="5974471714631304645" name="expanded">"موسَّع"</string>
     <string msgid="6827826412747255547" name="in_progress">"قيد التقدم"</string>
     <string msgid="7933458017204019916" name="indeterminate">"تم وضع علامة في المربّع بشكل جزئي"</string>
+    <string name="media3_controls_pause_description">إيقاف مؤقت</string>
+    <string name="media3_controls_play_description">تشغيل</string>
+    <string name="media3_controls_seek_back_description">ترجيع</string>
+    <string name="media3_controls_seek_forward_description">تقديم</string>
+    <string name="media3_controls_seek_to_next_description">تقديم إلى العنصر التالي</string>
+    <string name="media3_controls_seek_to_previous_description">ترجيع إلى العنصر السابق</string>
     <string msgid="542007171693138492" name="navigation_menu">"قائمة تنقل"</string>
     <string msgid="6610465462668679431" name="not_selected">"غير محدّد"</string>
     <string msgid="875452955155264703" name="off">"غير مفعّل"</string>

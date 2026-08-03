@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">પ્રમાણીકરણ આવશ્યક છે</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"બોટમ શીટ નાની કરો"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"બોટમ શીટ છોડી દો"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"ઑબ્જેક્ટ ખેંચવાનું હૅન્ડલ"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"પ્રારંભ તારીખ"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"તારીખો પસંદ કરો"</string>
     <string msgid="8038256446254964252" name="default_error_message">"અમાન્ય ઇનપુટ"</string>
+    <string name="default_notification_channel_name">હાલમાં ચાલી રહી છે</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"પૉપ-અપ વિન્ડો"</string>
     <string msgid="4057925834421392736" name="dialog">"સંવાદ બૉક્સ"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"ડ્રૉપડાઉન મેનૂ"</string>
+    <string name="exo_download_completed">ડાઉનલોડ પૂર્ણ થયું</string>
+    <string name="exo_download_description">ડાઉનલોડ કરો</string>
+    <string name="exo_download_downloading">ડાઉનલોડ કરી રહ્યાં છીએ</string>
+    <string name="exo_download_failed">ડાઉનલોડ નિષ્ફળ થયું</string>
+    <string name="exo_download_notification_channel_name">ડાઉનલોડ</string>
+    <string name="exo_download_paused">ડાઉનલોડ થોભાવ્યા છે</string>
+    <string name="exo_download_paused_for_network">ડાઉનલોડ થવા નેટવર્કની રાહ જોવાઈ રહી છે</string>
+    <string name="exo_download_paused_for_wifi">ડાઉનલોડ થવા વાઇ-ફાઇની રાહ જોવાઈ રહી છે</string>
+    <string name="exo_download_removing">ડાઉનલોડ કાઢી નાખી રહ્યાં છીએ</string>
     <string msgid="5974471714631304645" name="expanded">"મોટી કરેલી"</string>
     <string msgid="6827826412747255547" name="in_progress">"પ્રક્રિયામાં છે"</string>
     <string msgid="7933458017204019916" name="indeterminate">"આંશિક રીતે ચેક કરેલા વિકલ્પો"</string>
+    <string name="media3_controls_pause_description">થોભાવો</string>
+    <string name="media3_controls_play_description">ચલાવો</string>
+    <string name="media3_controls_seek_back_description">પાછળ લઈ જાઓ</string>
+    <string name="media3_controls_seek_forward_description">આગળ લઈ જાઓ</string>
+    <string name="media3_controls_seek_to_next_description">આગલી આઇટમ શોધો</string>
+    <string name="media3_controls_seek_to_previous_description">પાછલી આઇટમ શોધો</string>
     <string msgid="542007171693138492" name="navigation_menu">"નૅવિગેશન મેનૂ"</string>
     <string msgid="6610465462668679431" name="not_selected">"પસંદગી કરી નથી"</string>
     <string msgid="875452955155264703" name="off">"બંધ છે"</string>

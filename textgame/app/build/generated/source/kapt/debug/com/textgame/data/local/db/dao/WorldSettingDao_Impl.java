@@ -42,7 +42,7 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
     this.__insertionAdapterOfWorldSettingEntity = new EntityInsertionAdapter<WorldSettingEntity>(__db) {
       @Override
       public String createQuery() {
-        return "INSERT OR ABORT INTO `world_settings` (`id`,`sessionId`,`name`,`description`,`worldType`,`timeSetting`,`locationSetting`,`socialStructure`,`specialRulesJson`,`lore`,`factionsJson`,`locationsJson`,`updatedAt`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `world_settings` (`id`,`sessionId`,`name`,`description`,`worldType`,`timeSetting`,`locationSetting`,`socialStructure`,`specialRulesJson`,`lore`,`factionsJson`,`locationsJson`,`attributeCategoriesJson`,`worldRulesJson`,`updatedAt`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -99,13 +99,23 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
         } else {
           stmt.bindString(12, value.getLocationsJson());
         }
-        stmt.bindLong(13, value.getUpdatedAt());
+        if (value.getAttributeCategoriesJson() == null) {
+          stmt.bindNull(13);
+        } else {
+          stmt.bindString(13, value.getAttributeCategoriesJson());
+        }
+        if (value.getWorldRulesJson() == null) {
+          stmt.bindNull(14);
+        } else {
+          stmt.bindString(14, value.getWorldRulesJson());
+        }
+        stmt.bindLong(15, value.getUpdatedAt());
       }
     };
     this.__updateAdapterOfWorldSettingEntity = new EntityDeletionOrUpdateAdapter<WorldSettingEntity>(__db) {
       @Override
       public String createQuery() {
-        return "UPDATE OR ABORT `world_settings` SET `id` = ?,`sessionId` = ?,`name` = ?,`description` = ?,`worldType` = ?,`timeSetting` = ?,`locationSetting` = ?,`socialStructure` = ?,`specialRulesJson` = ?,`lore` = ?,`factionsJson` = ?,`locationsJson` = ?,`updatedAt` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `world_settings` SET `id` = ?,`sessionId` = ?,`name` = ?,`description` = ?,`worldType` = ?,`timeSetting` = ?,`locationSetting` = ?,`socialStructure` = ?,`specialRulesJson` = ?,`lore` = ?,`factionsJson` = ?,`locationsJson` = ?,`attributeCategoriesJson` = ?,`worldRulesJson` = ?,`updatedAt` = ? WHERE `id` = ?";
       }
 
       @Override
@@ -162,8 +172,18 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
         } else {
           stmt.bindString(12, value.getLocationsJson());
         }
-        stmt.bindLong(13, value.getUpdatedAt());
-        stmt.bindLong(14, value.getId());
+        if (value.getAttributeCategoriesJson() == null) {
+          stmt.bindNull(13);
+        } else {
+          stmt.bindString(13, value.getAttributeCategoriesJson());
+        }
+        if (value.getWorldRulesJson() == null) {
+          stmt.bindNull(14);
+        } else {
+          stmt.bindString(14, value.getWorldRulesJson());
+        }
+        stmt.bindLong(15, value.getUpdatedAt());
+        stmt.bindLong(16, value.getId());
       }
     };
     this.__preparedStmtOfDeleteWorldSettingBySessionId = new SharedSQLiteStatement(__db) {
@@ -177,7 +197,7 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
 
   @Override
   public Object insertWorldSetting(final WorldSettingEntity setting,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -190,12 +210,12 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateWorldSetting(final WorldSettingEntity setting,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -208,12 +228,12 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteWorldSettingBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -230,12 +250,12 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
           __preparedStmtOfDeleteWorldSettingBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getWorldSettingBySessionId(final long sessionId,
-      final Continuation<? super WorldSettingEntity> arg1) {
+      final Continuation<? super WorldSettingEntity> $completion) {
     final String _sql = "SELECT * FROM world_settings WHERE sessionId = ? LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -258,6 +278,8 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
           final int _cursorIndexOfLore = CursorUtil.getColumnIndexOrThrow(_cursor, "lore");
           final int _cursorIndexOfFactionsJson = CursorUtil.getColumnIndexOrThrow(_cursor, "factionsJson");
           final int _cursorIndexOfLocationsJson = CursorUtil.getColumnIndexOrThrow(_cursor, "locationsJson");
+          final int _cursorIndexOfAttributeCategoriesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributeCategoriesJson");
+          final int _cursorIndexOfWorldRulesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "worldRulesJson");
           final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
           final WorldSettingEntity _result;
           if(_cursor.moveToFirst()) {
@@ -325,9 +347,21 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
             } else {
               _tmpLocationsJson = _cursor.getString(_cursorIndexOfLocationsJson);
             }
+            final String _tmpAttributeCategoriesJson;
+            if (_cursor.isNull(_cursorIndexOfAttributeCategoriesJson)) {
+              _tmpAttributeCategoriesJson = null;
+            } else {
+              _tmpAttributeCategoriesJson = _cursor.getString(_cursorIndexOfAttributeCategoriesJson);
+            }
+            final String _tmpWorldRulesJson;
+            if (_cursor.isNull(_cursorIndexOfWorldRulesJson)) {
+              _tmpWorldRulesJson = null;
+            } else {
+              _tmpWorldRulesJson = _cursor.getString(_cursorIndexOfWorldRulesJson);
+            }
             final long _tmpUpdatedAt;
             _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
-            _result = new WorldSettingEntity(_tmpId,_tmpSessionId,_tmpName,_tmpDescription,_tmpWorldType,_tmpTimeSetting,_tmpLocationSetting,_tmpSocialStructure,_tmpSpecialRulesJson,_tmpLore,_tmpFactionsJson,_tmpLocationsJson,_tmpUpdatedAt);
+            _result = new WorldSettingEntity(_tmpId,_tmpSessionId,_tmpName,_tmpDescription,_tmpWorldType,_tmpTimeSetting,_tmpLocationSetting,_tmpSocialStructure,_tmpSpecialRulesJson,_tmpLore,_tmpFactionsJson,_tmpLocationsJson,_tmpAttributeCategoriesJson,_tmpWorldRulesJson,_tmpUpdatedAt);
           } else {
             _result = null;
           }
@@ -337,7 +371,7 @@ public final class WorldSettingDao_Impl implements WorldSettingDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

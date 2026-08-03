@@ -103,7 +103,7 @@ public final class DialogueDao_Impl implements DialogueDao {
 
   @Override
   public Object insertDialogue(final DialogueEntity dialogue,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -116,12 +116,12 @@ public final class DialogueDao_Impl implements DialogueDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateDialogueContent(final long id, final String content,
-      final Continuation<? super Unit> arg2) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -144,11 +144,11 @@ public final class DialogueDao_Impl implements DialogueDao {
           __preparedStmtOfUpdateDialogueContent.release(_stmt);
         }
       }
-    }, arg2);
+    }, $completion);
   }
 
   @Override
-  public Object deleteDialogueById(final long id, final Continuation<? super Unit> arg1) {
+  public Object deleteDialogueById(final long id, final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -165,12 +165,12 @@ public final class DialogueDao_Impl implements DialogueDao {
           __preparedStmtOfDeleteDialogueById.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteDialoguesBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -187,12 +187,12 @@ public final class DialogueDao_Impl implements DialogueDao {
           __preparedStmtOfDeleteDialoguesBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteDialoguesFromTurn(final long sessionId, final int fromTurn,
-      final Continuation<? super Unit> arg2) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -211,12 +211,12 @@ public final class DialogueDao_Impl implements DialogueDao {
           __preparedStmtOfDeleteDialoguesFromTurn.release(_stmt);
         }
       }
-    }, arg2);
+    }, $completion);
   }
 
   @Override
   public Object getDialoguesBySessionId(final long sessionId,
-      final Continuation<? super List<DialogueEntity>> arg1) {
+      final Continuation<? super List<DialogueEntity>> $completion) {
     final String _sql = "SELECT * FROM dialogues WHERE sessionId = ? ORDER BY createdAt ASC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -275,7 +275,7 @@ public final class DialogueDao_Impl implements DialogueDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

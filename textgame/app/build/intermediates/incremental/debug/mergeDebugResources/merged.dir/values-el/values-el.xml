@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">Απαιτείται έλεγχος ταυτότητας</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"Σύμπτυξη φύλλου κάτω μέρους"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"Παράβλεψη φύλλου κάτω μέρους"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"Λαβή μεταφοράς"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Ημερομηνία έναρξης"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Επιλογή ημερομηνιών"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Μη έγκυρη καταχώριση"</string>
+    <string name="default_notification_channel_name">Ακούγεται τώρα</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Αναδυόμενο παράθυρο"</string>
     <string msgid="4057925834421392736" name="dialog">"Παράθυρο διαλόγου"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Αναπτυσσόμενο μενού"</string>
+    <string name="exo_download_completed">Η λήψη ολοκληρώθηκε</string>
+    <string name="exo_download_description">Λήψη</string>
+    <string name="exo_download_downloading">Λήψη</string>
+    <string name="exo_download_failed">Η λήψη απέτυχε</string>
+    <string name="exo_download_notification_channel_name">Λήψεις</string>
+    <string name="exo_download_paused">Οι λήψεις τέθηκαν σε παύση.</string>
+    <string name="exo_download_paused_for_network">Οι λήψεις είναι σε αναμονή για δίκτυο.</string>
+    <string name="exo_download_paused_for_wifi">Οι λήψεις είναι σε αναμονή για Wi-Fi.</string>
+    <string name="exo_download_removing">Κατάργηση λήψεων</string>
     <string msgid="5974471714631304645" name="expanded">"Ανεπτυγμένο"</string>
     <string msgid="6827826412747255547" name="in_progress">"Σε εξέλιξη"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Έγινε μερικός έλεγχος"</string>
+    <string name="media3_controls_pause_description">Παύση</string>
+    <string name="media3_controls_play_description">Αναπαραγωγή</string>
+    <string name="media3_controls_seek_back_description">Αναζήτηση προς τα πίσω</string>
+    <string name="media3_controls_seek_forward_description">Αναζήτηση προς τα εμπρός</string>
+    <string name="media3_controls_seek_to_next_description">Αναζήτηση προς επόμενο στοιχείο</string>
+    <string name="media3_controls_seek_to_previous_description">Αναζήτηση προς προηγούμενο στοιχείο</string>
     <string msgid="542007171693138492" name="navigation_menu">"Μενού πλοήγησης"</string>
     <string msgid="6610465462668679431" name="not_selected">"Δεν έχει επιλεχθεί"</string>
     <string msgid="875452955155264703" name="off">"Ανενεργό"</string>

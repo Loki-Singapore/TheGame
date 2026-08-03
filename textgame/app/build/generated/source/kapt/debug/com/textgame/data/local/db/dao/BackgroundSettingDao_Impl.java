@@ -137,7 +137,7 @@ public final class BackgroundSettingDao_Impl implements BackgroundSettingDao {
 
   @Override
   public Object insertBackgroundSetting(final BackgroundSettingEntity setting,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -150,12 +150,12 @@ public final class BackgroundSettingDao_Impl implements BackgroundSettingDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateBackgroundSetting(final BackgroundSettingEntity setting,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -168,12 +168,12 @@ public final class BackgroundSettingDao_Impl implements BackgroundSettingDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteBackgroundSettingBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -190,12 +190,12 @@ public final class BackgroundSettingDao_Impl implements BackgroundSettingDao {
           __preparedStmtOfDeleteBackgroundSettingBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getBackgroundSettingBySessionId(final long sessionId,
-      final Continuation<? super BackgroundSettingEntity> arg1) {
+      final Continuation<? super BackgroundSettingEntity> $completion) {
     final String _sql = "SELECT * FROM background_settings WHERE sessionId = ? LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -269,7 +269,7 @@ public final class BackgroundSettingDao_Impl implements BackgroundSettingDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

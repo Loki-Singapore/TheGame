@@ -79,6 +79,7 @@ import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.AttributeType
 import com.textgame.domain.model.NPC
 import com.textgame.domain.model.Protagonist
+import com.textgame.presentation.ui.imagegen.ImageGenerationDialog
 import com.textgame.presentation.viewmodel.DialogueDisplay
 import com.textgame.presentation.viewmodel.GameViewModel
 import kotlinx.coroutines.flow.collect
@@ -104,6 +105,14 @@ fun GameScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     var showStatusPanel by remember { mutableStateOf(false) }
+    var showImageGenerationDialog by remember { mutableStateOf(false) }
+
+    // 取最近一段旁白作为生图场景上下文；无旁白时回退到当前场景名
+    val sceneNarrativeForImage = remember(uiState.dialogues, uiState.gameState?.currentScene) {
+        uiState.dialogues.lastOrNull { it.isNarrative }?.content
+            ?: uiState.gameState?.currentScene
+            ?: ""
+    }
 
     // 用户是否主动上滑离开底部：可被发送消息重置
     var isUserScrolledUp by remember { mutableStateOf(false) }
@@ -208,7 +217,8 @@ fun GameScreen(
                         dialogue = dialogue,
                         onRegenerate = { turn ->
                             viewModel.regenerateFromTurn(turn)
-                        }
+                        },
+                        onGenerateSceneImage = { showImageGenerationDialog = true }
                     )
                 }
 
@@ -381,12 +391,21 @@ fun GameScreen(
             onDismiss = { showStatusPanel = false }
         )
     }
+
+    if (showImageGenerationDialog) {
+        ImageGenerationDialog(
+            sessionId = sessionId,
+            sceneNarrative = sceneNarrativeForImage,
+            onDismiss = { showImageGenerationDialog = false }
+        )
+    }
 }
 
 @Composable
 fun DialogueItem(
     dialogue: com.textgame.presentation.viewmodel.DialogueDisplay,
-    onRegenerate: (Int) -> Unit
+    onRegenerate: (Int) -> Unit,
+    onGenerateSceneImage: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -433,6 +452,13 @@ fun DialogueItem(
                                     }
                                 )
                             }
+                            DropdownMenuItem(
+                                text = { Text("生成当前场景图片") },
+                                onClick = {
+                                    showMenu = false
+                                    onGenerateSceneImage()
+                                }
+                            )
                         }
                     }
                 }
@@ -472,6 +498,13 @@ fun DialogueItem(
                                 onRegenerate(dialogue.turnNumber)
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text("生成当前场景图片") },
+                            onClick = {
+                                showMenu = false
+                                onGenerateSceneImage()
+                            }
+                        )
                     }
                 }
             }
@@ -499,6 +532,13 @@ fun DialogueItem(
                                 onClick = {
                                     showMenu = false
                                     onRegenerate(dialogue.turnNumber)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("生成当前场景图片") },
+                                onClick = {
+                                    showMenu = false
+                                    onGenerateSceneImage()
                                 }
                             )
                         }

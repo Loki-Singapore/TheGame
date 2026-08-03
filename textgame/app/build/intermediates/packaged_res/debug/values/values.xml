@@ -8,5 +8,8 @@
     <color name="teal_700">#FF018786</color>
     <color name="white">#FFFFFFFF</color>
     <string name="app_name">文字游戏引擎</string>
+    <string name="streaming_notification_channel_desc">AI 流式生成回复期间保持网络连接</string>
+    <string name="streaming_notification_channel_name">流式响应服务</string>
+    <string name="streaming_notification_text">AI 正在生成回复…</string>
     <style name="Theme.TextGame" parent="android:Theme.Material.Light.NoActionBar"/>
 </resources>

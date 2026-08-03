@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.textgame.app-mergeDebugResources-57:/values-en-rXC/values-en-rXC.xml",
+            "outputFile": "com.textgame.app-mergeDebugResources-62:/values-en-rXC/values-en-rXC.xml",
             "map": [
                 {
                     "source": "/root/.gradle/caches/8.14.4/transforms/e7e97e61214644796ae0f663b0a8f856/transformed/ui-release/res/values-en-rXC/values-en-rXC.xml",
