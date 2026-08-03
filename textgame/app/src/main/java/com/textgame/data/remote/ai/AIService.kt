@@ -608,7 +608,7 @@ class AIService(
             ChatMessage(role = "user", content = userPrompt)
         )
 
-        val request = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 2500)
+        val request = buildDialogueRequest(messages, useJsonFormat = false)
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         // 去除可能的代码块标记和首尾引号
