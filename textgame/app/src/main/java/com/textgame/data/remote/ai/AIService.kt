@@ -608,7 +608,7 @@ class AIService(
             ChatMessage(role = "user", content = userPrompt)
         )
 
-        val request = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 1200)
+        val request = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 2500)
         val response = apiService.createChatCompletion(request)
         val content = response.choices.firstOrNull()?.message?.content ?: ""
         // 去除可能的代码块标记和首尾引号
@@ -621,25 +621,64 @@ class AIService(
     }
 
     private fun buildImagePromptSystemPrompt(style: ImagePromptStyle): String = buildString {
-        appendLine("你是一个专业的 AI 绘画提示词工程师，擅长把文字冒险游戏的场景描述转化为视觉化的生图提示词。")
+        appendLine("你是一位资深的 AI 绘画提示词工程师，专精于把文字冒险游戏的场景叙述转化为高质量、工程化的文生图提示词。")
         appendLine()
-        appendLine("任务：根据给定的游戏场景信息，生成一段用于文生图模型的中文提示词（prompt），描绘该场景的视觉画面。")
+        appendLine("【工作流程 - 输出前必须按此顺序思考】")
+        appendLine("1. 场景解读：分析这段叙述的核心——主体是谁/什么？情绪基调是什么（紧张/温馨/肃杀/怅惘/壮阔/诡异）？戏剧高潮落在哪一瞬？画面焦点应指向何处？")
+        appendLine("2. 视觉转译：把文学性描写翻译成可视化具体元素——人物姿态、表情、服装细节、环境物体、空间关系、材质特征。")
+        appendLine("3. 参数推演：根据场景内容【推导】出与之匹配的镜头、光影、色彩参数，而不是套用万能模板。例如：夜景与日景的光源完全不同；室内烛光与室外阳光的色温完全不同；战斗场景与对话场景的景别和构图完全不同；雨林与沙漠的空气质感完全不同。")
+        appendLine("4. 风格收敛：在指定风格下，挑选最贴合该场景情绪的具体亚风格与表现技法，并贯穿始终。")
         appendLine()
-        appendLine("要求：")
-        appendLine("1. 提示词必须是中文，全部用中文描述。")
-        appendLine("2. 提示词应当详细描述画面的视觉元素：场景环境、光线氛围、色调、人物的外貌穿着表情姿态、构图、景别等。")
-        appendLine("3. 不要输出任何解释、前后缀、markdown 标记或引号，只输出提示词本身。")
-        appendLine("4. 不要在画面中出现任何文字水印。")
-        appendLine("5. 长度控制在 80-200 个汉字。")
+        appendLine("【输出要求】")
+        appendLine("- 输出中文提示词，可为一个或多个自然段，结构清晰、描述具体。")
+        appendLine("- 提示词应覆盖：主体（人物/物体的外貌、姿态、表情、穿着、材质）、环境（场景空间、物体陈设、空间纵深）、构图（景别、机位、视角、画面分割、视觉引导）、光影（光源类型、方向、强度、色温、阴影特征）、色彩（主色调、对比关系、饱和度倾向）、氛围（情绪质感、空气感、颗粒感等）。")
+        appendLine("- 不设字数限制，宁可详尽也不要笼统。每个描述都应具体到可被执行，避免'美丽''壮观'这类空泛形容词。")
+        appendLine("- 不要输出任何解释、思考过程、前后缀、markdown 标记或引号，只输出最终的提示词本身。")
+        appendLine("- 不要在画面中出现任何文字、水印、签名。")
         appendLine()
         when (style) {
             ImagePromptStyle.REALISTIC -> {
-                appendLine("画面风格：高真实感、电影级质感、照片级真实。")
-                appendLine("必须包含的风格描述：照片级真实感、电影级光影、超写实、极高细节、8K、锐利对焦、景深、专业摄影。")
+                appendLine("【当前风格：真实感（Photorealistic）】")
+                appendLine("真实感 ≠ 高清、≠ 8K、≠ 锐利。真实感 = 像一张真实存在的照片，让人无法分辨真伪。")
+                appendLine()
+                appendLine("要做到'真假难辨'，从以下维度构建（根据场景智能选取最契合的几项，不要全部堆上）：")
+                appendLine("- 真实相机特征：具体镜头（如 35mm/50mm/85mm 定焦）、光圈带来的景深虚化、快门速度带来的运动模糊或凝固、白平衡偏移、轻微曝光偏差、镜头眩光/鬼影、边缘色散、暗角。")
+                appendLine("- 真实光线：可识别的光源（太阳/月亮/烛火/灯泡/霓虹/透过窗户的漫射光）、光线方向明确、软硬阴影并存、环境反射光、次表面散射（皮肤、玉石、树叶）。")
+                appendLine("- 真实材质：皮肤毛孔与细微绒毛、衣物织物的纹理与褶皱、金属的氧化与划痕、木材的纹路与裂痕、玻璃的指纹与反光、墙面的斑驳。")
+                appendLine("- 真实瑕疵：人物姿态的不完美对称、表情的瞬时捕捉、环境的杂乱细节（灰尘、杂物、未整理的边角）、轻微的画面噪点/胶片颗粒。")
+                appendLine("- 真实瞬间感：像抓拍而非摆拍，有'此刻正在发生'的临场感。")
+                appendLine()
+                appendLine("【禁用词汇】避免使用暗示 CG/渲染的词：8K、超高清、CG 渲染、3D 渲染、数码艺术、壁纸级、超写实（hyperrealistic）、极致细节等。这些词反而会让画面失去照片感，显得像电脑合成。")
+                appendLine()
+                appendLine("请像一个真正的摄影师在构思一张作品：我用了什么镜头？什么光圈？现场光是什么样？我在什么时刻按下快门？把这些'摄影决策'写进提示词，让效果描述从场景内容中自然生长出来，而不是粘贴固定修饰词。")
             }
             ImagePromptStyle.ANIME -> {
-                appendLine("画面风格：动漫/二次元插画风。")
-                appendLine("必须包含的风格描述：动漫风格、插画、赛璐珞上色、色彩鲜艳、精致的动漫背景、动画工作室级制作。")
+                appendLine("【当前风格：动漫化（Anime）】")
+                appendLine("动漫化 ≠ 把'动漫风格''赛璐珞''色彩鲜艳'这些词堆上去。动漫化 = 用动画/插画的语言重新组织这个场景，核心在于【构图设计】与【风格化处理】。")
+                appendLine()
+                appendLine("【构图设计 - 必须主动设计，不要默认平铺】")
+                appendLine("- 景别选择：根据情绪选取特写/近景/中景/全景/远景，不同景别传达不同情绪。")
+                appendLine("- 机位与视角：低角度仰拍/高角度俯拍/平视/倾斜构图（荷兰角），每种都有情绪含义。")
+                appendLine("- 视觉引导：用引导线、框架、明暗对比、色彩对比把观众视线引向焦点。")
+                appendLine("- 画面分割与留白：黄金分割、三分法、对角线构图、对称/非对称平衡，敢于使用大面积留白或极端比例。")
+                appendLine("- 前中后景层次：建立空间纵深，前景遮挡、中景主体、背景氛围。")
+                appendLine()
+                appendLine("【风格化处理 - 选择最契合场景情绪的具体亚风格，而非泛泛'动漫风'】")
+                appendLine("根据场景情绪，选择一种具体的动画美学方向并贯穿始终（举例参考，不限于这些，可自行推导更契合的）：")
+                appendLine("- 新海诚式：极致光影、天空与云层细腻渲染、逆光剪影、色彩饱和而通透。")
+                appendLine("- 京阿尼式：柔和的高光过渡、细腻的人物神态、温暖的光晕、生活质感。")
+                appendLine("- 吉卜力式：手绘质感、饱和而沉稳的色块、自然风景的厚重感、怀旧色调。")
+                appendLine("- 物哀/水墨式：低饱和、留白、笔触感、东方意境。")
+                appendLine("- 赛博朋克动画式：高对比霓虹、夜雨反射、补色冲突、机械细节。")
+                appendLine("- 少女漫式：柔和粉调、装饰性光斑、线条细腻、情绪化特写。")
+                appendLine()
+                appendLine("【线条与上色策略】")
+                appendLine("明确线条风格（粗线/细线/有无线条/线条颜色）、上色方式（赛璐珞平涂/渐变/水彩/厚涂）、光影处理方式（二分光影/柔和漫射/逆光剪影）。")
+                appendLine()
+                appendLine("【色彩脚本】")
+                appendLine("为这个场景设计一组有情绪指向的色彩方案：主色、辅色、点缀色，以及冷暖对比策略。不要泛泛说'色彩鲜艳'，要说明为什么用这套色、传达什么情绪。")
+                appendLine()
+                appendLine("请像一个动画导演在画分镜：这一镜为什么这么构图？这种风格为什么契合这个情绪？每一笔都应有设计意图，不要简单堆叠'动漫、插画、二次元'等标签词。")
             }
         }
     }
@@ -685,7 +724,7 @@ class AIService(
         appendLine("【本回合场景叙述】")
         appendLine(sceneNarrative.ifBlank { gameState?.currentScene ?: "无" })
         appendLine()
-        appendLine("请基于以上信息，输出一段中文生图提示词。")
+        appendLine("请基于以上信息，按系统提示词中的工作流程（场景解读→视觉转译→参数推演→风格收敛），输出一段工程化的中文生图提示词。效果描述必须从本场景的具体内容中推导得出，不要套用固定修饰词。")
     }
 
     suspend fun generateWorldFromPrompt(userPrompt: String): GeneratedWorldResult {
