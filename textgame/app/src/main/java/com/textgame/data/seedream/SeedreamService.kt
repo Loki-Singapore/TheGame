@@ -9,6 +9,7 @@ import android.provider.MediaStore
 import com.textgame.data.remote.seedream.SeedreamApiService
 import com.textgame.data.remote.seedream.SeedreamImageRequest
 import com.textgame.data.remote.seedream.SeedreamImageResponse
+import com.textgame.data.remote.seedream.SequentialImageOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -70,10 +71,16 @@ class SeedreamService(
             .writeTimeout(60, TimeUnit.SECONDS)
             .build()
 
+        // Gson 默认不序列化 null 字段，这样 5.0 Pro 调用时
+        // sequential_image_generation 等不支持的参数（值为 null）不会发送
+        val gson = com.google.gson.GsonBuilder()
+            .disableHtmlEscaping()
+            .create()
+
         val retrofit = Retrofit.Builder()
             .baseUrl(base)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
 
         apiService = retrofit.create(SeedreamApiService::class.java)
@@ -83,13 +90,28 @@ class SeedreamService(
 
     suspend fun generateImage(prompt: String, size: String): GeneratedImageResult = withContext(Dispatchers.IO) {
         val service = apiService ?: throw IllegalStateException("生图服务未配置，请在 AI 设置中填写生图 API Key 与域名")
+        // 5.0 Pro（dola-seedream-5-0-pro-260628）不支持 sequential_image_generation 参数，
+        // 传了会报 HTTP 400；其他模型可传 disabled（仅生成 1 张）
+        val isProModel = model.contains("5-0-pro", ignoreCase = true)
         val request = SeedreamImageRequest(
             model = model,
             prompt = prompt,
-            size = size
+            size = size,
+            sequentialImageGeneration = if (isProModel) null else "disabled",
+            sequentialImageGenerationOptions = if (isProModel) null else SequentialImageOptions(maxImages = 1)
         )
         val response: SeedreamImageResponse = try {
             service.generateImage(request)
+        } catch (e: retrofit2.HttpException) {
+            // 提取服务器返回的错误信息，便于排查 HTTP 400 等问题
+            val errorBody = try {
+                e.response()?.errorBody()?.string()
+            } catch (_: Exception) { null }
+            throw IllegalStateException(
+                "生图请求失败：HTTP ${e.code()} ${e.message()}" +
+                    (errorBody?.let { "\n服务器响应：$it" } ?: ""),
+                e
+            )
         } catch (e: Exception) {
             throw IllegalStateException("生图请求失败：${e.message}", e)
         }

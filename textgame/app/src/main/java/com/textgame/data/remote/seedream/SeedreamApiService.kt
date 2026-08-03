@@ -24,10 +24,11 @@ data class SeedreamImageRequest(
     val size: String = "2K",
     // 关闭水印
     val watermark: Boolean = false,
+    // 仅非 5.0 Pro 模型支持批量生成参数；为 null 时 Gson 不序列化该字段
     @SerializedName("sequential_image_generation")
-    val sequentialImageGeneration: String = "disabled",
+    val sequentialImageGeneration: String? = null,
     @SerializedName("sequential_image_generation_options")
-    val sequentialImageGenerationOptions: SequentialImageOptions = SequentialImageOptions()
+    val sequentialImageGenerationOptions: SequentialImageOptions? = null
 )
 
 data class SequentialImageOptions(
