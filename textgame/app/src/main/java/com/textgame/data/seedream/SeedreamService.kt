@@ -66,9 +66,11 @@ class SeedreamService(
             .addInterceptor(HttpLoggingInterceptor().apply {
                 level = HttpLoggingInterceptor.Level.BASIC
             })
+            // 5.0 Pro 生成 2K 图片可能需要 3-5 分钟，readTimeout 设为 10 分钟保险
             .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(600, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
+            .callTimeout(660, TimeUnit.SECONDS)
             .build()
 
         // Gson 默认不序列化 null 字段，这样 5.0 Pro 调用时

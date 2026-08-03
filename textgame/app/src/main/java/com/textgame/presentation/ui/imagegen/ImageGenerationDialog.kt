@@ -305,6 +305,16 @@ private fun ImageGenerationPhase(
         }
     }
 
+    // 5.0 Pro 生成较慢，给用户等待提示避免误以为卡死
+    if (uiState.isGeneratingImage) {
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "图片生成中，5.0 Pro 模型可能需要 3-5 分钟，请耐心等待…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+
     uiState.error?.let { error ->
         Spacer(modifier = Modifier.height(8.dp))
         Text(
