@@ -9,8 +9,10 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -30,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -39,13 +42,13 @@ import kotlinx.coroutines.launch
 /**
  * 全屏可缩放图片预览。
  *
- * 实现要点：
- * - 用 Dialog(usePlatformDefaultWidth = false) 而非普通 Box：
- *   ModalBottomSheet 是独立 window，普通 Box 叠加在同一个 Compose 树里无法盖住它。
- *   Dialog 也是独立 window，且通过 usePlatformDefaultWidth=false + fillMaxSize 能撑满。
- * - 与缩略图预览（ImageGenerationPhase 内）用完全相同的 AsyncImage(model = model) 写法，
- *   不用 SubcomposeAsyncImage/ImageRequest，避免重复构建导致的加载差异。
- * - graphicsLayer 应用在 AsyncImage 上做缩放/平移，不影响外层 Box 的尺寸。
+ * 实现要点（解决 Dialog 黑屏问题）：
+ * - Dialog(usePlatformDefaultWidth=false) 的 window 高度默认是 wrap-content，
+ *   Box(fillMaxSize) 会塌缩，AsyncImage 无绘制空间只剩黑底。
+ * - 解决：用 LocalConfiguration 拿屏幕尺寸，给 Box 明确的 width/height，
+ *   让 Dialog window 撑满屏幕。
+ * - 与缩略图预览用完全相同的 AsyncImage(model = model) 写法，确保加载行为一致。
+ * - graphicsLayer 应用在 AsyncImage 上做缩放/平移，不影响外层 Box 尺寸。
  *
  * 交互：
  * - 双指捏合缩放（1x ~ 6x）
@@ -67,6 +70,9 @@ fun ZoomableImagePreview(
     }
 
     val scope = rememberCoroutineScope()
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.dp
+    val screenHeightDp = configuration.screenHeightDp.dp
     val scale = remember { Animatable(1f) }
     val offsetX = remember { Animatable(0f) }
     val offsetY = remember { Animatable(0f) }
@@ -91,7 +97,9 @@ fun ZoomableImagePreview(
     ) {
         Box(
             modifier = Modifier
-                .fillMaxSize()
+                // 用明确的屏幕尺寸撑开 Dialog window，避免 fillMaxSize 在 wrap-content 下塌缩
+                .width(screenWidthDp)
+                .height(screenHeightDp)
                 .background(Color.Black)
                 // 双指变换手势（缩放 + 拖动）
                 .pointerInput(model) {
