@@ -23,8 +23,6 @@ public final class SettingsPreferences {
     @org.jetbrains.annotations.NotNull
     private final java.lang.String imageModel = null;
     @org.jetbrains.annotations.NotNull
-    private static final com.textgame.data.local.SettingsPreferences DEFAULTS = null;
-    @org.jetbrains.annotations.NotNull
     private static final java.util.List<java.lang.String> PRESET_MODELS = null;
     @org.jetbrains.annotations.NotNull
     private static final java.util.List<java.lang.String> IMAGE_PRESET_MODELS = null;
@@ -38,6 +36,8 @@ public final class SettingsPreferences {
     private static final java.util.Map<java.lang.String, java.lang.Integer> MODEL_DEFAULT_DIALOGUE_MAX_TOKENS = null;
     @org.jetbrains.annotations.NotNull
     private static final java.util.Map<java.lang.String, java.lang.Integer> MODEL_DEFAULT_SUMMARY_MAX_TOKENS = null;
+    @org.jetbrains.annotations.NotNull
+    private static final com.textgame.data.local.SettingsPreferences DEFAULTS = null;
     @org.jetbrains.annotations.NotNull
     public static final com.textgame.data.local.SettingsPreferences.Companion Companion = null;
     
@@ -211,11 +211,6 @@ public final class SettingsPreferences {
         }
         
         @org.jetbrains.annotations.NotNull
-        public final com.textgame.data.local.SettingsPreferences getDEFAULTS() {
-            return null;
-        }
-        
-        @org.jetbrains.annotations.NotNull
         public final java.util.List<java.lang.String> getPRESET_MODELS() {
             return null;
         }
@@ -264,6 +259,11 @@ public final class SettingsPreferences {
         public final int getDefaultSummaryMaxTokens(@org.jetbrains.annotations.NotNull
         java.lang.String model) {
             return 0;
+        }
+        
+        @org.jetbrains.annotations.NotNull
+        public final com.textgame.data.local.SettingsPreferences getDEFAULTS() {
+            return null;
         }
     }
 }

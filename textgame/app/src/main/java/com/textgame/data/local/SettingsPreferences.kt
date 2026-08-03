@@ -17,8 +17,6 @@ data class SettingsPreferences(
     val imageModel: String = IMAGE_PRESET_MODELS.first()
 ) {
     companion object {
-        val DEFAULTS = SettingsPreferences()
-
         val PRESET_MODELS = listOf(
             "deepseek-v4-flash",
             "deepseek-v4-pro",
@@ -89,5 +87,8 @@ data class SettingsPreferences(
         fun getDefaultSummaryMaxTokens(model: String): Int {
             return MODEL_DEFAULT_SUMMARY_MAX_TOKENS[model] ?: 125000
         }
+
+        // 放在 companion object 末尾，确保 IMAGE_PRESET_MODELS 等常量先于默认值初始化
+        val DEFAULTS = SettingsPreferences()
     }
 }
