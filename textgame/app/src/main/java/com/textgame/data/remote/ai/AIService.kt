@@ -623,23 +623,23 @@ class AIService(
     private fun buildImagePromptSystemPrompt(style: ImagePromptStyle): String = buildString {
         appendLine("你是一个专业的 AI 绘画提示词工程师，擅长把文字冒险游戏的场景描述转化为视觉化的生图提示词。")
         appendLine()
-        appendLine("任务：根据给定的游戏场景信息，生成一段用于文生图模型的英文提示词（prompt），描绘该场景的视觉画面。")
+        appendLine("任务：根据给定的游戏场景信息，生成一段用于文生图模型的中文提示词（prompt），描绘该场景的视觉画面。")
         appendLine()
         appendLine("要求：")
-        appendLine("1. 提示词必须是英文，因为生图模型对英文理解更准确。")
+        appendLine("1. 提示词必须是中文，全部用中文描述。")
         appendLine("2. 提示词应当详细描述画面的视觉元素：场景环境、光线氛围、色调、人物的外貌穿着表情姿态、构图、景别等。")
         appendLine("3. 不要输出任何解释、前后缀、markdown 标记或引号，只输出提示词本身。")
         appendLine("4. 不要在画面中出现任何文字水印。")
-        appendLine("5. 长度控制在 80-200 个英文单词。")
+        appendLine("5. 长度控制在 80-200 个汉字。")
         appendLine()
         when (style) {
             ImagePromptStyle.REALISTIC -> {
                 appendLine("画面风格：高真实感、电影级质感、照片级真实。")
-                appendLine("必须包含的风格关键词：photorealistic, cinematic lighting, hyperrealistic, highly detailed, 8k, sharp focus, depth of field, professional photography.")
+                appendLine("必须包含的风格描述：照片级真实感、电影级光影、超写实、极高细节、8K、锐利对焦、景深、专业摄影。")
             }
             ImagePromptStyle.ANIME -> {
                 appendLine("画面风格：动漫/二次元插画风。")
-                appendLine("必须包含的风格关键词：anime style, illustration, cel shading, vibrant colors, detailed anime background, studio anime production.")
+                appendLine("必须包含的风格描述：动漫风格、插画、赛璐珞上色、色彩鲜艳、精致的动漫背景、动画工作室级制作。")
             }
         }
     }
@@ -685,7 +685,7 @@ class AIService(
         appendLine("【本回合场景叙述】")
         appendLine(sceneNarrative.ifBlank { gameState?.currentScene ?: "无" })
         appendLine()
-        appendLine("请基于以上信息，输出一段英文生图提示词。")
+        appendLine("请基于以上信息，输出一段中文生图提示词。")
     }
 
     suspend fun generateWorldFromPrompt(userPrompt: String): GeneratedWorldResult {
