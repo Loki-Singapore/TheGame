@@ -55,6 +55,7 @@ fun SettingsScreen(
 
     var showSavedDialog by remember { mutableStateOf(false) }
     var showModelPicker by remember { mutableStateOf(false) }
+    var showImageModelPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.saved) {
         if (uiState.saved) {
@@ -306,6 +307,54 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // === 生图设置 ===
+            Text("生图设置", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "使用 BytePlus Seedream 系列模型生成当前场景图片。API Key 与对话 AI 的 API Key 相互独立。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = uiState.imageApiKey,
+                onValueChange = viewModel::updateImageApiKey,
+                label = { Text("生图 API Key") },
+                placeholder = { Text("火山引擎 / BytePlus ARK API Key") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = uiState.imageBaseUrl,
+                onValueChange = viewModel::updateImageBaseUrl,
+                label = { Text("生图 API 域名") },
+                placeholder = { Text("ark.ap-southeast.bytepluses.com") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = uiState.imageModel,
+                onValueChange = viewModel::updateImageModel,
+                label = { Text("生图模型") },
+                placeholder = { Text("doubao-seedream-4-0-250828") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                trailingIcon = {
+                    TextButton(onClick = { showImageModelPicker = true }) {
+                        Text("选择")
+                    }
+                }
+            )
+
+            Divider(modifier = Modifier.padding(vertical = 16.dp))
+
             // === 操作按钮 ===
             Button(
                 onClick = { viewModel.saveSettings() },
@@ -371,6 +420,33 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showModelPicker = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
+    if (showImageModelPicker) {
+        AlertDialog(
+            onDismissRequest = { showImageModelPicker = false },
+            title = { Text("选择生图模型") },
+            text = {
+                Column {
+                    SettingsPreferences.IMAGE_PRESET_MODELS.forEach { model ->
+                        TextButton(
+                            onClick = {
+                                viewModel.updateImageModel(model)
+                                showImageModelPicker = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(model)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showImageModelPicker = false }) {
                     Text("取消")
                 }
             }

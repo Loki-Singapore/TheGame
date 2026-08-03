@@ -26,6 +26,10 @@ object SettingsManager {
     private val MUSIC_ENABLED = booleanPreferencesKey("music_enabled")
     private val THINKING_ENABLED = booleanPreferencesKey("thinking_enabled")
     private val REASONING_EFFORT = stringPreferencesKey("reasoning_effort")
+    // 生图设置
+    private val IMAGE_API_KEY = stringPreferencesKey("image_api_key")
+    private val IMAGE_BASE_URL = stringPreferencesKey("image_base_url")
+    private val IMAGE_MODEL = stringPreferencesKey("image_model")
 
     val DEFAULTS = SettingsPreferences()
 
@@ -41,7 +45,10 @@ object SettingsManager {
                 summaryMaxTokens = prefs[SUMMARY_MAX_TOKENS] ?: DEFAULTS.summaryMaxTokens,
                 musicEnabled = prefs[MUSIC_ENABLED] ?: DEFAULTS.musicEnabled,
                 thinkingEnabled = prefs[THINKING_ENABLED] ?: DEFAULTS.thinkingEnabled,
-                reasoningEffort = prefs[REASONING_EFFORT] ?: DEFAULTS.reasoningEffort
+                reasoningEffort = prefs[REASONING_EFFORT] ?: DEFAULTS.reasoningEffort,
+                imageApiKey = prefs[IMAGE_API_KEY] ?: DEFAULTS.imageApiKey,
+                imageBaseUrl = prefs[IMAGE_BASE_URL] ?: DEFAULTS.imageBaseUrl,
+                imageModel = prefs[IMAGE_MODEL] ?: DEFAULTS.imageModel
             )
         }
     }
@@ -58,6 +65,9 @@ object SettingsManager {
             prefs[MUSIC_ENABLED] = settings.musicEnabled
             prefs[THINKING_ENABLED] = settings.thinkingEnabled
             prefs[REASONING_EFFORT] = settings.reasoningEffort
+            prefs[IMAGE_API_KEY] = settings.imageApiKey
+            prefs[IMAGE_BASE_URL] = settings.imageBaseUrl
+            prefs[IMAGE_MODEL] = settings.imageModel
         }
     }
 

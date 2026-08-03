@@ -10,7 +10,7 @@ public abstract interface StateSnapshotDao {
     com.textgame.data.local.db.entity.StateSnapshotEntity snapshot, @org.jetbrains.annotations.NotNull
     kotlin.coroutines.Continuation<? super java.lang.Long> $completion);
     
-    @androidx.room.Query(value = "SELECT * FROM state_snapshots WHERE sessionId = :sessionId AND turnNumber = :turnNumber LIMIT 1")
+    @androidx.room.Query(value = "SELECT * FROM state_snapshots WHERE sessionId = :sessionId AND turnNumber = :turnNumber ORDER BY id DESC LIMIT 1")
     @org.jetbrains.annotations.Nullable
     public abstract java.lang.Object getSnapshotByTurn(long sessionId, int turnNumber, @org.jetbrains.annotations.NotNull
     kotlin.coroutines.Continuation<? super com.textgame.data.local.db.entity.StateSnapshotEntity> $completion);

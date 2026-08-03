@@ -586,6 +586,108 @@ class AIService(
         return parseSummaryResponse(content, gameState)
     }
 
+    /**
+     * 根据当前游戏场景生成 AI 图片提示词。
+     * @param style 风格：REALISTIC（高真实感）或 ANIME（动漫化）
+     */
+    suspend fun generateImagePrompt(
+        worldSetting: WorldSetting?,
+        protagonist: Protagonist?,
+        npcs: List<NPC>,
+        gameState: GameState?,
+        sceneNarrative: String,
+        style: ImagePromptStyle
+    ): String {
+        val systemPrompt = buildImagePromptSystemPrompt(style)
+        val userPrompt = buildImagePromptUserPrompt(
+            worldSetting, protagonist, npcs, gameState, sceneNarrative
+        )
+
+        val messages = listOf(
+            ChatMessage(role = "system", content = systemPrompt),
+            ChatMessage(role = "user", content = userPrompt)
+        )
+
+        val request = buildDialogueRequest(messages, useJsonFormat = false, maxTokens = 1200)
+        val response = apiService.createChatCompletion(request)
+        val content = response.choices.firstOrNull()?.message?.content ?: ""
+        // 去除可能的代码块标记和首尾引号
+        return content
+            .removePrefix("```").removePrefix("json")
+            .removeSuffix("```")
+            .trim()
+            .removeSurrounding("\"")
+            .trim()
+    }
+
+    private fun buildImagePromptSystemPrompt(style: ImagePromptStyle): String = buildString {
+        appendLine("你是一个专业的 AI 绘画提示词工程师，擅长把文字冒险游戏的场景描述转化为视觉化的生图提示词。")
+        appendLine()
+        appendLine("任务：根据给定的游戏场景信息，生成一段用于文生图模型的英文提示词（prompt），描绘该场景的视觉画面。")
+        appendLine()
+        appendLine("要求：")
+        appendLine("1. 提示词必须是英文，因为生图模型对英文理解更准确。")
+        appendLine("2. 提示词应当详细描述画面的视觉元素：场景环境、光线氛围、色调、人物的外貌穿着表情姿态、构图、景别等。")
+        appendLine("3. 不要输出任何解释、前后缀、markdown 标记或引号，只输出提示词本身。")
+        appendLine("4. 不要在画面中出现任何文字水印。")
+        appendLine("5. 长度控制在 80-200 个英文单词。")
+        appendLine()
+        when (style) {
+            ImagePromptStyle.REALISTIC -> {
+                appendLine("画面风格：高真实感、电影级质感、照片级真实。")
+                appendLine("必须包含的风格关键词：photorealistic, cinematic lighting, hyperrealistic, highly detailed, 8k, sharp focus, depth of field, professional photography.")
+            }
+            ImagePromptStyle.ANIME -> {
+                appendLine("画面风格：动漫/二次元插画风。")
+                appendLine("必须包含的风格关键词：anime style, illustration, cel shading, vibrant colors, detailed anime background, studio anime production.")
+            }
+        }
+    }
+
+    private fun buildImagePromptUserPrompt(
+        worldSetting: WorldSetting?,
+        protagonist: Protagonist?,
+        npcs: List<NPC>,
+        gameState: GameState?,
+        sceneNarrative: String
+    ): String = buildString {
+        if (worldSetting != null) {
+            appendLine("【世界设定】")
+            appendLine("世界名称：${worldSetting.name}")
+            appendLine("世界类型：${worldSetting.worldType}")
+            if (worldSetting.description.isNotBlank()) {
+                appendLine("描述：${worldSetting.description}")
+            }
+            if (worldSetting.timeSetting.isNotBlank()) {
+                appendLine("时间设定：${worldSetting.timeSetting}")
+            }
+            appendLine()
+        }
+        if (gameState != null) {
+            appendLine("【当前场景】${gameState.currentScene}")
+            appendLine()
+        }
+        if (protagonist != null) {
+            appendLine("【主角】")
+            appendLine("姓名：${protagonist.name}")
+            if (protagonist.location.isNotBlank()) appendLine("位置：${protagonist.location}")
+            appendLine()
+        }
+        if (npcs.isNotEmpty()) {
+            appendLine("【在场角色】")
+            npcs.forEach { npc ->
+                appendLine("- ${npc.name}（${npc.role}）")
+                if (npc.appearance.isNotBlank()) appendLine("  外貌：${npc.appearance}")
+                if (npc.mood.isNotBlank()) appendLine("  当前情绪：${npc.mood}")
+            }
+            appendLine()
+        }
+        appendLine("【本回合场景叙述】")
+        appendLine(sceneNarrative.ifBlank { gameState?.currentScene ?: "无" })
+        appendLine()
+        appendLine("请基于以上信息，输出一段英文生图提示词。")
+    }
+
     suspend fun generateWorldFromPrompt(userPrompt: String): GeneratedWorldResult {
         val systemPrompt = """
             你是一个文字冒险游戏的世界生成助手。用户用一句话描述想要的游戏世界，你需要生成完整的游戏设定。
@@ -1307,3 +1409,11 @@ data class GeneratedWorldResult(
     val npcs: List<NPC> = emptyList(),
     val error: String? = null
 )
+
+/**
+ * 生图提示词风格。
+ */
+enum class ImagePromptStyle(val label: String) {
+    REALISTIC("高真实感"),
+    ANIME("动漫化")
+}

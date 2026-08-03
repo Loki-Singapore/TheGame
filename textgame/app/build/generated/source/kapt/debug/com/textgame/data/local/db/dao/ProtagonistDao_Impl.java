@@ -129,7 +129,7 @@ public final class ProtagonistDao_Impl implements ProtagonistDao {
 
   @Override
   public Object insertProtagonist(final ProtagonistEntity protagonist,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -142,12 +142,12 @@ public final class ProtagonistDao_Impl implements ProtagonistDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateProtagonist(final ProtagonistEntity protagonist,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -160,12 +160,12 @@ public final class ProtagonistDao_Impl implements ProtagonistDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteProtagonistBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -182,12 +182,12 @@ public final class ProtagonistDao_Impl implements ProtagonistDao {
           __preparedStmtOfDeleteProtagonistBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getProtagonistBySessionId(final long sessionId,
-      final Continuation<? super ProtagonistEntity> arg1) {
+      final Continuation<? super ProtagonistEntity> $completion) {
     final String _sql = "SELECT * FROM protagonist_states WHERE sessionId = ? LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -257,7 +257,7 @@ public final class ProtagonistDao_Impl implements ProtagonistDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

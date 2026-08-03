@@ -119,7 +119,7 @@ public final class GameStateDao_Impl implements GameStateDao {
 
   @Override
   public Object insertGameState(final GameStateEntity gameState,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -132,12 +132,12 @@ public final class GameStateDao_Impl implements GameStateDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateGameState(final GameStateEntity gameState,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -150,12 +150,12 @@ public final class GameStateDao_Impl implements GameStateDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object deleteGameStateBySessionId(final long sessionId,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -172,12 +172,12 @@ public final class GameStateDao_Impl implements GameStateDao {
           __preparedStmtOfDeleteGameStateBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getGameStateBySessionId(final long sessionId,
-      final Continuation<? super GameStateEntity> arg1) {
+      final Continuation<? super GameStateEntity> $completion) {
     final String _sql = "SELECT * FROM game_states WHERE sessionId = ? LIMIT 1";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -240,7 +240,7 @@ public final class GameStateDao_Impl implements GameStateDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

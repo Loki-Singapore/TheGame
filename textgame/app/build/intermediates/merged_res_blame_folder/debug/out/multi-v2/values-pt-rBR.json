@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.textgame.app-mergeDebugResources-57:/values-pt-rBR/values-pt-rBR.xml",
+            "outputFile": "com.textgame.app-mergeDebugResources-62:/values-pt-rBR/values-pt-rBR.xml",
             "map": [
                 {
                     "source": "/root/.gradle/caches/8.14.4/transforms/834d44b494e8e271db8820b26458cddf/transformed/material3-1.1.1/res/values-pt-rBR/values-pt-rBR.xml",

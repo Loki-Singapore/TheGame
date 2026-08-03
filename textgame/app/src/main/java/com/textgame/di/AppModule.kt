@@ -16,6 +16,7 @@ import com.textgame.data.local.db.dao.WorldSettingDao
 import com.textgame.data.remote.ai.AIService
 import com.textgame.data.remote.ai.DeepSeekApiService
 import com.textgame.data.repository.GameRepositoryImpl
+import com.textgame.data.seedream.SeedreamService
 import com.textgame.domain.repository.GameRepository
 import com.textgame.domain.usecase.CreateGameUseCase
 import com.textgame.domain.usecase.DeleteSessionUseCase
@@ -34,6 +35,7 @@ object AppModule {
     private var database: GameDatabase? = null
     private var gameRepository: GameRepository? = null
     private var aiService: AIService? = null
+    private var seedreamService: SeedreamService? = null
 
     private var createGameUseCase: CreateGameUseCase? = null
     private var sendDialogueUseCase: SendDialogueUseCase? = null
@@ -61,6 +63,14 @@ object AppModule {
         // 清除依赖AIService的UseCase缓存，下次获取时会用新配置重建
         sendDialogueUseCase = null
         generateSummaryUseCase = null
+    }
+
+    fun configureImageGen(settings: SettingsPreferences) {
+        seedreamService = SeedreamService(
+            apiKey = settings.imageApiKey,
+            baseUrl = settings.imageBaseUrl,
+            model = settings.imageModel
+        )
     }
 
     fun getCurrentSettings(): SettingsPreferences = currentSettings
@@ -220,5 +230,16 @@ object AppModule {
             deleteSessionUseCase = DeleteSessionUseCase(getGameRepository())
         }
         return deleteSessionUseCase!!
+    }
+
+    /**
+     * 获取生图服务。若设置变更后尚未重建（seedreamService 为 null），
+     * 则按当前保存的设置即时构建一次，避免首次使用前未调用 configureImageGen 的情形。
+     */
+    fun getSeedreamService(): SeedreamService {
+        if (seedreamService == null) {
+            configureImageGen(currentSettings)
+        }
+        return seedreamService!!
     }
 }

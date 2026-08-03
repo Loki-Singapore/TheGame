@@ -70,20 +70,20 @@ public final class GameDatabase_Impl extends GameDatabase {
 
   @Override
   protected SupportSQLiteOpenHelper createOpenHelper(DatabaseConfiguration configuration) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(configuration, new RoomOpenHelper.Delegate(3) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(configuration, new RoomOpenHelper.Delegate(6) {
       @Override
       public void createAllTables(SupportSQLiteDatabase _db) {
         _db.execSQL("CREATE TABLE IF NOT EXISTS `game_sessions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `currentTurn` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `protagonist_states` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `attributesJson` TEXT NOT NULL, `inventoryJson` TEXT NOT NULL, `relationshipsJson` TEXT NOT NULL, `location` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)");
-        _db.execSQL("CREATE TABLE IF NOT EXISTS `npc_states` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `role` TEXT NOT NULL, `attributesJson` TEXT NOT NULL, `dialogueHistoryJson` TEXT NOT NULL, `mood` TEXT NOT NULL, `awareness` TEXT NOT NULL, `appearance` TEXT NOT NULL, `personality` TEXT NOT NULL, `backstory` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
+        _db.execSQL("CREATE TABLE IF NOT EXISTS `npc_states` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `npcId` TEXT NOT NULL, `name` TEXT NOT NULL, `role` TEXT NOT NULL, `briefing` TEXT NOT NULL, `attributesJson` TEXT NOT NULL, `dialogueHistoryJson` TEXT NOT NULL, `mood` TEXT NOT NULL, `awareness` TEXT NOT NULL, `appearance` TEXT NOT NULL, `personality` TEXT NOT NULL, `backstory` TEXT NOT NULL, `hiddenAgenda` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `game_states` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `currentScene` TEXT NOT NULL, `turnCount` INTEGER NOT NULL, `activeEventsJson` TEXT NOT NULL, `flagsJson` TEXT NOT NULL, `lastAction` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `summaries` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `summaryText` TEXT NOT NULL, `keyEventsJson` TEXT NOT NULL, `involvedNPCsJson` TEXT NOT NULL, `sceneContext` TEXT NOT NULL, `turnRangeStart` INTEGER NOT NULL, `turnRangeEnd` INTEGER NOT NULL, `generatedAt` INTEGER NOT NULL)");
-        _db.execSQL("CREATE TABLE IF NOT EXISTS `world_settings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `worldType` TEXT NOT NULL, `timeSetting` TEXT NOT NULL, `locationSetting` TEXT NOT NULL, `socialStructure` TEXT NOT NULL, `specialRulesJson` TEXT NOT NULL, `lore` TEXT NOT NULL, `factionsJson` TEXT NOT NULL, `locationsJson` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
+        _db.execSQL("CREATE TABLE IF NOT EXISTS `world_settings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `name` TEXT NOT NULL, `description` TEXT NOT NULL, `worldType` TEXT NOT NULL, `timeSetting` TEXT NOT NULL, `locationSetting` TEXT NOT NULL, `socialStructure` TEXT NOT NULL, `specialRulesJson` TEXT NOT NULL, `lore` TEXT NOT NULL, `factionsJson` TEXT NOT NULL, `locationsJson` TEXT NOT NULL, `attributeCategoriesJson` TEXT NOT NULL, `worldRulesJson` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `background_settings` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `protagonistBackground` TEXT NOT NULL, `npcBackgroundsJson` TEXT NOT NULL, `worldHistory` TEXT NOT NULL, `relationshipHistory` TEXT NOT NULL, `majorPlotThreadsJson` TEXT NOT NULL, `unlockedLoreJson` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `dialogues` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `turnNumber` INTEGER NOT NULL, `speaker` TEXT NOT NULL, `content` TEXT NOT NULL, `isPlayer` INTEGER NOT NULL, `isNarrative` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `state_snapshots` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` INTEGER NOT NULL, `turnNumber` INTEGER NOT NULL, `protagonistJson` TEXT NOT NULL, `npcsJson` TEXT NOT NULL, `gameStateJson` TEXT NOT NULL, `worldSettingJson` TEXT NOT NULL, `backgroundSettingJson` TEXT NOT NULL, `summaryJson` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6970d5e5a2ebff4b664760cae1fc5bd7')");
+        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1d7966c1d7676c0d9a5ad151abdd669f')");
       }
 
       @Override
@@ -168,11 +168,13 @@ public final class GameDatabase_Impl extends GameDatabase {
                   + " Expected:\n" + _infoProtagonistStates + "\n"
                   + " Found:\n" + _existingProtagonistStates);
         }
-        final HashMap<String, TableInfo.Column> _columnsNpcStates = new HashMap<String, TableInfo.Column>(12);
+        final HashMap<String, TableInfo.Column> _columnsNpcStates = new HashMap<String, TableInfo.Column>(15);
         _columnsNpcStates.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("sessionId", new TableInfo.Column("sessionId", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNpcStates.put("npcId", new TableInfo.Column("npcId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("name", new TableInfo.Column("name", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("role", new TableInfo.Column("role", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNpcStates.put("briefing", new TableInfo.Column("briefing", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("attributesJson", new TableInfo.Column("attributesJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("dialogueHistoryJson", new TableInfo.Column("dialogueHistoryJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("mood", new TableInfo.Column("mood", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -180,6 +182,7 @@ public final class GameDatabase_Impl extends GameDatabase {
         _columnsNpcStates.put("appearance", new TableInfo.Column("appearance", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("personality", new TableInfo.Column("personality", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("backstory", new TableInfo.Column("backstory", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsNpcStates.put("hiddenAgenda", new TableInfo.Column("hiddenAgenda", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsNpcStates.put("updatedAt", new TableInfo.Column("updatedAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysNpcStates = new HashSet<TableInfo.ForeignKey>(0);
         final HashSet<TableInfo.Index> _indicesNpcStates = new HashSet<TableInfo.Index>(0);
@@ -227,7 +230,7 @@ public final class GameDatabase_Impl extends GameDatabase {
                   + " Expected:\n" + _infoSummaries + "\n"
                   + " Found:\n" + _existingSummaries);
         }
-        final HashMap<String, TableInfo.Column> _columnsWorldSettings = new HashMap<String, TableInfo.Column>(13);
+        final HashMap<String, TableInfo.Column> _columnsWorldSettings = new HashMap<String, TableInfo.Column>(15);
         _columnsWorldSettings.put("id", new TableInfo.Column("id", "INTEGER", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsWorldSettings.put("sessionId", new TableInfo.Column("sessionId", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsWorldSettings.put("name", new TableInfo.Column("name", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -240,6 +243,8 @@ public final class GameDatabase_Impl extends GameDatabase {
         _columnsWorldSettings.put("lore", new TableInfo.Column("lore", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsWorldSettings.put("factionsJson", new TableInfo.Column("factionsJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsWorldSettings.put("locationsJson", new TableInfo.Column("locationsJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsWorldSettings.put("attributeCategoriesJson", new TableInfo.Column("attributeCategoriesJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsWorldSettings.put("worldRulesJson", new TableInfo.Column("worldRulesJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsWorldSettings.put("updatedAt", new TableInfo.Column("updatedAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysWorldSettings = new HashSet<TableInfo.ForeignKey>(0);
         final HashSet<TableInfo.Index> _indicesWorldSettings = new HashSet<TableInfo.Index>(0);
@@ -309,7 +314,7 @@ public final class GameDatabase_Impl extends GameDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "6970d5e5a2ebff4b664760cae1fc5bd7", "a3e6f0a437230694aa1900fe09364bc3");
+    }, "1d7966c1d7676c0d9a5ad151abdd669f", "cdf6cae38cf061a41ed603a5633a0f5d");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(configuration.context)
         .name(configuration.name)
         .callback(_openCallback)

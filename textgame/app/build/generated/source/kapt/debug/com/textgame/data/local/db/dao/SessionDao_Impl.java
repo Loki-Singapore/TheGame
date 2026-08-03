@@ -98,7 +98,7 @@ public final class SessionDao_Impl implements SessionDao {
 
   @Override
   public Object insertSession(final GameSessionEntity session,
-      final Continuation<? super Long> arg1) {
+      final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -111,12 +111,12 @@ public final class SessionDao_Impl implements SessionDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateSession(final GameSessionEntity session,
-      final Continuation<? super Unit> arg1) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -129,11 +129,11 @@ public final class SessionDao_Impl implements SessionDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
-  public Object deleteSession(final long id, final Continuation<? super Unit> arg1) {
+  public Object deleteSession(final long id, final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -150,12 +150,12 @@ public final class SessionDao_Impl implements SessionDao {
           __preparedStmtOfDeleteSession.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object updateCurrentTurn(final long id, final int turn,
-      final Continuation<? super Unit> arg2) {
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -174,7 +174,7 @@ public final class SessionDao_Impl implements SessionDao {
           __preparedStmtOfUpdateCurrentTurn.release(_stmt);
         }
       }
-    }, arg2);
+    }, $completion);
   }
 
   @Override
@@ -222,7 +222,8 @@ public final class SessionDao_Impl implements SessionDao {
   }
 
   @Override
-  public Object getSessionById(final long id, final Continuation<? super GameSessionEntity> arg1) {
+  public Object getSessionById(final long id,
+      final Continuation<? super GameSessionEntity> $completion) {
     final String _sql = "SELECT * FROM game_sessions WHERE id = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -261,7 +262,7 @@ public final class SessionDao_Impl implements SessionDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

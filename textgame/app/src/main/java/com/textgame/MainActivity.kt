@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
             if (settings.apiKey.isNotEmpty()) {
                 AppModule.configureAI(settings)
             }
+            AppModule.configureImageGen(settings)
             bgmManager.setMusicEnabled(settings.musicEnabled)
         }
 

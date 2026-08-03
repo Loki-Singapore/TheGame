@@ -31,7 +31,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 dialogueMaxTokensLimit = SettingsPreferences.MODEL_MAX_OUTPUT[settings.model] ?: 384000,
                 summaryMaxTokensLimit = SettingsPreferences.MODEL_MAX_OUTPUT[settings.model] ?: 384000,
                 thinkingEnabled = settings.thinkingEnabled,
-                reasoningEffort = settings.reasoningEffort
+                reasoningEffort = settings.reasoningEffort,
+                imageApiKey = settings.imageApiKey,
+                imageBaseUrl = settings.imageBaseUrl,
+                imageModel = settings.imageModel
             )
         }
     }
@@ -83,6 +86,18 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         _uiState.value = _uiState.value.copy(reasoningEffort = effort)
     }
 
+    fun updateImageApiKey(value: String) {
+        _uiState.value = _uiState.value.copy(imageApiKey = value)
+    }
+
+    fun updateImageBaseUrl(value: String) {
+        _uiState.value = _uiState.value.copy(imageBaseUrl = value)
+    }
+
+    fun updateImageModel(value: String) {
+        _uiState.value = _uiState.value.copy(imageModel = value)
+    }
+
     fun saveSettings() {
         val state = _uiState.value
         val settings = SettingsPreferences(
@@ -94,11 +109,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             summaryTemperature = state.summaryTemperature,
             summaryMaxTokens = state.summaryMaxTokens,
             thinkingEnabled = state.thinkingEnabled,
-            reasoningEffort = state.reasoningEffort
+            reasoningEffort = state.reasoningEffort,
+            imageApiKey = state.imageApiKey,
+            imageBaseUrl = state.imageBaseUrl,
+            imageModel = state.imageModel
         )
         viewModelScope.launch {
             SettingsManager.saveSettings(getApplication(), settings)
             AppModule.configureAI(settings)
+            AppModule.configureImageGen(settings)
             _uiState.value = state.copy(saved = true)
         }
     }
@@ -117,7 +136,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
             dialogueMaxTokensLimit = maxOutput,
             summaryMaxTokensLimit = maxOutput,
             thinkingEnabled = defaults.thinkingEnabled,
-            reasoningEffort = defaults.reasoningEffort
+            reasoningEffort = defaults.reasoningEffort,
+            imageApiKey = defaults.imageApiKey,
+            imageBaseUrl = defaults.imageBaseUrl,
+            imageModel = defaults.imageModel
         )
     }
 }
@@ -134,5 +156,8 @@ data class SettingsUiState(
     val summaryMaxTokensLimit: Int = 384000,
     val thinkingEnabled: Boolean = false,
     val reasoningEffort: String = "high",
+    val imageApiKey: String = "",
+    val imageBaseUrl: String = "ark.ap-southeast.bytepluses.com",
+    val imageModel: String = "doubao-seedream-4-0-250828",
     val saved: Boolean = false
 )

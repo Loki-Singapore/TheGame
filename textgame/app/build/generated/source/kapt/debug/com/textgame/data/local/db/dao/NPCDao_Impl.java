@@ -46,118 +46,148 @@ public final class NPCDao_Impl implements NPCDao {
     this.__insertionAdapterOfNPCStateEntity = new EntityInsertionAdapter<NPCStateEntity>(__db) {
       @Override
       public String createQuery() {
-        return "INSERT OR ABORT INTO `npc_states` (`id`,`sessionId`,`name`,`role`,`attributesJson`,`dialogueHistoryJson`,`mood`,`awareness`,`appearance`,`personality`,`backstory`,`updatedAt`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `npc_states` (`id`,`sessionId`,`npcId`,`name`,`role`,`briefing`,`attributesJson`,`dialogueHistoryJson`,`mood`,`awareness`,`appearance`,`personality`,`backstory`,`hiddenAgenda`,`updatedAt`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
       public void bind(SupportSQLiteStatement stmt, NPCStateEntity value) {
         stmt.bindLong(1, value.getId());
         stmt.bindLong(2, value.getSessionId());
-        if (value.getName() == null) {
+        if (value.getNpcId() == null) {
           stmt.bindNull(3);
         } else {
-          stmt.bindString(3, value.getName());
+          stmt.bindString(3, value.getNpcId());
         }
-        if (value.getRole() == null) {
+        if (value.getName() == null) {
           stmt.bindNull(4);
         } else {
-          stmt.bindString(4, value.getRole());
+          stmt.bindString(4, value.getName());
         }
-        if (value.getAttributesJson() == null) {
+        if (value.getRole() == null) {
           stmt.bindNull(5);
         } else {
-          stmt.bindString(5, value.getAttributesJson());
+          stmt.bindString(5, value.getRole());
         }
-        if (value.getDialogueHistoryJson() == null) {
+        if (value.getBriefing() == null) {
           stmt.bindNull(6);
         } else {
-          stmt.bindString(6, value.getDialogueHistoryJson());
+          stmt.bindString(6, value.getBriefing());
         }
-        if (value.getMood() == null) {
+        if (value.getAttributesJson() == null) {
           stmt.bindNull(7);
         } else {
-          stmt.bindString(7, value.getMood());
+          stmt.bindString(7, value.getAttributesJson());
         }
-        if (value.getAwareness() == null) {
+        if (value.getDialogueHistoryJson() == null) {
           stmt.bindNull(8);
         } else {
-          stmt.bindString(8, value.getAwareness());
+          stmt.bindString(8, value.getDialogueHistoryJson());
         }
-        if (value.getAppearance() == null) {
+        if (value.getMood() == null) {
           stmt.bindNull(9);
         } else {
-          stmt.bindString(9, value.getAppearance());
+          stmt.bindString(9, value.getMood());
         }
-        if (value.getPersonality() == null) {
+        if (value.getAwareness() == null) {
           stmt.bindNull(10);
         } else {
-          stmt.bindString(10, value.getPersonality());
+          stmt.bindString(10, value.getAwareness());
         }
-        if (value.getBackstory() == null) {
+        if (value.getAppearance() == null) {
           stmt.bindNull(11);
         } else {
-          stmt.bindString(11, value.getBackstory());
+          stmt.bindString(11, value.getAppearance());
         }
-        stmt.bindLong(12, value.getUpdatedAt());
+        if (value.getPersonality() == null) {
+          stmt.bindNull(12);
+        } else {
+          stmt.bindString(12, value.getPersonality());
+        }
+        if (value.getBackstory() == null) {
+          stmt.bindNull(13);
+        } else {
+          stmt.bindString(13, value.getBackstory());
+        }
+        if (value.getHiddenAgenda() == null) {
+          stmt.bindNull(14);
+        } else {
+          stmt.bindString(14, value.getHiddenAgenda());
+        }
+        stmt.bindLong(15, value.getUpdatedAt());
       }
     };
     this.__updateAdapterOfNPCStateEntity = new EntityDeletionOrUpdateAdapter<NPCStateEntity>(__db) {
       @Override
       public String createQuery() {
-        return "UPDATE OR ABORT `npc_states` SET `id` = ?,`sessionId` = ?,`name` = ?,`role` = ?,`attributesJson` = ?,`dialogueHistoryJson` = ?,`mood` = ?,`awareness` = ?,`appearance` = ?,`personality` = ?,`backstory` = ?,`updatedAt` = ? WHERE `id` = ?";
+        return "UPDATE OR ABORT `npc_states` SET `id` = ?,`sessionId` = ?,`npcId` = ?,`name` = ?,`role` = ?,`briefing` = ?,`attributesJson` = ?,`dialogueHistoryJson` = ?,`mood` = ?,`awareness` = ?,`appearance` = ?,`personality` = ?,`backstory` = ?,`hiddenAgenda` = ?,`updatedAt` = ? WHERE `id` = ?";
       }
 
       @Override
       public void bind(SupportSQLiteStatement stmt, NPCStateEntity value) {
         stmt.bindLong(1, value.getId());
         stmt.bindLong(2, value.getSessionId());
-        if (value.getName() == null) {
+        if (value.getNpcId() == null) {
           stmt.bindNull(3);
         } else {
-          stmt.bindString(3, value.getName());
+          stmt.bindString(3, value.getNpcId());
         }
-        if (value.getRole() == null) {
+        if (value.getName() == null) {
           stmt.bindNull(4);
         } else {
-          stmt.bindString(4, value.getRole());
+          stmt.bindString(4, value.getName());
         }
-        if (value.getAttributesJson() == null) {
+        if (value.getRole() == null) {
           stmt.bindNull(5);
         } else {
-          stmt.bindString(5, value.getAttributesJson());
+          stmt.bindString(5, value.getRole());
         }
-        if (value.getDialogueHistoryJson() == null) {
+        if (value.getBriefing() == null) {
           stmt.bindNull(6);
         } else {
-          stmt.bindString(6, value.getDialogueHistoryJson());
+          stmt.bindString(6, value.getBriefing());
         }
-        if (value.getMood() == null) {
+        if (value.getAttributesJson() == null) {
           stmt.bindNull(7);
         } else {
-          stmt.bindString(7, value.getMood());
+          stmt.bindString(7, value.getAttributesJson());
         }
-        if (value.getAwareness() == null) {
+        if (value.getDialogueHistoryJson() == null) {
           stmt.bindNull(8);
         } else {
-          stmt.bindString(8, value.getAwareness());
+          stmt.bindString(8, value.getDialogueHistoryJson());
         }
-        if (value.getAppearance() == null) {
+        if (value.getMood() == null) {
           stmt.bindNull(9);
         } else {
-          stmt.bindString(9, value.getAppearance());
+          stmt.bindString(9, value.getMood());
         }
-        if (value.getPersonality() == null) {
+        if (value.getAwareness() == null) {
           stmt.bindNull(10);
         } else {
-          stmt.bindString(10, value.getPersonality());
+          stmt.bindString(10, value.getAwareness());
         }
-        if (value.getBackstory() == null) {
+        if (value.getAppearance() == null) {
           stmt.bindNull(11);
         } else {
-          stmt.bindString(11, value.getBackstory());
+          stmt.bindString(11, value.getAppearance());
         }
-        stmt.bindLong(12, value.getUpdatedAt());
-        stmt.bindLong(13, value.getId());
+        if (value.getPersonality() == null) {
+          stmt.bindNull(12);
+        } else {
+          stmt.bindString(12, value.getPersonality());
+        }
+        if (value.getBackstory() == null) {
+          stmt.bindNull(13);
+        } else {
+          stmt.bindString(13, value.getBackstory());
+        }
+        if (value.getHiddenAgenda() == null) {
+          stmt.bindNull(14);
+        } else {
+          stmt.bindString(14, value.getHiddenAgenda());
+        }
+        stmt.bindLong(15, value.getUpdatedAt());
+        stmt.bindLong(16, value.getId());
       }
     };
     this.__preparedStmtOfDeleteNPC = new SharedSQLiteStatement(__db) {
@@ -177,7 +207,7 @@ public final class NPCDao_Impl implements NPCDao {
   }
 
   @Override
-  public Object insertNPC(final NPCStateEntity npc, final Continuation<? super Long> arg1) {
+  public Object insertNPC(final NPCStateEntity npc, final Continuation<? super Long> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Long>() {
       @Override
       public Long call() throws Exception {
@@ -190,11 +220,11 @@ public final class NPCDao_Impl implements NPCDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
-  public Object updateNPC(final NPCStateEntity npc, final Continuation<? super Unit> arg1) {
+  public Object updateNPC(final NPCStateEntity npc, final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -207,11 +237,11 @@ public final class NPCDao_Impl implements NPCDao {
           __db.endTransaction();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
-  public Object deleteNPC(final long id, final Continuation<? super Unit> arg1) {
+  public Object deleteNPC(final long id, final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -228,11 +258,12 @@ public final class NPCDao_Impl implements NPCDao {
           __preparedStmtOfDeleteNPC.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
-  public Object deleteNPCsBySessionId(final long sessionId, final Continuation<? super Unit> arg1) {
+  public Object deleteNPCsBySessionId(final long sessionId,
+      final Continuation<? super Unit> $completion) {
     return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
       @Override
       public Unit call() throws Exception {
@@ -249,7 +280,7 @@ public final class NPCDao_Impl implements NPCDao {
           __preparedStmtOfDeleteNPCsBySessionId.release(_stmt);
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
@@ -265,8 +296,10 @@ public final class NPCDao_Impl implements NPCDao {
         try {
           final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
           final int _cursorIndexOfSessionId = CursorUtil.getColumnIndexOrThrow(_cursor, "sessionId");
+          final int _cursorIndexOfNpcId = CursorUtil.getColumnIndexOrThrow(_cursor, "npcId");
           final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
           final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfBriefing = CursorUtil.getColumnIndexOrThrow(_cursor, "briefing");
           final int _cursorIndexOfAttributesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributesJson");
           final int _cursorIndexOfDialogueHistoryJson = CursorUtil.getColumnIndexOrThrow(_cursor, "dialogueHistoryJson");
           final int _cursorIndexOfMood = CursorUtil.getColumnIndexOrThrow(_cursor, "mood");
@@ -274,6 +307,7 @@ public final class NPCDao_Impl implements NPCDao {
           final int _cursorIndexOfAppearance = CursorUtil.getColumnIndexOrThrow(_cursor, "appearance");
           final int _cursorIndexOfPersonality = CursorUtil.getColumnIndexOrThrow(_cursor, "personality");
           final int _cursorIndexOfBackstory = CursorUtil.getColumnIndexOrThrow(_cursor, "backstory");
+          final int _cursorIndexOfHiddenAgenda = CursorUtil.getColumnIndexOrThrow(_cursor, "hiddenAgenda");
           final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
           final List<NPCStateEntity> _result = new ArrayList<NPCStateEntity>(_cursor.getCount());
           while(_cursor.moveToNext()) {
@@ -282,6 +316,12 @@ public final class NPCDao_Impl implements NPCDao {
             _tmpId = _cursor.getLong(_cursorIndexOfId);
             final long _tmpSessionId;
             _tmpSessionId = _cursor.getLong(_cursorIndexOfSessionId);
+            final String _tmpNpcId;
+            if (_cursor.isNull(_cursorIndexOfNpcId)) {
+              _tmpNpcId = null;
+            } else {
+              _tmpNpcId = _cursor.getString(_cursorIndexOfNpcId);
+            }
             final String _tmpName;
             if (_cursor.isNull(_cursorIndexOfName)) {
               _tmpName = null;
@@ -293,6 +333,12 @@ public final class NPCDao_Impl implements NPCDao {
               _tmpRole = null;
             } else {
               _tmpRole = _cursor.getString(_cursorIndexOfRole);
+            }
+            final String _tmpBriefing;
+            if (_cursor.isNull(_cursorIndexOfBriefing)) {
+              _tmpBriefing = null;
+            } else {
+              _tmpBriefing = _cursor.getString(_cursorIndexOfBriefing);
             }
             final String _tmpAttributesJson;
             if (_cursor.isNull(_cursorIndexOfAttributesJson)) {
@@ -336,9 +382,15 @@ public final class NPCDao_Impl implements NPCDao {
             } else {
               _tmpBackstory = _cursor.getString(_cursorIndexOfBackstory);
             }
+            final String _tmpHiddenAgenda;
+            if (_cursor.isNull(_cursorIndexOfHiddenAgenda)) {
+              _tmpHiddenAgenda = null;
+            } else {
+              _tmpHiddenAgenda = _cursor.getString(_cursorIndexOfHiddenAgenda);
+            }
             final long _tmpUpdatedAt;
             _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
-            _item = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpName,_tmpRole,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpUpdatedAt);
+            _item = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpNpcId,_tmpName,_tmpRole,_tmpBriefing,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpHiddenAgenda,_tmpUpdatedAt);
             _result.add(_item);
           }
           return _result;
@@ -356,7 +408,7 @@ public final class NPCDao_Impl implements NPCDao {
 
   @Override
   public Object getNPCListBySessionId(final long sessionId,
-      final Continuation<? super List<NPCStateEntity>> arg1) {
+      final Continuation<? super List<NPCStateEntity>> $completion) {
     final String _sql = "SELECT * FROM npc_states WHERE sessionId = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -369,8 +421,10 @@ public final class NPCDao_Impl implements NPCDao {
         try {
           final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
           final int _cursorIndexOfSessionId = CursorUtil.getColumnIndexOrThrow(_cursor, "sessionId");
+          final int _cursorIndexOfNpcId = CursorUtil.getColumnIndexOrThrow(_cursor, "npcId");
           final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
           final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfBriefing = CursorUtil.getColumnIndexOrThrow(_cursor, "briefing");
           final int _cursorIndexOfAttributesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributesJson");
           final int _cursorIndexOfDialogueHistoryJson = CursorUtil.getColumnIndexOrThrow(_cursor, "dialogueHistoryJson");
           final int _cursorIndexOfMood = CursorUtil.getColumnIndexOrThrow(_cursor, "mood");
@@ -378,6 +432,7 @@ public final class NPCDao_Impl implements NPCDao {
           final int _cursorIndexOfAppearance = CursorUtil.getColumnIndexOrThrow(_cursor, "appearance");
           final int _cursorIndexOfPersonality = CursorUtil.getColumnIndexOrThrow(_cursor, "personality");
           final int _cursorIndexOfBackstory = CursorUtil.getColumnIndexOrThrow(_cursor, "backstory");
+          final int _cursorIndexOfHiddenAgenda = CursorUtil.getColumnIndexOrThrow(_cursor, "hiddenAgenda");
           final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
           final List<NPCStateEntity> _result = new ArrayList<NPCStateEntity>(_cursor.getCount());
           while(_cursor.moveToNext()) {
@@ -386,6 +441,12 @@ public final class NPCDao_Impl implements NPCDao {
             _tmpId = _cursor.getLong(_cursorIndexOfId);
             final long _tmpSessionId;
             _tmpSessionId = _cursor.getLong(_cursorIndexOfSessionId);
+            final String _tmpNpcId;
+            if (_cursor.isNull(_cursorIndexOfNpcId)) {
+              _tmpNpcId = null;
+            } else {
+              _tmpNpcId = _cursor.getString(_cursorIndexOfNpcId);
+            }
             final String _tmpName;
             if (_cursor.isNull(_cursorIndexOfName)) {
               _tmpName = null;
@@ -397,6 +458,12 @@ public final class NPCDao_Impl implements NPCDao {
               _tmpRole = null;
             } else {
               _tmpRole = _cursor.getString(_cursorIndexOfRole);
+            }
+            final String _tmpBriefing;
+            if (_cursor.isNull(_cursorIndexOfBriefing)) {
+              _tmpBriefing = null;
+            } else {
+              _tmpBriefing = _cursor.getString(_cursorIndexOfBriefing);
             }
             final String _tmpAttributesJson;
             if (_cursor.isNull(_cursorIndexOfAttributesJson)) {
@@ -440,9 +507,15 @@ public final class NPCDao_Impl implements NPCDao {
             } else {
               _tmpBackstory = _cursor.getString(_cursorIndexOfBackstory);
             }
+            final String _tmpHiddenAgenda;
+            if (_cursor.isNull(_cursorIndexOfHiddenAgenda)) {
+              _tmpHiddenAgenda = null;
+            } else {
+              _tmpHiddenAgenda = _cursor.getString(_cursorIndexOfHiddenAgenda);
+            }
             final long _tmpUpdatedAt;
             _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
-            _item = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpName,_tmpRole,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpUpdatedAt);
+            _item = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpNpcId,_tmpName,_tmpRole,_tmpBriefing,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpHiddenAgenda,_tmpUpdatedAt);
             _result.add(_item);
           }
           return _result;
@@ -451,11 +524,11 @@ public final class NPCDao_Impl implements NPCDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
-  public Object getNPCById(final long id, final Continuation<? super NPCStateEntity> arg1) {
+  public Object getNPCById(final long id, final Continuation<? super NPCStateEntity> $completion) {
     final String _sql = "SELECT * FROM npc_states WHERE id = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 1);
     int _argIndex = 1;
@@ -468,8 +541,10 @@ public final class NPCDao_Impl implements NPCDao {
         try {
           final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
           final int _cursorIndexOfSessionId = CursorUtil.getColumnIndexOrThrow(_cursor, "sessionId");
+          final int _cursorIndexOfNpcId = CursorUtil.getColumnIndexOrThrow(_cursor, "npcId");
           final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
           final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfBriefing = CursorUtil.getColumnIndexOrThrow(_cursor, "briefing");
           final int _cursorIndexOfAttributesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributesJson");
           final int _cursorIndexOfDialogueHistoryJson = CursorUtil.getColumnIndexOrThrow(_cursor, "dialogueHistoryJson");
           final int _cursorIndexOfMood = CursorUtil.getColumnIndexOrThrow(_cursor, "mood");
@@ -477,6 +552,7 @@ public final class NPCDao_Impl implements NPCDao {
           final int _cursorIndexOfAppearance = CursorUtil.getColumnIndexOrThrow(_cursor, "appearance");
           final int _cursorIndexOfPersonality = CursorUtil.getColumnIndexOrThrow(_cursor, "personality");
           final int _cursorIndexOfBackstory = CursorUtil.getColumnIndexOrThrow(_cursor, "backstory");
+          final int _cursorIndexOfHiddenAgenda = CursorUtil.getColumnIndexOrThrow(_cursor, "hiddenAgenda");
           final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
           final NPCStateEntity _result;
           if(_cursor.moveToFirst()) {
@@ -484,6 +560,12 @@ public final class NPCDao_Impl implements NPCDao {
             _tmpId = _cursor.getLong(_cursorIndexOfId);
             final long _tmpSessionId;
             _tmpSessionId = _cursor.getLong(_cursorIndexOfSessionId);
+            final String _tmpNpcId;
+            if (_cursor.isNull(_cursorIndexOfNpcId)) {
+              _tmpNpcId = null;
+            } else {
+              _tmpNpcId = _cursor.getString(_cursorIndexOfNpcId);
+            }
             final String _tmpName;
             if (_cursor.isNull(_cursorIndexOfName)) {
               _tmpName = null;
@@ -495,6 +577,12 @@ public final class NPCDao_Impl implements NPCDao {
               _tmpRole = null;
             } else {
               _tmpRole = _cursor.getString(_cursorIndexOfRole);
+            }
+            final String _tmpBriefing;
+            if (_cursor.isNull(_cursorIndexOfBriefing)) {
+              _tmpBriefing = null;
+            } else {
+              _tmpBriefing = _cursor.getString(_cursorIndexOfBriefing);
             }
             final String _tmpAttributesJson;
             if (_cursor.isNull(_cursorIndexOfAttributesJson)) {
@@ -538,9 +626,15 @@ public final class NPCDao_Impl implements NPCDao {
             } else {
               _tmpBackstory = _cursor.getString(_cursorIndexOfBackstory);
             }
+            final String _tmpHiddenAgenda;
+            if (_cursor.isNull(_cursorIndexOfHiddenAgenda)) {
+              _tmpHiddenAgenda = null;
+            } else {
+              _tmpHiddenAgenda = _cursor.getString(_cursorIndexOfHiddenAgenda);
+            }
             final long _tmpUpdatedAt;
             _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
-            _result = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpName,_tmpRole,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpUpdatedAt);
+            _result = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpNpcId,_tmpName,_tmpRole,_tmpBriefing,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpHiddenAgenda,_tmpUpdatedAt);
           } else {
             _result = null;
           }
@@ -550,13 +644,13 @@ public final class NPCDao_Impl implements NPCDao {
           _statement.release();
         }
       }
-    }, arg1);
+    }, $completion);
   }
 
   @Override
   public Object getNPCByName(final long sessionId, final String name,
-      final Continuation<? super NPCStateEntity> arg2) {
-    final String _sql = "SELECT * FROM npc_states WHERE sessionId = ? AND name = ? LIMIT 1";
+      final Continuation<? super NPCStateEntity> $completion) {
+    final String _sql = "SELECT * FROM npc_states WHERE sessionId = ? AND name = ?";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
     int _argIndex = 1;
     _statement.bindLong(_argIndex, sessionId);
@@ -574,8 +668,10 @@ public final class NPCDao_Impl implements NPCDao {
         try {
           final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
           final int _cursorIndexOfSessionId = CursorUtil.getColumnIndexOrThrow(_cursor, "sessionId");
+          final int _cursorIndexOfNpcId = CursorUtil.getColumnIndexOrThrow(_cursor, "npcId");
           final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
           final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfBriefing = CursorUtil.getColumnIndexOrThrow(_cursor, "briefing");
           final int _cursorIndexOfAttributesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributesJson");
           final int _cursorIndexOfDialogueHistoryJson = CursorUtil.getColumnIndexOrThrow(_cursor, "dialogueHistoryJson");
           final int _cursorIndexOfMood = CursorUtil.getColumnIndexOrThrow(_cursor, "mood");
@@ -583,6 +679,7 @@ public final class NPCDao_Impl implements NPCDao {
           final int _cursorIndexOfAppearance = CursorUtil.getColumnIndexOrThrow(_cursor, "appearance");
           final int _cursorIndexOfPersonality = CursorUtil.getColumnIndexOrThrow(_cursor, "personality");
           final int _cursorIndexOfBackstory = CursorUtil.getColumnIndexOrThrow(_cursor, "backstory");
+          final int _cursorIndexOfHiddenAgenda = CursorUtil.getColumnIndexOrThrow(_cursor, "hiddenAgenda");
           final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
           final NPCStateEntity _result;
           if(_cursor.moveToFirst()) {
@@ -590,6 +687,12 @@ public final class NPCDao_Impl implements NPCDao {
             _tmpId = _cursor.getLong(_cursorIndexOfId);
             final long _tmpSessionId;
             _tmpSessionId = _cursor.getLong(_cursorIndexOfSessionId);
+            final String _tmpNpcId;
+            if (_cursor.isNull(_cursorIndexOfNpcId)) {
+              _tmpNpcId = null;
+            } else {
+              _tmpNpcId = _cursor.getString(_cursorIndexOfNpcId);
+            }
             final String _tmpName;
             if (_cursor.isNull(_cursorIndexOfName)) {
               _tmpName = null;
@@ -601,6 +704,12 @@ public final class NPCDao_Impl implements NPCDao {
               _tmpRole = null;
             } else {
               _tmpRole = _cursor.getString(_cursorIndexOfRole);
+            }
+            final String _tmpBriefing;
+            if (_cursor.isNull(_cursorIndexOfBriefing)) {
+              _tmpBriefing = null;
+            } else {
+              _tmpBriefing = _cursor.getString(_cursorIndexOfBriefing);
             }
             final String _tmpAttributesJson;
             if (_cursor.isNull(_cursorIndexOfAttributesJson)) {
@@ -644,9 +753,15 @@ public final class NPCDao_Impl implements NPCDao {
             } else {
               _tmpBackstory = _cursor.getString(_cursorIndexOfBackstory);
             }
+            final String _tmpHiddenAgenda;
+            if (_cursor.isNull(_cursorIndexOfHiddenAgenda)) {
+              _tmpHiddenAgenda = null;
+            } else {
+              _tmpHiddenAgenda = _cursor.getString(_cursorIndexOfHiddenAgenda);
+            }
             final long _tmpUpdatedAt;
             _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
-            _result = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpName,_tmpRole,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpUpdatedAt);
+            _result = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpNpcId,_tmpName,_tmpRole,_tmpBriefing,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpHiddenAgenda,_tmpUpdatedAt);
           } else {
             _result = null;
           }
@@ -656,7 +771,134 @@ public final class NPCDao_Impl implements NPCDao {
           _statement.release();
         }
       }
-    }, arg2);
+    }, $completion);
+  }
+
+  @Override
+  public Object getNPCByNpcId(final long sessionId, final String npcId,
+      final Continuation<? super NPCStateEntity> $completion) {
+    final String _sql = "SELECT * FROM npc_states WHERE sessionId = ? AND npcId = ?";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 2);
+    int _argIndex = 1;
+    _statement.bindLong(_argIndex, sessionId);
+    _argIndex = 2;
+    if (npcId == null) {
+      _statement.bindNull(_argIndex);
+    } else {
+      _statement.bindString(_argIndex, npcId);
+    }
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<NPCStateEntity>() {
+      @Override
+      public NPCStateEntity call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfSessionId = CursorUtil.getColumnIndexOrThrow(_cursor, "sessionId");
+          final int _cursorIndexOfNpcId = CursorUtil.getColumnIndexOrThrow(_cursor, "npcId");
+          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
+          final int _cursorIndexOfRole = CursorUtil.getColumnIndexOrThrow(_cursor, "role");
+          final int _cursorIndexOfBriefing = CursorUtil.getColumnIndexOrThrow(_cursor, "briefing");
+          final int _cursorIndexOfAttributesJson = CursorUtil.getColumnIndexOrThrow(_cursor, "attributesJson");
+          final int _cursorIndexOfDialogueHistoryJson = CursorUtil.getColumnIndexOrThrow(_cursor, "dialogueHistoryJson");
+          final int _cursorIndexOfMood = CursorUtil.getColumnIndexOrThrow(_cursor, "mood");
+          final int _cursorIndexOfAwareness = CursorUtil.getColumnIndexOrThrow(_cursor, "awareness");
+          final int _cursorIndexOfAppearance = CursorUtil.getColumnIndexOrThrow(_cursor, "appearance");
+          final int _cursorIndexOfPersonality = CursorUtil.getColumnIndexOrThrow(_cursor, "personality");
+          final int _cursorIndexOfBackstory = CursorUtil.getColumnIndexOrThrow(_cursor, "backstory");
+          final int _cursorIndexOfHiddenAgenda = CursorUtil.getColumnIndexOrThrow(_cursor, "hiddenAgenda");
+          final int _cursorIndexOfUpdatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "updatedAt");
+          final NPCStateEntity _result;
+          if(_cursor.moveToFirst()) {
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final long _tmpSessionId;
+            _tmpSessionId = _cursor.getLong(_cursorIndexOfSessionId);
+            final String _tmpNpcId;
+            if (_cursor.isNull(_cursorIndexOfNpcId)) {
+              _tmpNpcId = null;
+            } else {
+              _tmpNpcId = _cursor.getString(_cursorIndexOfNpcId);
+            }
+            final String _tmpName;
+            if (_cursor.isNull(_cursorIndexOfName)) {
+              _tmpName = null;
+            } else {
+              _tmpName = _cursor.getString(_cursorIndexOfName);
+            }
+            final String _tmpRole;
+            if (_cursor.isNull(_cursorIndexOfRole)) {
+              _tmpRole = null;
+            } else {
+              _tmpRole = _cursor.getString(_cursorIndexOfRole);
+            }
+            final String _tmpBriefing;
+            if (_cursor.isNull(_cursorIndexOfBriefing)) {
+              _tmpBriefing = null;
+            } else {
+              _tmpBriefing = _cursor.getString(_cursorIndexOfBriefing);
+            }
+            final String _tmpAttributesJson;
+            if (_cursor.isNull(_cursorIndexOfAttributesJson)) {
+              _tmpAttributesJson = null;
+            } else {
+              _tmpAttributesJson = _cursor.getString(_cursorIndexOfAttributesJson);
+            }
+            final String _tmpDialogueHistoryJson;
+            if (_cursor.isNull(_cursorIndexOfDialogueHistoryJson)) {
+              _tmpDialogueHistoryJson = null;
+            } else {
+              _tmpDialogueHistoryJson = _cursor.getString(_cursorIndexOfDialogueHistoryJson);
+            }
+            final String _tmpMood;
+            if (_cursor.isNull(_cursorIndexOfMood)) {
+              _tmpMood = null;
+            } else {
+              _tmpMood = _cursor.getString(_cursorIndexOfMood);
+            }
+            final String _tmpAwareness;
+            if (_cursor.isNull(_cursorIndexOfAwareness)) {
+              _tmpAwareness = null;
+            } else {
+              _tmpAwareness = _cursor.getString(_cursorIndexOfAwareness);
+            }
+            final String _tmpAppearance;
+            if (_cursor.isNull(_cursorIndexOfAppearance)) {
+              _tmpAppearance = null;
+            } else {
+              _tmpAppearance = _cursor.getString(_cursorIndexOfAppearance);
+            }
+            final String _tmpPersonality;
+            if (_cursor.isNull(_cursorIndexOfPersonality)) {
+              _tmpPersonality = null;
+            } else {
+              _tmpPersonality = _cursor.getString(_cursorIndexOfPersonality);
+            }
+            final String _tmpBackstory;
+            if (_cursor.isNull(_cursorIndexOfBackstory)) {
+              _tmpBackstory = null;
+            } else {
+              _tmpBackstory = _cursor.getString(_cursorIndexOfBackstory);
+            }
+            final String _tmpHiddenAgenda;
+            if (_cursor.isNull(_cursorIndexOfHiddenAgenda)) {
+              _tmpHiddenAgenda = null;
+            } else {
+              _tmpHiddenAgenda = _cursor.getString(_cursorIndexOfHiddenAgenda);
+            }
+            final long _tmpUpdatedAt;
+            _tmpUpdatedAt = _cursor.getLong(_cursorIndexOfUpdatedAt);
+            _result = new NPCStateEntity(_tmpId,_tmpSessionId,_tmpNpcId,_tmpName,_tmpRole,_tmpBriefing,_tmpAttributesJson,_tmpDialogueHistoryJson,_tmpMood,_tmpAwareness,_tmpAppearance,_tmpPersonality,_tmpBackstory,_tmpHiddenAgenda,_tmpUpdatedAt);
+          } else {
+            _result = null;
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
   }
 
   public static List<Class<?>> getRequiredConverters() {

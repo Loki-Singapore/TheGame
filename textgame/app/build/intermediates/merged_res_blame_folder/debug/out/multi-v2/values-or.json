@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.textgame.app-mergeDebugResources-57:/values-or/values-or.xml",
+            "outputFile": "com.textgame.app-mergeDebugResources-62:/values-or/values-or.xml",
             "map": [
                 {
                     "source": "/root/.gradle/caches/8.14.4/transforms/dc2b6c448129f1d5afe2ade302310949/transformed/core-1.12.0/res/values-or/values-or.xml",

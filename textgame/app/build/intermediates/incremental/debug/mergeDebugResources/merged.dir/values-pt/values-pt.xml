@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">Autenticação necessária</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"Fechar página inferior"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"Dispensar página inferior"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"Alça de arrastar"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Data de início"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Selecionar datas"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Entrada inválida"</string>
+    <string name="default_notification_channel_name">Tocando agora</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Janela pop-up"</string>
     <string msgid="4057925834421392736" name="dialog">"Caixa de diálogo"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Menu suspenso"</string>
+    <string name="exo_download_completed">Download concluído</string>
+    <string name="exo_download_description">Fazer o download</string>
+    <string name="exo_download_downloading">Fazendo o download</string>
+    <string name="exo_download_failed">Falha no download</string>
+    <string name="exo_download_notification_channel_name">Downloads</string>
+    <string name="exo_download_paused">Downloads pausados</string>
+    <string name="exo_download_paused_for_network">Downloads aguardando uma conexão de rede</string>
+    <string name="exo_download_paused_for_wifi">Downloads aguardando uma rede Wi-Fi</string>
+    <string name="exo_download_removing">Removendo downloads</string>
     <string msgid="5974471714631304645" name="expanded">"Aberto"</string>
     <string msgid="6827826412747255547" name="in_progress">"Em andamento"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Parcialmente selecionada"</string>
+    <string name="media3_controls_pause_description">Pausar</string>
+    <string name="media3_controls_play_description">Tocar</string>
+    <string name="media3_controls_seek_back_description">Retroceder</string>
+    <string name="media3_controls_seek_forward_description">Avançar</string>
+    <string name="media3_controls_seek_to_next_description">Ir para o próximo item</string>
+    <string name="media3_controls_seek_to_previous_description">Ir para o item anterior</string>
     <string msgid="542007171693138492" name="navigation_menu">"Menu de navegação"</string>
     <string msgid="6610465462668679431" name="not_selected">"Não selecionado"</string>
     <string msgid="875452955155264703" name="off">"Desativado"</string>

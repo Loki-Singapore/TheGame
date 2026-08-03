@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="authentication_required">Zahtevano je preverjanje pristnosti</string>
     <string msgid="6128938260108474660" name="bottom_sheet_collapse_description">"Strnitev razdelka na dnu zaslona"</string>
     <string msgid="1918297411568599192" name="bottom_sheet_dismiss_description">"Opustitev razdelka na dnu zaslona"</string>
     <string msgid="7772321844937772780" name="bottom_sheet_drag_handle_description">"Ročica za vlečenje"</string>
@@ -46,12 +47,28 @@
     <string msgid="5759491386723090559" name="date_range_picker_start_headline">"Začetni datum"</string>
     <string msgid="690080476639943577" name="date_range_picker_title">"Izberite datume"</string>
     <string msgid="8038256446254964252" name="default_error_message">"Neveljaven vnos"</string>
+    <string name="default_notification_channel_name">Zdaj se predvaja</string>
     <string msgid="6312721426453364202" name="default_popup_window_title">"Pojavno okno"</string>
     <string msgid="4057925834421392736" name="dialog">"Pogovorno okno"</string>
     <string msgid="1890207353314751437" name="dropdown_menu">"Spustni meni"</string>
+    <string name="exo_download_completed">Prenos je končan</string>
+    <string name="exo_download_description">Prenos</string>
+    <string name="exo_download_downloading">Prenašanje</string>
+    <string name="exo_download_failed">Prenos ni uspel</string>
+    <string name="exo_download_notification_channel_name">Prenosi</string>
+    <string name="exo_download_paused">Prenosi so začasno zaustavljeni.</string>
+    <string name="exo_download_paused_for_network">Prenosi čakajo na povezavo z omrežjem.</string>
+    <string name="exo_download_paused_for_wifi">Prenosi čakajo na povezavo Wi-Fi.</string>
+    <string name="exo_download_removing">Odstranjevanje prenosov</string>
     <string msgid="5974471714631304645" name="expanded">"Razširjeno"</string>
     <string msgid="6827826412747255547" name="in_progress">"Poteka"</string>
     <string msgid="7933458017204019916" name="indeterminate">"Delno potrjeno"</string>
+    <string name="media3_controls_pause_description">Začasno zaustavi</string>
+    <string name="media3_controls_play_description">Predvajaj</string>
+    <string name="media3_controls_seek_back_description">Premakni nazaj</string>
+    <string name="media3_controls_seek_forward_description">Premakni naprej</string>
+    <string name="media3_controls_seek_to_next_description">Premakni na naslednji element</string>
+    <string name="media3_controls_seek_to_previous_description">Premakni na prejšnji element</string>
     <string msgid="542007171693138492" name="navigation_menu">"Meni za krmarjenje"</string>
     <string msgid="6610465462668679431" name="not_selected">"Ni izbrano"</string>
     <string msgid="875452955155264703" name="off">"Izklopljeno"</string>
