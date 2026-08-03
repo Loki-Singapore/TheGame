@@ -76,13 +76,14 @@ fun ImageGenerationDialog(
     // 全屏预览状态提升到根：ZoomableImagePreview 必须渲染在 ModalBottomSheet 之外，
     // 否则会被 sheet 的窗口/裁剪影响导致内容塌缩只剩黑底。
     var showFullscreenPreview by remember { mutableStateOf(false) }
-    // 图片预览模型：优先 URL，回退 base64 数据 URI
+    // 图片预览模型：缩略图用 URL/base64（Coil 加载），全屏预览用预解码 Bitmap（避免 Dialog 环境下 Coil 失败）
     val previewModel: Any? = when {
         !uiState.imageUrl.isNullOrBlank() -> uiState.imageUrl
         !uiState.imageBase64.isNullOrBlank() ->
             "data:image/png;base64,${uiState.imageBase64}"
         else -> null
     }
+    val fullscreenBitmap: android.graphics.Bitmap? = uiState.imageBitmap
     val onImageClick: () -> Unit = { showFullscreenPreview = true }
 
     Box {
@@ -132,10 +133,10 @@ fun ImageGenerationDialog(
             }
         }
 
-        // 全屏预览渲染在 ModalBottomSheet 之外（在 Box 中后渲染，覆盖在上层）
-        if (showFullscreenPreview && previewModel != null) {
+        // 全屏预览：用预解码 Bitmap，避免 Dialog 环境下 Coil 网络加载失败
+        if (showFullscreenPreview && fullscreenBitmap != null) {
             ZoomableImagePreview(
-                model = previewModel,
+                bitmap = fullscreenBitmap,
                 onDismiss = { showFullscreenPreview = false }
             )
         }
