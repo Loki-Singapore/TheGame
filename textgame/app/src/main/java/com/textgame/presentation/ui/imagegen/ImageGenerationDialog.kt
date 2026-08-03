@@ -73,47 +73,71 @@ fun ImageGenerationDialog(
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.ImageGenerationUiState())
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 760.dp)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp)
-                .padding(bottom = 24.dp)
+    // 全屏预览状态提升到根：ZoomableImagePreview 必须渲染在 ModalBottomSheet 之外，
+    // 否则会被 sheet 的窗口/裁剪影响导致内容塌缩只剩黑底。
+    var showFullscreenPreview by remember { mutableStateOf(false) }
+    // 图片预览模型：优先 URL，回退 base64 数据 URI
+    val previewModel: Any? = when {
+        !uiState.imageUrl.isNullOrBlank() -> uiState.imageUrl
+        !uiState.imageBase64.isNullOrBlank() ->
+            "data:image/png;base64,${uiState.imageBase64}"
+        else -> null
+    }
+    val onImageClick: () -> Unit = { showFullscreenPreview = true }
+
+    Box {
+        ModalBottomSheet(
+            onDismissRequest = onDismiss,
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
         ) {
-            // 顶部标题栏
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 760.dp)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 24.dp)
             ) {
-                Icon(Icons.Default.Image, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (uiState.phase == ImageGenPhase.PROMPT_INPUT) "生图提示词" else "生成场景图片",
-                    style = MaterialTheme.typography.headlineSmall,
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "关闭")
+                // 顶部标题栏
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Image, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = if (uiState.phase == ImageGenPhase.PROMPT_INPUT) "生图提示词" else "生成场景图片",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "关闭")
+                    }
+                }
+
+                when (uiState.phase) {
+                    ImageGenPhase.PROMPT_INPUT -> PromptInputPhase(
+                        viewModel = viewModel,
+                        uiState = uiState
+                    )
+                    ImageGenPhase.IMAGE_GENERATION -> ImageGenerationPhase(
+                        viewModel = viewModel,
+                        uiState = uiState,
+                        previewModel = previewModel,
+                        onImageClick = onImageClick
+                    )
                 }
             }
+        }
 
-            when (uiState.phase) {
-                ImageGenPhase.PROMPT_INPUT -> PromptInputPhase(
-                    viewModel = viewModel,
-                    uiState = uiState
-                )
-                ImageGenPhase.IMAGE_GENERATION -> ImageGenerationPhase(
-                    viewModel = viewModel,
-                    uiState = uiState
-                )
-            }
+        // 全屏预览渲染在 ModalBottomSheet 之外（在 Box 中后渲染，覆盖在上层）
+        if (showFullscreenPreview && previewModel != null) {
+            ZoomableImagePreview(
+                model = previewModel,
+                onDismiss = { showFullscreenPreview = false }
+            )
         }
     }
 }
@@ -211,7 +235,9 @@ private fun PromptInputPhase(
 @Composable
 private fun ImageGenerationPhase(
     viewModel: ImageGenerationViewModel,
-    uiState: com.textgame.presentation.viewmodel.ImageGenerationUiState
+    uiState: com.textgame.presentation.viewmodel.ImageGenerationUiState,
+    previewModel: Any?,
+    onImageClick: () -> Unit
 ) {
     val currentModel = com.textgame.di.AppModule.getCurrentSettings().imageModel
 
@@ -287,14 +313,7 @@ private fun ImageGenerationPhase(
         )
     }
 
-    // 图片预览：优先用 URL，回退到 base64 数据 URI
-    val previewModel: Any? = when {
-        !uiState.imageUrl.isNullOrBlank() -> uiState.imageUrl
-        !uiState.imageBase64.isNullOrBlank() ->
-            "data:image/png;base64,${uiState.imageBase64}"
-        else -> null
-    }
-    var showFullscreenPreview by remember { mutableStateOf(false) }
+    // 图片预览块：点击触发全屏预览（由父级 ImageGenerationDialog 管理）
     if (previewModel != null) {
         Spacer(modifier = Modifier.height(12.dp))
         Text("生成结果", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -310,7 +329,7 @@ private fun ImageGenerationPhase(
             color = MaterialTheme.colorScheme.surfaceVariant,
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { showFullscreenPreview = true }
+                .clickable { onImageClick() }
         ) {
             AsyncImage(
                 model = previewModel,
@@ -319,13 +338,6 @@ private fun ImageGenerationPhase(
                 modifier = Modifier.fillMaxWidth()
             )
         }
-    }
-
-    if (showFullscreenPreview && previewModel != null) {
-        ZoomableImagePreview(
-            model = previewModel,
-            onDismiss = { showFullscreenPreview = false }
-        )
     }
 
     uiState.revisedPrompt?.let { revised ->
