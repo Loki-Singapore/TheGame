@@ -61,7 +61,11 @@ class MainActivity : ComponentActivity() {
                         }
                         composable("creator") {
                             CreatorScreen(
-                                onBack = { navController.popBackStack() },
+                                onBack = {
+                                    if (navController.currentDestination?.route == "creator") {
+                                        navController.popBackStack()
+                                    }
+                                },
                                 onGameCreated = { sessionId ->
                                     navController.navigate("game/$sessionId") {
                                         popUpTo("main") { inclusive = false }
@@ -73,7 +77,12 @@ class MainActivity : ComponentActivity() {
                             val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L
                             GameScreen(
                                 sessionId = sessionId,
-                                onBack = { navController.popBackStack() },
+                                onBack = {
+                                    // 防止快速连点返回导致二次 popBackStack 清空栈 → 白屏
+                                    if (navController.currentDestination?.route == "game/{sessionId}") {
+                                        navController.popBackStack()
+                                    }
+                                },
                                 onOpenSettings = { navController.navigate("game_settings/$sessionId") }
                             )
                         }
@@ -81,12 +90,20 @@ class MainActivity : ComponentActivity() {
                             val sessionId = backStackEntry.arguments?.getString("sessionId")?.toLongOrNull() ?: 0L
                             GameSettingsScreen(
                                 sessionId = sessionId,
-                                onBack = { navController.popBackStack() }
+                                onBack = {
+                                    if (navController.currentDestination?.route == "game_settings/{sessionId}") {
+                                        navController.popBackStack()
+                                    }
+                                }
                             )
                         }
                         composable("settings") {
                             SettingsScreen(
-                                onBack = { navController.popBackStack() }
+                                onBack = {
+                                    if (navController.currentDestination?.route == "settings") {
+                                        navController.popBackStack()
+                                    }
+                                }
                             )
                         }
                     }
