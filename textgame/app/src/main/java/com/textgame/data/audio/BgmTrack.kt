@@ -8,7 +8,7 @@ enum class BgmTrack(val keyword: String, val resId: Int) {
     DANGER("危险临近", R.raw.bgm_danger),
     VICTORY("胜利", R.raw.bgm_victory),
     ROMANCE("爱情", R.raw.bgm_romance),
-    UNKNOWN_FEAR("未知的恐惧", R.raw.bgm_unknown_fear),
+    FEAR("恐惧", R.raw.bgm_unknown_fear),
     SPRING_SUMMER("春夏", R.raw.bgm_spring_summer),
     AUTUMN("秋天", R.raw.bgm_autumn),
     WINTER("冬天", R.raw.bgm_winter);
