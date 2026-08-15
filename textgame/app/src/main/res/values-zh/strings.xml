@@ -108,7 +108,7 @@
     <string name="creator_attr_type_boolean">BOOLEAN（布尔）</string>
     <string name="creator_attr_type_enum">ENUM（枚举）</string>
     <string name="creator_attr_type_text">TEXT（文本）</string>
-    <string name="creator_attr_type_table">TABLE（表格）</string>
+    <string name="creator_attr_type_label_table">TABLE（表格）</string>
     <string name="creator_table_title">表格列定义</string>
     <string name="creator_table_hint">每行属性即一条记录，列类型只能是 NUMERIC/BOOLEAN/ENUM/TEXT</string>
     <string name="creator_table_no_columns">暂无列，点击下方按钮添加至少一列</string>
