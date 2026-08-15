@@ -855,7 +855,7 @@ private fun attributeTypeLabel(type: AttributeType): String = when (type) {
     AttributeType.BOOLEAN -> stringResource(R.string.creator_attr_type_boolean)
     AttributeType.ENUM -> stringResource(R.string.creator_attr_type_enum)
     AttributeType.TEXT -> stringResource(R.string.creator_attr_type_text)
-    AttributeType.TABLE -> stringResource(R.string.creator_attr_type_table)
+    AttributeType.TABLE -> stringResource(R.string.creator_attr_type_label_table)
 }
 
 /**

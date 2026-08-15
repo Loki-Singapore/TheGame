@@ -108,7 +108,7 @@
     <string name="creator_attr_type_boolean">BOOLEAN (true/false)</string>
     <string name="creator_attr_type_enum">ENUM (options)</string>
     <string name="creator_attr_type_text">TEXT (free text)</string>
-    <string name="creator_attr_type_table">TABLE (structured list)</string>
+    <string name="creator_attr_type_label_table">TABLE (structured list)</string>
     <string name="creator_table_title">Table Column Definitions</string>
     <string name="creator_table_hint">Each row is one record. Column types can only be NUMERIC/BOOLEAN/ENUM/TEXT.</string>
     <string name="creator_table_no_columns">No columns yet. Tap the button below to add at least one.</string>
