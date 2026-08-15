@@ -1,100 +1,103 @@
-# TheGame - AI 文字冒险游戏
+# TheGame — AI Text Adventure Game
 
-TheGame 是一款由 AI 担任游戏主持人的文字冒险游戏。你只需要用一句话描述想要的世界，游戏就会为你生成完整的世界观、主角、NPC 和规则，并陪你一路把故事玩下去。
+[简体中文](README.zh-CN.md) | English
 
-## 游戏特色
+TheGame is a text adventure game where an AI acts as the game master. Describe the world you want in a single sentence, and the game generates a complete world view, protagonist, NPCs, and rules for you — then keeps telling the story as you play.
 
-- 🌍 **一句话创世** — 用一句话描述你想要的游戏世界，AI 自动补全世界名称、时间、地点、社会结构、历史传说、主角背景和初始 NPC。
-- 🧙 **自由定制主角** — 主角的姓名、背景和属性体系都随世界题材生成，并在游戏过程中持续成长、变化。
-- 👥 **有血有肉的 NPC** — 每个 NPC 都有自己的性格、背景、立场和对主角的认知，会记住发生的事，也会被剧情改变。
-- 🎭 **AI 主持剧情** — AI 扮演所有 NPC 和旁白，每次回复都包含完整的场景描写、人物动作、对话与剧情推进。
-- 🧭 **行动选项** — 每轮都会给出 3-4 个可以选择的行动方向，也可以完全按自己的想法输入任何行动。
-- 🎼 **动态配乐** — 游戏会根据剧情氛围自动切换背景音乐，战斗、危险、爱情、季节、胜利都有不同的曲目。
-- 🖼️ **场景生图** — 可以随时根据当前场景生成一张插画，支持真实感和动漫化两种风格。
+## Features
 
-## 核心玩法循环
+- 🌍 **Create a world in one sentence** — Describe the game world you want, and the AI fills in the world name, time, location, social structure, history and legends, protagonist background, and initial NPCs.
+- 🧙 **Fully customizable protagonist** — The protagonist's name, background, and attribute system are generated to fit the genre of the world, and keep growing and changing throughout the game.
+- 👥 **Lifelike NPCs** — Every NPC has their own personality, background, stance, and perception of the protagonist. They remember what happened and are changed by the story.
+- 🎭 **AI-driven storytelling** — The AI plays all NPCs and the narrator. Every response includes full scene descriptions, character actions, dialogue, and plot progression.
+- 🧭 **Action choices** — Each turn offers 3–4 suggested actions, or you can type any action you like.
+- 🎼 **Dynamic soundtrack** — Background music switches automatically with the mood of the story: battle, danger, romance, seasons, and victory each have their own tracks.
+- 🖼️ **Scene illustration** — Generate an illustration of the current scene at any time, in either realistic or anime style.
+
+## Core Gameplay Loop
 
 ```
-创建世界 → 输入或选择行动 → AI 主持推进剧情 → 世界与角色状态更新 → 选择下一步行动
+Create a world → Type or choose an action → AI advances the story →
+World and character states update → Choose the next action
 ```
 
-每一轮都是完整的叙事：AI 会描写环境的光线、声音、气味，呈现 NPC 的神态与动作，推动事件发展，然后给出下一步可以做什么。
+Every turn is a complete narrative: the AI describes the light, sound, and smells of the environment, shows the expressions and actions of NPCs, moves events forward, and then suggests what you can do next.
 
-## 世界生成
+## World Generation
 
-创建游戏时，你只需描述一个想法，例如：
+When creating a game, simply describe an idea, for example:
 
-- “一个被永不散去的浓雾笼罩的海港小镇”
-- “我是一名失忆的星际佣兵，在一艘废弃殖民船上醒来”
-- “大唐盛世表面繁华，暗处却有妖物作祟”
+- "A harbor town shrouded in a fog that never lifts"
+- "I am an amnesiac star mercenary waking up on an abandoned colony ship"
+- "In the glorious Tang Dynasty, monsters lurk beneath the surface"
 
-AI 会据此生成：
+The AI then generates:
 
-- 游戏名称与世界名称
-- 世界观描述、历史与传说
-- 有题材特色的时间设定（如“星历 3042 年 7 月”）
-- 起始地点与社会结构
-- 与世界观紧密相关的主角背景
-- 5-8 个初始 NPC，各有性格、背景和与主角的关系
+- A game name and a world name
+- World description, history, and legends
+- A genre-appropriate time setting (e.g. "Stardate 3042, July")
+- The starting location and social structure
+- A protagonist background tightly tied to the world
+- 5–8 initial NPCs, each with personality, background, and a relationship to the protagonist
 
-## 属性系统
+## Attribute System
 
-每个世界都有专属的属性体系，而不是千篇一律的“生命值 + 金币”。属性会根据题材设计，并真正影响剧情：
+Every world has its own attribute system instead of a generic "HP + coins". Attributes are designed around the genre and genuinely affect the story:
 
-- **数值类**：可量化、有范围，如生命、理智、内力、辐射剂量。
-- **是否类**：非此即彼的状态，如是否被通缉、是否中毒。
-- **枚举类**：有固定取值，如阵营、身份、声望等级。
-- **文本类**：自由描述，如职业、称号、秘密身份。
-- **表格类**：结构化清单，如技能表、装备栏、任务清单、人际关系网。
+- **Numeric** — quantifiable with a range, such as health, sanity, inner power, or radiation dose.
+- **Boolean** — yes/no states, such as wanted or poisoned.
+- **Enum** — a fixed set of values, such as faction, identity, or reputation level.
+- **Text** — free-form description, such as occupation, title, or secret identity.
+- **Table** — a structured list, such as skills, equipment, quests, or relationship networks.
 
-属性之间会互相牵制，形成取舍。比如“禁忌知识”能提升能力却会消耗“理智值”，高“声望”能开启某些门路，也可能招来仇家。剧情发展中，AI 还可以解锁新的属性，或让旧的属性失去意义。
+Attributes interact and create trade-offs. "Forbidden Knowledge" may increase your power while draining your Sanity; high Reputation opens some doors but may also attract enemies. As the story develops, the AI can unlock new attributes or make old ones meaningless.
 
-## NPC 系统
+## NPC System
 
-NPC 不是只会回话的工具人：
+NPCs are not just dialogue vending machines:
 
-- 每个 NPC 都有性格、外貌、背景、当前情绪，以及对主角的认知。
-- NPC 会记住重要经历，背景和外貌会随着剧情更新。
-- NPC 可以新增，也可能死亡或离开；重要角色会被保留下来。
-- 每个重要 NPC 都藏着玩家看不到的**隐藏动机**。他们有自己的算盘，会撒谎、试探、背叛、求助，玩家只能从言行细节中察觉。
+- Every NPC has a personality, appearance, background, current mood, and perception of the protagonist.
+- NPCs remember important experiences; their backgrounds and appearances update with the story.
+- NPCs can be introduced, die, or leave; important characters are preserved.
+- Every important NPC has a hidden **secret agenda** the player cannot see. They have their own plans and may lie, test, betray, or ask for help — you can only sense it through details in what they say and do.
 
-## 世界观细则
+## World Rule Details
 
-游戏中揭示的长期设定会被沉淀为“世界观细则”——例如某座城市的布局、某个组织的规定、某种力量的规则。
+Long-term facts revealed during the game are stored as "World Rule Details" — for example the layout of a city, the rules of an organization, or how a certain power works.
 
-- 同类信息会合并到已有条目，而不是不断新建。
-- 细则一经写入就不会被随意删除。
-- 这些细则会持续影响后续剧情，让世界前后一致。
+- Related information is merged into existing entries instead of creating duplicates.
+- Once written, a rule is not deleted casually.
+- These details continue to influence later events, keeping the world consistent.
 
-## 导演指令
+## Director Instructions
 
-除了明面上的剧情，还有一个“导演”在暗中编排：
+Behind the visible story, a "Director" secretly arranges the drama:
 
-- 每轮都可能有一条隐藏的戏剧指令，例如让某位 NPC 撒谎、引入时间压力、埋下伏笔、制造两难。
-- 指令对玩家完全不可见，只会被编织进剧情结果里。
-- 伏笔会被记住并在几轮后兑现，NPC 也会主动行动，让世界不只围着主角转。
-- 导演指令的优先级高于玩家要求——这就是剧情不一定按你预想发展的原因。
+- Each turn may contain a hidden dramatic instruction, such as making an NPC lie, introducing time pressure, planting foreshadowing, or creating a dilemma.
+- The instruction is completely invisible to the player and is only woven into the outcome of the story.
+- Foreshadowing is remembered and paid off a few turns later. NPCs act on their own, so the world does not revolve around the protagonist alone.
+- Director instructions take priority over player requests — this is why the plot does not always go the way you expect.
 
-## 时间推进
+## Time Progression
 
-游戏时间不会原地踏步：
+Game time does not stand still:
 
-- 首轮会确立故事的起始时间。
-- 昼夜、季节、旅行、长谈都会让时间以符合世界观的方式前进。
-- 剧情中的时间表述会保持世界特色，例如“第三纪元 1247 年深秋，黄昏时分”。
+- The first turn establishes the starting time of the story.
+- Day and night, seasons, travel, and long conversations move time forward in a way that fits the world.
+- Time expressions keep the flavor of the world, such as "Year 1247 of the Third Era, late autumn, at dusk".
 
-## 剧情总结
+## Story Summaries
 
-- 约每 30 轮，AI 会自动生成一份完整、自包含的进度总结。
-- 总结包含关键事件、场景变化和待处理事项。
-- 后续剧情会基于总结继续推进，即使冒险很长也不会丢失主线记忆。
+- About every 30 turns, the AI automatically generates a complete, self-contained progress summary.
+- The summary includes key events, scene changes, and pending matters.
+- Later turns continue from the summary, so even very long adventures do not lose the main plot.
 
-## 回溯与重新选择
+## Rewind and Regenerate
 
-- 游戏每轮自动保存进度。
-- 你可以从任意历史轮次“重新生成”：回到那个时间点，让 AI 用相同的世界、角色和规则，写出不同的发展。
-- 被覆盖的后续剧情会一并重置，保证新的故事线从头开始连贯。
+- The game automatically saves progress after every turn.
+- You can "regenerate" from any previous turn: return to that point and let the AI write a different development using the same world, characters, and rules.
+- The overwritten future is reset together, keeping the new story line coherent from the start.
 
-## 许可证
+## License
 
-详见 [LICENSE](LICENSE) 文件。
+See the [LICENSE](LICENSE) file.
