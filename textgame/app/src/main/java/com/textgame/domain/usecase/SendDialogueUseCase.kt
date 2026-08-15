@@ -47,9 +47,7 @@ class SendDialogueUseCase(
         gameRepository.saveStateSnapshot(snapshot)
 
         val allDialogues = gameRepository.getDialogues(sessionId)
-        val (preSummaryDialogues, postSummaryDialogues) = buildDialogueHistory(
-            allDialogues, latestSummary
-        )
+        val postSummaryDialogues = buildPostSummaryDialogues(allDialogues, latestSummary)
 
         val directive = DirectorDirective.roll(
             DirectorContext(
@@ -66,7 +64,6 @@ class SendDialogueUseCase(
             worldSetting = worldSetting,
             backgroundSetting = backgroundSetting,
             summary = latestSummary,
-            preSummaryDialogues = preSummaryDialogues,
             postSummaryDialogues = postSummaryDialogues,
             protagonist = protagonist,
             npcs = npcs,
@@ -121,9 +118,7 @@ class SendDialogueUseCase(
         gameRepository.saveStateSnapshot(snapshot)
 
         val allDialogues = gameRepository.getDialogues(sessionId)
-        val (preSummaryDialogues, postSummaryDialogues) = buildDialogueHistory(
-            allDialogues, latestSummary
-        )
+        val postSummaryDialogues = buildPostSummaryDialogues(allDialogues, latestSummary)
 
         val directive = DirectorDirective.roll(
             DirectorContext(
@@ -140,7 +135,6 @@ class SendDialogueUseCase(
             worldSetting = worldSetting,
             backgroundSetting = backgroundSetting,
             summary = latestSummary,
-            preSummaryDialogues = preSummaryDialogues,
             postSummaryDialogues = postSummaryDialogues,
             protagonist = protagonist,
             npcs = npcs,
@@ -176,10 +170,10 @@ class SendDialogueUseCase(
         }
     }
 
-    private fun buildDialogueHistory(
+    private fun buildPostSummaryDialogues(
         allDialogues: List<Dialogue>,
         latestSummary: com.textgame.domain.model.Summary?
-    ): Pair<List<String>, List<String>> {
+    ): List<String> {
         val formatDialogue: (Dialogue) -> String = { dialogue ->
             val prefix = when {
                 dialogue.isNarrative -> "【旁白】"
@@ -189,23 +183,13 @@ class SendDialogueUseCase(
             "$prefix${dialogue.content}"
         }
 
-        return if (latestSummary != null && latestSummary.turnRangeEnd > 0) {
-            // 有总结：分pre和post两部分
-            val preSummaryRaw = allDialogues.filter {
-                it.turnNumber > latestSummary.turnRangeEnd - 10
-                        && it.turnNumber <= latestSummary.turnRangeEnd
+        // 只保留总结之后的对话：总结本身已自包含，总结前对话不再回放，
+        // 让对话历史在两次总结之间成为纯追加前缀，最大化 DeepSeek 缓存命中。
+        return allDialogues
+            .filter { dialogue ->
+                val lastSummarizedTurn = latestSummary?.turnRangeEnd ?: 0
+                dialogue.turnNumber > lastSummarizedTurn
             }
-            val preSummaryDialogues = preSummaryRaw.map(formatDialogue)
-
-            val postSummaryRaw = allDialogues.filter {
-                it.turnNumber > latestSummary.turnRangeEnd
-            }
-            val postSummaryDialogues = postSummaryRaw.map(formatDialogue)
-
-            Pair(preSummaryDialogues, postSummaryDialogues)
-        } else {
-            // 无总结：pre为空，post为全部对话
-            Pair(emptyList(), allDialogues.map(formatDialogue))
-        }
+            .map(formatDialogue)
     }
 }

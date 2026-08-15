@@ -24,7 +24,10 @@ sealed class StreamingChunk {
 data class TokenUsage(
     val promptTokens: Int = 0,
     val completionTokens: Int = 0,
-    val totalTokens: Int = 0
+    val totalTokens: Int = 0,
+    // DeepSeek 上下文缓存命中/未命中的输入 token 数，用于观测 prompt 前缀缓存效果。
+    val promptCacheHitTokens: Int = 0,
+    val promptCacheMissTokens: Int = 0
 )
 
 data class StateChanges(

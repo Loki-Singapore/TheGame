@@ -3,22 +3,21 @@ package com.textgame.domain.usecase
 import com.textgame.data.remote.ai.AIService
 import com.textgame.domain.model.Summary
 import com.textgame.domain.repository.GameRepository
-import kotlin.random.Random
 
 class GenerateSummaryUseCase(
     private val gameRepository: GameRepository,
     private val aiService: AIService
 ) {
-    private var nextSummaryInterval: Int = (10..20).random()
+    private var nextSummaryInterval: Int = (28..32).random()
 
     fun shouldGenerateSummary(currentTurn: Int, lastSummaryTurn: Int): Boolean {
-        if (lastSummaryTurn == 0 && currentTurn >= 10) {
-            // 首次总结：从第10轮开始
-            nextSummaryInterval = (10..20).random()
+        if (lastSummaryTurn == 0 && currentTurn >= 30) {
+            // 首次总结：从第30轮开始
+            nextSummaryInterval = (28..32).random()
             return true
         }
         if (currentTurn - lastSummaryTurn >= nextSummaryInterval) {
-            nextSummaryInterval = (10..20).random()
+            nextSummaryInterval = (28..32).random()
             return true
         }
         return false
@@ -34,7 +33,7 @@ class GenerateSummaryUseCase(
             ?: throw IllegalStateException("Game state not found")
         val lastSummary = gameRepository.getLatestSummary(sessionId)
 
-        val recentDialogues = getRecentDialogues(sessionId)
+        val recentDialogues = getRecentDialogues(sessionId, lastSummary)
 
         val summary = aiService.generateSummary(
             worldSetting = worldSetting,
@@ -57,15 +56,23 @@ class GenerateSummaryUseCase(
         return summaryWithRange
     }
 
-    private suspend fun getRecentDialogues(sessionId: Long): List<String> {
+    private suspend fun getRecentDialogues(
+        sessionId: Long,
+        lastSummary: Summary?
+    ): List<String> {
         val allDialogues = gameRepository.getDialogues(sessionId)
-        return allDialogues.takeLast(40).map { dialogue ->
-            val prefix = when {
-                dialogue.isNarrative -> "【旁白】"
-                dialogue.isPlayer -> "【玩家】"
-                else -> "【${dialogue.speaker}】"
+        val lastSummarizedTurn = lastSummary?.turnRangeEnd ?: 0
+        // 总结间隔已放宽到约30轮，固定"最近40条"会漏掉两次总结之间的早期对话。
+        // 改为按轮次截取自上次总结以来的完整记录，保证总结覆盖全部间隔内容。
+        return allDialogues
+            .filter { it.turnNumber > lastSummarizedTurn }
+            .map { dialogue ->
+                val prefix = when {
+                    dialogue.isNarrative -> "【旁白】"
+                    dialogue.isPlayer -> "【玩家】"
+                    else -> "【${dialogue.speaker}】"
+                }
+                "$prefix${dialogue.content}"
             }
-            "$prefix${dialogue.content}"
-        }
     }
 }

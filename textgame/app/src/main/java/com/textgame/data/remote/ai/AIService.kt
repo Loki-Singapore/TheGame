@@ -91,6 +91,51 @@ class AIService(
     }
 
     /**
+     * 统一组装普通对话与流式对话的 messages，保证两条路径的 prompt 字节级一致。
+     *
+     * 缓存命中思路（DeepSeek 上下文缓存按"输入前缀"匹配）：
+     * 把越稳定的内容放得越靠前，每轮必变的内容放到最后。
+     * 1. system：静态规则 + 世界观 + 背景设定 + 输出协议（整局不变）
+     * 2. dialogueHistory：对话历史（纯追加，旧前缀保持不变，命中率最高）
+     * 3. worldRules：世界观细则（偶尔追加或原地修订，不如对话历史稳定）
+     * 4. gameState：状态块内部同样按"稳定在前、变化在后"排列
+     * 5. directorDirective：导演指令槽位永远存在（空指令用固定占位文案），
+     *    避免"有时有 system、有时没有"导致消息结构漂移
+     * 6. userInput：玩家输入 + 轮次（每轮必变，放在最后）
+     */
+    private fun buildDialogueMessages(
+        worldSetting: WorldSetting,
+        backgroundSetting: BackgroundSetting,
+        summary: Summary?,
+        postSummaryDialogues: List<String>,
+        protagonist: Protagonist,
+        npcs: List<NPC>,
+        gameState: GameState,
+        userInput: String,
+        directorDirective: String?
+    ): List<ChatMessage> {
+        val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
+        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
+        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, postSummaryDialogues)
+        val gameStatePrompt = buildGameStatePrompt(
+            protagonist, npcs, gameState,
+            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
+        )
+        val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
+        // 空指令也保留一个内容恒定的 system 槽位，让相邻轮次的消息数量与角色序列不变。
+        val directivePrompt = directorDirective?.takeIf { it.isNotBlank() } ?: "【导演指令】无"
+
+        return buildList {
+            add(ChatMessage(role = "system", content = systemPrompt))
+            add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
+            add(ChatMessage(role = "user", content = worldRulesPrompt))
+            add(ChatMessage(role = "user", content = gameStatePrompt))
+            add(ChatMessage(role = "system", content = directivePrompt))
+            add(ChatMessage(role = "user", content = userPrompt))
+        }
+    }
+
+    /**
      * 为NPC列表分配唯一ID（如果尚未分配）
      * 格式：npc_001, npc_002, ...
      */
@@ -119,7 +164,6 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting,
         summary: Summary?,
-        preSummaryDialogues: List<String>,
         postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
@@ -127,32 +171,17 @@ class AIService(
         userInput: String,
         directorDirective: String? = null
     ): AIResponse {
-        val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
-        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
-        val gameStatePrompt = buildGameStatePrompt(
-            protagonist, npcs, gameState,
-            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
+        val messages = buildDialogueMessages(
+            worldSetting = worldSetting,
+            backgroundSetting = backgroundSetting,
+            summary = summary,
+            postSummaryDialogues = postSummaryDialogues,
+            protagonist = protagonist,
+            npcs = npcs,
+            gameState = gameState,
+            userInput = userInput,
+            directorDirective = directorDirective
         )
-        val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
-
-        // 消息按稳定性从高到低排列，最大化DeepSeek上下文缓存命中率：
-        // 1. system: 静态规则+世界观+背景设定+输出指令（几乎不变）
-        // 2. dialogueHistory: 对话历史（纯追加，已有前缀永远不变，缓存命中最高）
-        // 3. worldRules: 世界观细则（偶尔增长或修改已有条目，不如对话历史稳定）
-        // 4. gameState: 当前游戏状态（主角/NPC/场景，无turnCount后可跨轮命中）
-        // 5. directorDirective: 导演指令（每轮不同，玩家不可见）
-        // 6. userInput: 玩家输入 + 轮次号（每轮不同）
-        val messages = buildList {
-            add(ChatMessage(role = "system", content = systemPrompt))
-            add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
-            add(ChatMessage(role = "user", content = worldRulesPrompt))
-            add(ChatMessage(role = "user", content = gameStatePrompt))
-            if (!directorDirective.isNullOrBlank()) {
-                add(ChatMessage(role = "system", content = directorDirective))
-            }
-            add(ChatMessage(role = "user", content = userPrompt))
-        }
 
         val request = buildDialogueRequest(messages, useJsonFormat = true)
 
@@ -168,7 +197,9 @@ class AIService(
                     com.textgame.domain.model.TokenUsage(
                         promptTokens = it.promptTokens,
                         completionTokens = it.completionTokens,
-                        totalTokens = it.totalTokens
+                        totalTokens = it.totalTokens,
+                        promptCacheHitTokens = it.promptCacheHitTokens,
+                        promptCacheMissTokens = it.promptCacheMissTokens
                     )
                 }
             )
@@ -179,7 +210,9 @@ class AIService(
                 com.textgame.domain.model.TokenUsage(
                     promptTokens = it.promptTokens,
                     completionTokens = it.completionTokens,
-                    totalTokens = it.totalTokens
+                    totalTokens = it.totalTokens,
+                    promptCacheHitTokens = it.promptCacheHitTokens,
+                    promptCacheMissTokens = it.promptCacheMissTokens
                 )
             }
         )
@@ -189,7 +222,6 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting,
         summary: Summary?,
-        preSummaryDialogues: List<String>,
         postSummaryDialogues: List<String>,
         protagonist: Protagonist,
         npcs: List<NPC>,
@@ -197,25 +229,17 @@ class AIService(
         userInput: String,
         directorDirective: String? = null
     ): Flow<StreamingChunk> = flow {
-        val systemPrompt = buildSystemPrompt(worldSetting, backgroundSetting)
-        val worldRulesPrompt = buildWorldRulesPrompt(worldSetting.worldRules)
-        val dialogueHistoryPrompt = buildDialogueHistoryPrompt(summary, preSummaryDialogues, postSummaryDialogues)
-        val gameStatePrompt = buildGameStatePrompt(
-            protagonist, npcs, gameState,
-            worldSetting.attributeCategories, backgroundSetting.majorPlotThreads
+        val messages = buildDialogueMessages(
+            worldSetting = worldSetting,
+            backgroundSetting = backgroundSetting,
+            summary = summary,
+            postSummaryDialogues = postSummaryDialogues,
+            protagonist = protagonist,
+            npcs = npcs,
+            gameState = gameState,
+            userInput = userInput,
+            directorDirective = directorDirective
         )
-        val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
-
-        val messages = buildList {
-            add(ChatMessage(role = "system", content = systemPrompt))
-            add(ChatMessage(role = "user", content = dialogueHistoryPrompt))
-            add(ChatMessage(role = "user", content = worldRulesPrompt))
-            add(ChatMessage(role = "user", content = gameStatePrompt))
-            if (!directorDirective.isNullOrBlank()) {
-                add(ChatMessage(role = "system", content = directorDirective))
-            }
-            add(ChatMessage(role = "user", content = userPrompt))
-        }
 
         val request = buildDialogueRequest(messages, useJsonFormat = false).copy(
             stream = true,
@@ -272,7 +296,9 @@ class AIService(
                             capturedUsage = TokenUsage(
                                 promptTokens = usage.promptTokens,
                                 completionTokens = usage.completionTokens,
-                                totalTokens = usage.totalTokens
+                                totalTokens = usage.totalTokens,
+                                promptCacheHitTokens = usage.promptCacheHitTokens,
+                                promptCacheMissTokens = usage.promptCacheMissTokens
                             )
                         }
 
@@ -904,7 +930,7 @@ class AIService(
         appendLine("    - appearance（外貌描述）：返回完整的、自包含的外貌描述，包含基础形象（面容、身材、气质、常服等）+ 最新变化（临时服装、受伤、表情等）。基础形象必须保留，新变化是在基础上补充，绝不能用临时状态覆盖整体形象")
         appendLine("    - 当NPC经历了重要事件后，必须在对应的字段中体现出来")
         appendLine("18. attributes字段只需要返回发生变化的属性！引擎会保留所有原有属性不变。如果某属性没有变化，可以不返回该属性。")
-        appendLine("19. 当剧情有重大进展（每10-20轮）时，将summary_update设为true来触发自动总结")
+        appendLine("19. 进度总结由引擎按约每30轮一次的间隔自动触发。summary_update字段保留用于协议兼容：当本轮剧情出现重大进展时仍可设为true，但最终是否生成总结由引擎决定。")
         appendLine("20. 【属性类目维护 - 高级操作，谨慎使用】你可以通过 state_changes.game.attribute_categories 增删改属性类目，让属性体系随剧情演进：")
         appendLine("    - 新增：当剧情引入了全新的、需要长期量化追踪的机制时（如主角解锁'腐化度'系统、获得'灵力'修炼体系、被加入'通缉等级'，或获得一个需要逐条记录的'技能表'/'装备栏'/'任务清单'），新增类目。必须提供：name、type、defaultValue，以及对应类型所需的约束（NUMERIC需要minValue/maxValue；ENUM需要enumOptions；TABLE需要columns数组，每列含name和type，列type只能是NUMERIC/BOOLEAN/ENUM/TEXT，ENUM列需提供enumOptions，TABLE的defaultValue是一组行对象数组）。description必须明确说明该属性如何影响游戏。引擎会自动把defaultValue应用到主角身上。")
         appendLine("    - 修改：当某属性的取值范围或语义需要随剧情调整时（如主角升级导致生命值上限提高、剧情揭示了新的枚举选项、描述需要补充，或为TABLE属性增删/调整列定义），按name匹配已有类目，只写需要修改的字段，未写出的字段保持不变。type不可更改（如需更换类型应先删除再新增）。修改TABLE列时，columns按列name匹配：已存在的列按提供的字段部分更新，新列名追加，未提及的列保留。")
@@ -930,7 +956,7 @@ class AIService(
         appendLine("27. 仅当某NPC的动机在本轮发生了实质性变化时，才在 state_changes.npc.<id>.hidden_agenda 中返回完整的新动机内容（完整替换，不是增量；例如从'复仇'变成'动摇'变成'和解'）。动机无变化时必须省略该字段——省略即保留原值，不要为填充而重复返回当前动机。")
         appendLine("28. 【导演指令】本轮你可能会在玩家输入之前收到一条 system 消息，内容是导演给你的强制戏剧指令（例如'让某NPC撒个谎''引入时间压力''埋一个伏笔'）。你必须把该指令编织进本轮 narrative 中，但绝不能在回复中提及该指令的存在、引用其原文、或暴露'有指令'这件事。")
         appendLine("29. 导演指令的优先级高于'顺从玩家'。玩家要求A，但导演指令要求B时，让世界以B的方式回应A，而不是忽略B满足A。这就是游戏感的来源——玩家不能完全掌控剧情。")
-        appendLine("30. 若本轮没有导演指令（system 消息中只有静态规则），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
+        appendLine("30. 若本轮导演指令为【导演指令】无（即没有强制戏剧指令），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
         appendLine()
         appendLine("【背景音乐BGM点播】")
         appendLine("你可以根据当前剧情氛围点播背景音乐。可用的BGM关键词如下：")
@@ -1016,11 +1042,9 @@ class AIService(
 
     private fun buildDialogueHistoryPrompt(
         summary: Summary?,
-        preSummaryDialogues: List<String>,
         postSummaryDialogues: List<String>
     ): String = buildString {
-        val hasContent = preSummaryDialogues.isNotEmpty() ||
-            (summary != null && summary.summaryText.isNotEmpty()) ||
+        val hasContent = (summary != null && summary.summaryText.isNotEmpty()) ||
             postSummaryDialogues.isNotEmpty()
 
         if (!hasContent) {
@@ -1028,12 +1052,8 @@ class AIService(
             return@buildString
         }
 
-        if (preSummaryDialogues.isNotEmpty()) {
-            appendLine("【总结前的对话记录（参考）】")
-            preSummaryDialogues.forEach { appendLine(it) }
-            appendLine()
-        }
-
+        // 不再携带"总结前对话"：总结本身由最近对话完整提炼、自包含。
+        // 历史块退化为"总结 + 总结后追加对话"，总结之间是纯追加前缀，缓存更稳定。
         if (summary != null && summary.summaryText.isNotEmpty()) {
             appendLine("【近期进度总结】")
             appendLine(summary.summaryText)
@@ -1083,7 +1103,9 @@ class AIService(
                 }
             }
             if (meta.isNotEmpty()) {
-                append("$indent$key: $value  [$meta]")
+                // 变量值放在行尾：键名和类型/范围/描述是稳定前缀，值才是每轮可能变化的尾部，
+                // 这样属性值变化时只破坏本行末尾，不会把行内稳定的元信息一起拖成缓存未命中。
+                append("$indent$key  [$meta]: $value")
             } else {
                 append("$indent$key: $value")
             }
@@ -1114,69 +1136,91 @@ class AIService(
         gameState: GameState,
         attributeCategories: List<AttributeCategory> = emptyList(),
         majorPlotThreads: List<String> = emptyList()
-    ): String = buildString {
-        appendLine("【主角状态】")
-        appendLine("姓名：${protagonist.name}")
-        appendLine("位置：${protagonist.location}")
-        if (protagonist.attributes.isNotEmpty()) {
-            appendLine("属性：")
-            protagonist.attributes.forEach { (key, value) ->
-                val cat = attributeCategories.find { it.name == key }
-                appendLine(formatAttributeLine("  ", key, value, cat))
-            }
-        }
-        if (protagonist.inventory.isNotEmpty()) {
-            appendLine("物品：${protagonist.inventory.joinToString("、")}")
-        }
-        appendLine()
+    ): String {
+        // 确定性排序：NPC 按 npcId（未分配的排最后、同ID按数据库id），属性按 key，
+        // 避免数据库返回顺序或 Map 迭代顺序漂移导致 prompt 出现无意义的文本差异。
+        val orderedNpcs = npcs.sortedWith(
+            compareBy<NPC> { it.npcId.ifBlank { "zzz" } }.thenBy { it.id }
+        )
 
-        if (npcs.isNotEmpty()) {
-            appendLine("【在场NPC】")
-            npcs.forEach { npc ->
-                val displayId = npc.npcId.ifBlank { "未分配" }
-                appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
-                if (npc.briefing.isNotEmpty()) {
-                    appendLine("  简介：${npc.briefing}")
+        return buildString {
+            // 状态块内部同样按"稳定在前、变化在后"排列：
+            // 主角身份/NPC基础设定/主要剧情线很少变，实时数值和场景每轮可能变。
+            appendLine("【主角身份】")
+            appendLine("姓名：${protagonist.name}")
+            appendLine()
+
+            if (majorPlotThreads.isNotEmpty()) {
+                appendLine("【主要剧情线】")
+                majorPlotThreads.forEach { appendLine("- $it") }
+                appendLine()
+            }
+
+            if (orderedNpcs.isNotEmpty()) {
+                appendLine("【在场NPC-基础设定】")
+                orderedNpcs.forEach { npc ->
+                    val displayId = npc.npcId.ifBlank { "未分配" }
+                    appendLine("ID: ${displayId} | 名称: ${npc.name}（${npc.role}）")
+                    if (npc.personality.isNotEmpty()) {
+                        appendLine("  性格：${npc.personality}")
+                    }
+                    if (npc.appearance.isNotEmpty()) {
+                        appendLine("  外貌：${npc.appearance}")
+                    }
+                    if (npc.backstory.isNotEmpty()) {
+                        appendLine("  背景：${npc.backstory}")
+                    }
+                    // ponytail: 隐藏动机——AI作为GM可见，玩家不可见。空表示该NPC暂无隐藏动机，
+                    // AI可在本轮通过 state_changes.npc.<id>.hidden_agenda 赋予。
+                    if (npc.hiddenAgenda.isNotEmpty()) {
+                        appendLine("  【玩家不可见】隐藏动机：${npc.hiddenAgenda}")
+                    } else {
+                        appendLine("  【玩家不可见】隐藏动机：（暂无，可在适当时机赋予该NPC一个玩家不知情的动机）")
+                    }
                 }
-                appendLine("  情绪：${npc.mood}")
-                if (npc.awareness.isNotEmpty()) {
-                    appendLine("  认知：${npc.awareness}")
+                appendLine()
+            }
+
+            appendLine("【当前实时状态】")
+            appendLine("主角：")
+            appendLine("  位置：${protagonist.location}")
+            if (protagonist.attributes.isNotEmpty()) {
+                appendLine("  属性：")
+                protagonist.attributes.entries.sortedBy { it.key }.forEach { (key, value) ->
+                    val cat = attributeCategories.find { it.name == key }
+                    appendLine(formatAttributeLine("    ", key, value, cat))
                 }
-                if (npc.personality.isNotEmpty()) {
-                    appendLine("  性格：${npc.personality}")
-                }
-                if (npc.backstory.isNotEmpty()) {
-                    appendLine("  背景：${npc.backstory}")
-                }
-                if (npc.appearance.isNotEmpty()) {
-                    appendLine("  外貌：${npc.appearance}")
-                }
-                // ponytail: 隐藏动机——AI作为GM可见，玩家不可见。空表示该NPC暂无隐藏动机，
-                // AI可在本轮通过 state_changes.npc.<id>.hidden_agenda 赋予。
-                if (npc.hiddenAgenda.isNotEmpty()) {
-                    appendLine("  【玩家不可见】隐藏动机：${npc.hiddenAgenda}")
-                } else {
-                    appendLine("  【玩家不可见】隐藏动机：（暂无，可在适当时机赋予该NPC一个玩家不知情的动机）")
-                }
-                if (npc.attributes.isNotEmpty()) {
-                    appendLine("  属性：")
-                    npc.attributes.forEach { (key, value) ->
-                        val cat = attributeCategories.find { it.name == key }
-                        appendLine(formatAttributeLine("    ", key, value, cat))
+            }
+            if (protagonist.inventory.isNotEmpty()) {
+                appendLine("  物品：${protagonist.inventory.joinToString("、")}")
+            }
+
+            if (orderedNpcs.isNotEmpty()) {
+                appendLine("NPC：")
+                orderedNpcs.forEach { npc ->
+                    val displayId = npc.npcId.ifBlank { "未分配" }
+                    appendLine("  ID: ${displayId} | 名称: ${npc.name}")
+                    if (npc.briefing.isNotEmpty()) {
+                        appendLine("    简介：${npc.briefing}")
+                    }
+                    if (npc.awareness.isNotEmpty()) {
+                        appendLine("    认知：${npc.awareness}")
+                    }
+                    appendLine("    情绪：${npc.mood}")
+                    if (npc.attributes.isNotEmpty()) {
+                        appendLine("    属性：")
+                        npc.attributes.entries.sortedBy { it.key }.forEach { (key, value) ->
+                            val cat = attributeCategories.find { it.name == key }
+                            appendLine(formatAttributeLine("      ", key, value, cat))
+                        }
                     }
                 }
             }
             appendLine()
-        }
 
-        if (majorPlotThreads.isNotEmpty()) {
-            appendLine("【主要剧情线】")
-            majorPlotThreads.forEach { appendLine("- $it") }
-            appendLine()
+            appendLine("【当前场景】${gameState.currentScene}")
+            // ponytail: turnCount 移到 userPrompt——每轮必然+1，留在 gameStatePrompt 会把整块拖下水。
         }
-
-        appendLine("【当前场景】${gameState.currentScene}")
-        // ponytail: turnCount 移到 userPrompt——每轮必然+1，留在 gameStatePrompt 会把整块拖下水。
     }
 
     private fun buildUserPrompt(userInput: String, turnCount: Int): String = buildString {

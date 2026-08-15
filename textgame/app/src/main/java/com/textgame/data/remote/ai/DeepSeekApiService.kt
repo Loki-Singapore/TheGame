@@ -75,5 +75,9 @@ data class Usage(
     @SerializedName("completion_tokens")
     val completionTokens: Int = 0,
     @SerializedName("total_tokens")
-    val totalTokens: Int = 0
+    val totalTokens: Int = 0,
+    @SerializedName("prompt_cache_hit_tokens")
+    val promptCacheHitTokens: Int = 0,
+    @SerializedName("prompt_cache_miss_tokens")
+    val promptCacheMissTokens: Int = 0
 )

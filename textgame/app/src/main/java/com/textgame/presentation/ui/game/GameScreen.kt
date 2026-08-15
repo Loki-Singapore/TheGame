@@ -432,7 +432,7 @@ fun DialogueItem(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "${usage.totalTokens} tokens",
+                                text = "${usage.totalTokens} tokens · 缓存命中 ${usage.promptCacheHitTokens}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
