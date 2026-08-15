@@ -14,6 +14,7 @@ import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.model.TokenUsage
+import com.textgame.i18n.Lang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -123,7 +124,8 @@ class AIService(
         )
         val userPrompt = buildUserPrompt(userInput, gameState.turnCount)
         // 空指令也保留一个内容恒定的 system 槽位，让相邻轮次的消息数量与角色序列不变。
-        val directivePrompt = directorDirective?.takeIf { it.isNotBlank() } ?: "【导演指令】无"
+        val directivePrompt = directorDirective?.takeIf { it.isNotBlank() }
+            ?: Lang.text("【Director Directive】None", "【导演指令】无")
 
         return buildList {
             add(ChatMessage(role = "system", content = systemPrompt))
@@ -601,7 +603,13 @@ class AIService(
         val prompt = buildSummaryPrompt(worldSetting, recentDialogues, protagonist, npcs, gameState, previousSummary)
 
         val messages = listOf(
-            ChatMessage(role = "system", content = "你是一个游戏剧情总结助手，负责总结近期游戏进展。"),
+            ChatMessage(
+                role = "system",
+                content = Lang.text(
+                    "You are a game story summarizer. Summarize the recent game progress in English.",
+                    "你是一个游戏剧情总结助手，负责总结近期游戏进展。"
+                )
+            ),
             ChatMessage(role = "user", content = prompt)
         )
 
@@ -649,6 +657,11 @@ class AIService(
     private fun buildImagePromptSystemPrompt(style: ImagePromptStyle): String = buildString {
         appendLine("你是一位资深 AI 绘画提示词工程师，专精于把文字冒险游戏的场景叙述转化为工程化、结构化的文生图提示词。")
         appendLine("你输出的不是文学描写，而是给文生图模型执行的指令——简洁、具体、可执行。")
+        if (Lang.isEnglish()) {
+            appendLine()
+            appendLine("【LANGUAGE REQUIREMENT - MUST FOLLOW】")
+            appendLine("The player is using the English version of the app. Output the entire image prompt in English, including every block tag and every phrase.")
+        }
         appendLine()
         appendLine("【工作流程 - 仅内部思考，绝不输出】")
         appendLine("1. 场景解读：主体是谁/什么？情绪基调（紧张/温馨/肃杀/怅惘/壮阔/诡异）？戏剧高潮？画面焦点？")
@@ -657,7 +670,10 @@ class AIService(
         appendLine("4. 风格收敛：在指定风格下挑选最贴合情绪的具体亚风格与技法，贯穿始终。")
         appendLine()
         appendLine("【输出格式 - 必须严格遵守】")
-        appendLine("输出中文提示词，按以下分块结构输出，每块以 [标签] 开头，块内用名词短语和短句，逗号或顿号分隔，禁止整段散文叙事：")
+        appendLine(Lang.text(
+            "Output the image prompt in English, structured in the blocks below. Start each block with a [tag] and use noun phrases and short clauses separated by commas; never write prose paragraphs:",
+            "输出中文提示词，按以下分块结构输出，每块以 [标签] 开头，块内用名词短语和短句，逗号或顿号分隔，禁止整段散文叙事："
+        ))
         appendLine()
         appendLine("[主体] 人物/物体的外貌、姿态、表情、穿着、材质")
         appendLine("[环境] 场景空间、物体陈设、空间纵深")
@@ -755,12 +771,16 @@ class AIService(
         appendLine("【本回合场景叙述】")
         appendLine(sceneNarrative.ifBlank { gameState?.currentScene ?: "无" })
         appendLine()
-        appendLine("请基于以上信息，先按系统提示词的工作流程内部思考，然后按 [主体][环境][构图][光影][色彩][材质细节][风格][负面] 八个分块输出工程化中文生图提示词。块内用名词短语和短句，禁止散文叙事。效果参数必须从本场景具体内容推导，不要套用固定修饰词。")
+        appendLine(Lang.text(
+            "Based on the information above, think through the workflow in the system prompt first, then output the engineering-grade image prompt in English using the eight blocks [Subject][Environment][Composition][Lighting][Color][Material Details][Style][Negative]. Use noun phrases and short clauses inside each block; no prose narration. Derive the effect parameters from the specific content of this scene; do not reuse a fixed set of modifiers.",
+            "请基于以上信息，先按系统提示词的工作流程内部思考，然后按 [主体][环境][构图][光影][色彩][材质细节][风格][负面] 八个分块输出工程化中文生图提示词。块内用名词短语和短句，禁止散文叙事。效果参数必须从本场景具体内容推导，不要套用固定修饰词。"
+        ))
     }
 
     suspend fun generateWorldFromPrompt(userPrompt: String): GeneratedWorldResult {
         val systemPrompt = """
             你是一个文字冒险游戏的世界生成助手。用户用一句话描述想要的游戏世界，你需要生成完整的游戏设定。
+            ${if (Lang.isEnglish()) "【LANGUAGE REQUIREMENT - MUST FOLLOW】\nThe player is using the English version of the app. ALL generated content in the JSON — gameName, protagonistName, worldName, worldType, worldDescription, timeSetting, locationSetting, socialStructure, specialRules, lore, protagonistBackground, worldHistory, attribute names/descriptions/enumOptions/column names, and NPC names/roles/personality/backstory/mood/appearance — MUST be written in English. Keep the JSON field names exactly as shown below." else ""}
             你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown标记。
 
             JSON格式如下：
@@ -817,7 +837,13 @@ class AIService(
 
         val messages = listOf(
             ChatMessage(role = "system", content = systemPrompt),
-            ChatMessage(role = "user", content = "我想要一个这样的游戏世界：$userPrompt")
+            ChatMessage(
+                role = "user",
+                content = Lang.text(
+                    "I want a game world like this: $userPrompt",
+                    "我想要一个这样的游戏世界：$userPrompt"
+                )
+            )
         )
 
         val request = buildDialogueRequest(messages, useJsonFormat = true, maxTokens = 8000)
@@ -836,6 +862,11 @@ class AIService(
         worldSetting: WorldSetting,
         backgroundSetting: BackgroundSetting
     ): String = buildString {
+        if (Lang.isEnglish()) {
+            appendLine("【LANGUAGE REQUIREMENT - MUST FOLLOW】")
+            appendLine("The player is using the English version of the app. ALL player-facing creative content in your response — narrative, dialogue, choices, new NPC names/roles/briefing/personality/backstory/mood/appearance, new attribute names/descriptions/enumOptions/column names, world rule content, and the bgm keyword — MUST be written in English. Keep all JSON field names exactly as shown below.")
+            appendLine()
+        }
         appendLine("【输出格式要求】")
         appendLine("你必须以纯JSON格式回复，不要有任何额外的文字说明或markdown代码块标记。你的整个回复内容必须是一个可以直接被解析的JSON对象。")
         appendLine()
@@ -956,11 +987,11 @@ class AIService(
         appendLine("27. 仅当某NPC的动机在本轮发生了实质性变化时，才在 state_changes.npc.<id>.hidden_agenda 中返回完整的新动机内容（完整替换，不是增量；例如从'复仇'变成'动摇'变成'和解'）。动机无变化时必须省略该字段——省略即保留原值，不要为填充而重复返回当前动机。")
         appendLine("28. 【导演指令】本轮你可能会在玩家输入之前收到一条 system 消息，内容是导演给你的强制戏剧指令（例如'让某NPC撒个谎''引入时间压力''埋一个伏笔'）。你必须把该指令编织进本轮 narrative 中，但绝不能在回复中提及该指令的存在、引用其原文、或暴露'有指令'这件事。")
         appendLine("29. 导演指令的优先级高于'顺从玩家'。玩家要求A，但导演指令要求B时，让世界以B的方式回应A，而不是忽略B满足A。这就是游戏感的来源——玩家不能完全掌控剧情。")
-        appendLine("30. 若本轮导演指令为【导演指令】无（即没有强制戏剧指令），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
+        appendLine("30. 若本轮导演指令为无指令占位（即没有强制戏剧指令），正常推进剧情即可，但仍要让NPC的 hidden_agenda 在其言行中有所体现。")
         appendLine()
         appendLine("【背景音乐BGM点播】")
         appendLine("你可以根据当前剧情氛围点播背景音乐。可用的BGM关键词如下：")
-        val bgmKeywords = BgmTrack.availableKeywords()
+        val bgmKeywords = BgmTrack.availableKeywords(Lang.isEnglish())
         bgmKeywords.forEach { keyword ->
             appendLine("- $keyword")
         }
@@ -1431,7 +1462,8 @@ class AIService(
 
             GeneratedWorldResult(
                 gameName = json.get("gameName")?.asString ?: "",
-                protagonistName = json.get("protagonistName")?.asString ?: "主角",
+                protagonistName = json.get("protagonistName")?.asString
+                    ?: Lang.text("Hero", "主角"),
                 worldName = json.get("worldName")?.asString ?: "",
                 worldType = json.get("worldType")?.asString ?: "",
                 worldDescription = json.get("worldDescription")?.asString ?: "",

@@ -3,6 +3,7 @@ package com.textgame.presentation.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.textgame.R
 import com.textgame.data.audio.BgmTrack
 import com.textgame.data.audio.BgmManager
 import com.textgame.di.AppModule
@@ -17,6 +18,7 @@ import com.textgame.domain.model.Summary
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
 import com.textgame.domain.usecase.SendDialogueUseCase
+import com.textgame.i18n.Lang
 import com.textgame.service.StreamingForegroundService
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,7 +100,10 @@ class GameViewModel(
                 )
 
                 if (gameState != null && gameState.turnCount == 0 && dialogueDisplays.isEmpty()) {
-                    val narrative = "游戏开始！你发现自己身处${gameState.currentScene}..."
+                    val narrative = context.getString(
+                        R.string.game_start_narrative,
+                        gameState.currentScene
+                    )
                     val newId = saveDialogueToDb(
                         speaker = "",
                         content = narrative,
@@ -127,7 +132,7 @@ class GameViewModel(
             _uiState.value = _uiState.value.copy(isStreaming = true, isLoading = true, error = null, choices = emptyList())
 
             val playerId = saveDialogueToDb(
-                speaker = "你",
+                speaker = context.getString(R.string.speaker_you),
                 content = input,
                 isPlayer = true,
                 isNarrative = false,
@@ -167,7 +172,8 @@ class GameViewModel(
                         is StreamingChunk.DialogueDelta -> {
                             currentDialogue.append(chunk.delta)
                             if (dialogueId == 0L) {
-                                val npcName = _uiState.value.npcs.firstOrNull()?.name ?: "NPC"
+                                val npcName = _uiState.value.npcs.firstOrNull()?.name
+                                    ?: context.getString(R.string.fallback_npc)
                                 dialogueId = saveDialogueToDb(
                                     speaker = npcName,
                                     content = currentDialogue.toString(),
@@ -188,7 +194,10 @@ class GameViewModel(
                         }
                         is StreamingChunk.Error -> {
                             _uiState.value = _uiState.value.copy(
-                                error = "AI响应错误: ${chunk.message}",
+                                error = context.getString(
+                                    R.string.game_error_ai_response,
+                                    chunk.message
+                                ),
                                 isStreaming = false,
                                 isLoading = false
                             )
@@ -197,7 +206,7 @@ class GameViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "AI响应错误: ${e.message}",
+                    error = context.getString(R.string.game_error_ai_response, e.message),
                     isStreaming = false,
                     isLoading = false
                 )
@@ -227,7 +236,8 @@ class GameViewModel(
         }
 
         if (response.dialogue.isNotEmpty()) {
-            val npcName = _uiState.value.npcs.firstOrNull()?.name ?: "NPC"
+            val npcName = _uiState.value.npcs.firstOrNull()?.name
+                ?: context.getString(R.string.fallback_npc)
             if (existingDialogueId == 0L) {
                 val newId = saveDialogueToDb(
                     speaker = npcName,
@@ -289,7 +299,7 @@ class GameViewModel(
     private fun addPlayerDialogueWithId(id: Long, content: String, turnNumber: Int) {
         val newDialogues = _uiState.value.dialogues + DialogueDisplay(
             id = id,
-            speaker = "你",
+            speaker = context.getString(R.string.speaker_you),
             content = content,
             isPlayer = true,
             turnNumber = turnNumber
@@ -343,7 +353,9 @@ class GameViewModel(
                 val updatedDialogues = _uiState.value.dialogues.filter { it.id != dialogueId }
                 _uiState.value = _uiState.value.copy(dialogues = updatedDialogues)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "删除失败: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = context.getString(R.string.game_error_delete_failed, e.message)
+                )
             }
         }
     }
@@ -357,7 +369,9 @@ class GameViewModel(
                 }
                 _uiState.value = _uiState.value.copy(dialogues = updatedDialogues)
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(error = "修改失败: ${e.message}")
+                _uiState.value = _uiState.value.copy(
+                    error = context.getString(R.string.game_error_edit_failed, e.message)
+                )
             }
         }
     }
@@ -369,31 +383,73 @@ class GameViewModel(
                 val log = StringBuilder()
 
                 if (turnNumber <= 0) {
-                    _uiState.value = _uiState.value.copy(error = "该轮次无法重新生成")
+                    _uiState.value = _uiState.value.copy(
+                        error = context.getString(R.string.game_error_cannot_regenerate_turn)
+                    )
                     return@launch
                 }
 
                 val allDialoguesBefore = gameRepository.getDialogues(sessionId)
-                log.appendLine("【传入turnNumber】$turnNumber")
-                log.appendLine("【删除前对话】" + allDialoguesBefore.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+                log.appendLine(Lang.text("【turnNumber】$turnNumber", "【传入turnNumber】$turnNumber"))
+                log.appendLine(
+                    Lang.text("【Dialogues before delete】", "【删除前对话】") +
+                        allDialoguesBefore.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" }
+                )
 
                 val snapshot = gameRepository.getStateSnapshotByTurn(sessionId, turnNumber)
                 if (snapshot == null) {
-                    log.appendLine("【快照】NULL - 找不到turn ${turnNumber}的快照")
+                    log.appendLine(
+                        Lang.text(
+                            "【Snapshot】NULL - no snapshot for turn $turnNumber",
+                            "【快照】NULL - 找不到turn ${turnNumber}的快照"
+                        )
+                    )
                     _uiState.value = _uiState.value.copy(
-                        error = "找不到轮次 $turnNumber 的状态快照，无法重新生成",
+                        error = context.getString(
+                            R.string.game_error_snapshot_missing,
+                            turnNumber
+                        ),
                         debugLog = log.toString()
                     )
                     return@launch
                 }
-                log.appendLine("【快照】找到 turnCount=${snapshot.gameState?.turnCount} npc数=${snapshot.npcs.size} 主角=${snapshot.protagonist?.name}")
-                log.appendLine("【快照主角属性】${snapshot.protagonist?.attributes}")
-                snapshot.npcs.forEach { log.appendLine("  快照NPC: ${it.name} attrs=${it.attributes}") }
+                log.appendLine(
+                    Lang.text(
+                        "【Snapshot】found turnCount=${snapshot.gameState?.turnCount} npcCount=${snapshot.npcs.size} protagonist=${snapshot.protagonist?.name}",
+                        "【快照】找到 turnCount=${snapshot.gameState?.turnCount} npc数=${snapshot.npcs.size} 主角=${snapshot.protagonist?.name}"
+                    )
+                )
+                log.appendLine(
+                    Lang.text(
+                        "【Snapshot protagonist attributes】${snapshot.protagonist?.attributes}",
+                        "【快照主角属性】${snapshot.protagonist?.attributes}"
+                    )
+                )
+                snapshot.npcs.forEach {
+                    log.appendLine(
+                        Lang.text(
+                            "  Snapshot NPC: ${it.name} attrs=${it.attributes}",
+                            "  快照NPC: ${it.name} attrs=${it.attributes}"
+                        )
+                    )
+                }
 
                 val protagBefore = gameRepository.getProtagonist(sessionId)
                 val npcsBefore = gameRepository.getNPCList(sessionId)
-                log.appendLine("【恢复前DB主角属性】${protagBefore?.attributes}")
-                npcsBefore.forEach { log.appendLine("  恢复前DB NPC: ${it.name} attrs=${it.attributes}") }
+                log.appendLine(
+                    Lang.text(
+                        "【DB protagonist before restore】${protagBefore?.attributes}",
+                        "【恢复前DB主角属性】${protagBefore?.attributes}"
+                    )
+                )
+                npcsBefore.forEach {
+                    log.appendLine(
+                        Lang.text(
+                            "  DB NPC before restore: ${it.name} attrs=${it.attributes}",
+                            "  恢复前DB NPC: ${it.name} attrs=${it.attributes}"
+                        )
+                    )
+                }
 
                 snapshot.protagonist?.let { gameRepository.saveProtagonist(it) }
                 snapshot.gameState?.let { gs ->
@@ -415,8 +471,20 @@ class GameViewModel(
 
                 val protagAfter = gameRepository.getProtagonist(sessionId)
                 val npcsAfter = gameRepository.getNPCList(sessionId)
-                log.appendLine("【恢复后DB主角属性】${protagAfter?.attributes}")
-                npcsAfter.forEach { log.appendLine("  恢复后DB NPC: ${it.name} attrs=${it.attributes}") }
+                log.appendLine(
+                    Lang.text(
+                        "【DB protagonist after restore】${protagAfter?.attributes}",
+                        "【恢复后DB主角属性】${protagAfter?.attributes}"
+                    )
+                )
+                npcsAfter.forEach {
+                    log.appendLine(
+                        Lang.text(
+                            "  DB NPC after restore: ${it.name} attrs=${it.attributes}",
+                            "  恢复后DB NPC: ${it.name} attrs=${it.attributes}"
+                        )
+                    )
+                }
 
                 val pendingPrompt = allDialoguesBefore
                     .filter { it.turnNumber == turnNumber && it.isPlayer }
@@ -427,7 +495,10 @@ class GameViewModel(
                 gameRepository.deleteStateSnapshotsFromTurn(sessionId, turnNumber)
 
                 val dbDialogues = gameRepository.getDialogues(sessionId)
-                log.appendLine("【删除后对话】" + dbDialogues.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" })
+                log.appendLine(
+                    Lang.text("【Dialogues after delete】", "【删除后对话】") +
+                        dbDialogues.joinToString { "t${it.turnNumber}(${if (it.isPlayer) "P" else if (it.isNarrative) "N" else "D"})" }
+                )
 
                 val dialogueDisplays = dbDialogues.map {
                     DialogueDisplay(
@@ -452,8 +523,11 @@ class GameViewModel(
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    error = "重新生成失败: ${e.message}",
-                    debugLog = "异常: ${e.stackTraceToString()}"
+                    error = context.getString(R.string.game_error_regenerate_failed, e.message),
+                    debugLog = Lang.text(
+                        "Exception: ${e.stackTraceToString()}",
+                        "异常: ${e.stackTraceToString()}"
+                    )
                 )
             }
         }

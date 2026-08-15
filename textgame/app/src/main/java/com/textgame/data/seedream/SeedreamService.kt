@@ -10,6 +10,7 @@ import com.textgame.data.remote.seedream.SeedreamApiService
 import com.textgame.data.remote.seedream.SeedreamImageRequest
 import com.textgame.data.remote.seedream.SeedreamImageResponse
 import com.textgame.data.remote.seedream.SequentialImageOptions
+import com.textgame.i18n.Lang
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -91,7 +92,12 @@ class SeedreamService(
     fun isConfigured(): Boolean = apiKey.isNotBlank() && baseUrl.isNotBlank()
 
     suspend fun generateImage(prompt: String, size: String): GeneratedImageResult = withContext(Dispatchers.IO) {
-        val service = apiService ?: throw IllegalStateException("生图服务未配置，请在 AI 设置中填写生图 API Key 与域名")
+        val service = apiService ?: throw IllegalStateException(
+            Lang.text(
+                "Image service is not configured. Fill in the image API key and domain in AI Settings.",
+                "生图服务未配置，请在 AI 设置中填写生图 API Key 与域名"
+            )
+        )
         // 5.0 Pro（dola-seedream-5-0-pro-260628）不支持 sequential_image_generation 参数，
         // 传了会报 HTTP 400；其他模型可传 disabled（仅生成 1 张）
         val isProModel = model.contains("5-0-pro", ignoreCase = true)
@@ -110,15 +116,27 @@ class SeedreamService(
                 e.response()?.errorBody()?.string()
             } catch (_: Exception) { null }
             throw IllegalStateException(
-                "生图请求失败：HTTP ${e.code()} ${e.message()}" +
-                    (errorBody?.let { "\n服务器响应：$it" } ?: ""),
+                Lang.text(
+                    "Image generation request failed: HTTP ${e.code()} ${e.message()}",
+                    "生图请求失败：HTTP ${e.code()} ${e.message()}"
+                ) + (errorBody?.let {
+                    "\n" + Lang.text("Server response: $it", "服务器响应：$it")
+                } ?: ""),
                 e
             )
         } catch (e: Exception) {
-            throw IllegalStateException("生图请求失败：${e.message}", e)
+            throw IllegalStateException(
+                Lang.text(
+                    "Image generation request failed: ${e.message}",
+                    "生图请求失败：${e.message}"
+                ),
+                e
+            )
         }
         val first = response.data.firstOrNull()
-            ?: throw IllegalStateException("生图响应为空")
+            ?: throw IllegalStateException(
+                Lang.text("Image response is empty", "生图响应为空")
+            )
         GeneratedImageResult(
             url = first.url,
             base64 = first.b64Json,
@@ -145,12 +163,22 @@ class SeedreamService(
         val response = client.newCall(request).execute()
         if (!response.isSuccessful) {
             response.close()
-            throw IllegalStateException("下载图片失败：HTTP ${response.code}")
+            throw IllegalStateException(
+                Lang.text(
+                    "Failed to download image: HTTP ${response.code}",
+                    "下载图片失败：HTTP ${response.code}"
+                )
+            )
         }
         val bytes = response.body?.bytes()
             ?: run {
                 response.close()
-                throw IllegalStateException("下载图片失败：响应为空")
+                throw IllegalStateException(
+                    Lang.text(
+                        "Failed to download image: empty response",
+                        "下载图片失败：响应为空"
+                    )
+                )
             }
         response.close()
 
@@ -170,11 +198,15 @@ class SeedreamService(
             }
         }
         val uri = resolver.insert(collection, values)
-            ?: throw IllegalStateException("无法创建图库文件")
+            ?: throw IllegalStateException(
+                Lang.text("Unable to create gallery file", "无法创建图库文件")
+            )
         resolver.openOutputStream(uri)?.use { out ->
             out.write(bytes)
             out.flush()
-        } ?: throw IllegalStateException("无法写入图库文件")
+        } ?: throw IllegalStateException(
+            Lang.text("Unable to write gallery file", "无法写入图库文件")
+        )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             values.clear()
@@ -209,11 +241,15 @@ class SeedreamService(
             }
         }
         val uri = resolver.insert(collection, values)
-            ?: throw IllegalStateException("无法创建图库文件")
+            ?: throw IllegalStateException(
+                Lang.text("Unable to create gallery file", "无法创建图库文件")
+            )
         resolver.openOutputStream(uri)?.use { out ->
             out.write(bytes)
             out.flush()
-        } ?: throw IllegalStateException("无法写入图库文件")
+        } ?: throw IllegalStateException(
+            Lang.text("Unable to write gallery file", "无法写入图库文件")
+        )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             values.clear()

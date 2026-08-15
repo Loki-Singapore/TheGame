@@ -3,6 +3,7 @@ package com.textgame.domain.usecase
 import com.textgame.data.remote.ai.AIService
 import com.textgame.domain.model.Summary
 import com.textgame.domain.repository.GameRepository
+import com.textgame.i18n.Lang
 
 class GenerateSummaryUseCase(
     private val gameRepository: GameRepository,
@@ -68,8 +69,8 @@ class GenerateSummaryUseCase(
             .filter { it.turnNumber > lastSummarizedTurn }
             .map { dialogue ->
                 val prefix = when {
-                    dialogue.isNarrative -> "【旁白】"
-                    dialogue.isPlayer -> "【玩家】"
+                    dialogue.isNarrative -> Lang.text("【Narrator】", "【旁白】")
+                    dialogue.isPlayer -> Lang.text("【Player】", "【玩家】")
                     else -> "【${dialogue.speaker}】"
                 }
                 "$prefix${dialogue.content}"

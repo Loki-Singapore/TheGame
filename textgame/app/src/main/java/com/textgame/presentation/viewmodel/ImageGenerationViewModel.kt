@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.textgame.R
 import com.textgame.data.local.SettingsPreferences
 import com.textgame.data.remote.ai.ImagePromptStyle
 import com.textgame.data.seedream.SeedreamService
@@ -109,7 +110,10 @@ class ImageGenerationViewModel(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isGeneratingPrompt = false,
-                    error = "提示词生成失败：${e.message}"
+                    error = context.getString(
+                        R.string.img_error_prompt_generate_failed,
+                        e.message
+                    )
                 )
             }
         }
@@ -129,7 +133,9 @@ class ImageGenerationViewModel(
     /** 确认提示词，进入生图界面 */
     fun confirmPrompt() {
         if (_uiState.value.prompt.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "提示词不能为空")
+            _uiState.value = _uiState.value.copy(
+                error = context.getString(R.string.img_error_prompt_empty)
+            )
             return
         }
         // 切换模型时尺寸可能变化，刷新一次确保当前尺寸可用
@@ -147,7 +153,7 @@ class ImageGenerationViewModel(
         val service: SeedreamService = AppModule.getSeedreamService()
         if (!service.isConfigured()) {
             _uiState.value = _uiState.value.copy(
-                error = "生图服务未配置，请在 AI 设置中填写生图 API Key 与域名"
+                error = context.getString(R.string.img_error_service_not_configured)
             )
             return
         }
@@ -176,17 +182,21 @@ class ImageGenerationViewModel(
                 )
                 if (!result.hasUrl() && !result.hasBase64()) {
                     _uiState.value = _uiState.value.copy(
-                        error = "生图响应中未包含图片数据"
+                        error = context.getString(R.string.img_error_no_image_data)
                     )
                 } else if (bitmap == null) {
                     _uiState.value = _uiState.value.copy(
-                        error = "图片解码失败：URL=${result.url?.take(50)}, base64长度=${result.base64?.length}"
+                        error = context.getString(
+                            R.string.img_error_decode_failed,
+                            result.url?.take(50),
+                            result.base64?.length ?: 0
+                        )
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isGeneratingImage = false,
-                    error = e.message ?: "生图失败"
+                    error = e.message ?: context.getString(R.string.img_error_generate_failed)
                 )
             }
         }
@@ -223,7 +233,9 @@ class ImageGenerationViewModel(
         if (_uiState.value.isSaving) return
         val state = _uiState.value
         if (!state.hasImage()) {
-            _uiState.value = state.copy(error = "还没有可保存的图片")
+            _uiState.value = state.copy(
+                error = context.getString(R.string.img_error_no_saveable_image)
+            )
             return
         }
         _uiState.value = state.copy(isSaving = true, error = null, savedMessage = null)
@@ -242,16 +254,21 @@ class ImageGenerationViewModel(
                         base64 = state.imageBase64,
                         displayName = displayName
                     )
-                    else -> throw IllegalStateException("无可保存的图片数据")
+                    else -> throw IllegalStateException(
+                        context.getString(R.string.img_error_no_saveable_data)
+                    )
                 }
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    savedMessage = "图片已保存到相册 Pictures/TextGame/$displayName.png"
+                    savedMessage = context.getString(
+                        R.string.img_saved_message,
+                        displayName
+                    )
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    error = "保存失败：${e.message}"
+                    error = context.getString(R.string.img_error_save_failed, e.message)
                 )
             }
         }

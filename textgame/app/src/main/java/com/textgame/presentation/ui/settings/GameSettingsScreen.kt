@@ -43,12 +43,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.textgame.R
 import com.textgame.di.AppModule
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.model.NPC
@@ -288,15 +290,20 @@ fun GameSettingsScreen(sessionId: Long, onBack: () -> Unit) {
     )
     val uiState by viewModel.uiState.collectAsState(initial = GameSettingsUiState())
     var selectedTab by remember { mutableIntStateOf(0) }
-    val tabs = listOf("世界观", "背景", "主角", "NPC")
+    val tabs = listOf(
+        stringResource(R.string.gs_tab_world),
+        stringResource(R.string.gs_tab_background),
+        stringResource(R.string.gs_tab_protagonist),
+        stringResource(R.string.gs_tab_npc)
+    )
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("游戏设定") },
+                title = { Text(stringResource(R.string.gs_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
@@ -304,7 +311,7 @@ fun GameSettingsScreen(sessionId: Long, onBack: () -> Unit) {
                         viewModel.saveSettings()
                         onBack()
                     }) {
-                        Text("保存")
+                        Text(stringResource(R.string.save))
                     }
                 }
             )
@@ -404,13 +411,13 @@ fun WorldSettingSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("世界观设定", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.gs_world_section), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = worldSetting?.name ?: "",
                 onValueChange = onNameChange,
-                label = { Text("世界名称") },
+                label = { Text(stringResource(R.string.gs_world_name)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -419,7 +426,7 @@ fun WorldSettingSection(
             OutlinedTextField(
                 value = worldSetting?.worldType ?: "",
                 onValueChange = onTypeChange,
-                label = { Text("世界类型") },
+                label = { Text(stringResource(R.string.gs_world_type)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -428,7 +435,7 @@ fun WorldSettingSection(
             OutlinedTextField(
                 value = worldSetting?.description ?: "",
                 onValueChange = onDescriptionChange,
-                label = { Text("世界描述") },
+                label = { Text(stringResource(R.string.gs_world_description)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 5
@@ -443,9 +450,9 @@ fun WorldSettingSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("世界观细则", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.gs_world_rules), style = MaterialTheme.typography.titleMedium)
                 OutlinedButton(onClick = { showAddRuleDialog = true }) {
-                    Text("添加")
+                    Text(stringResource(R.string.gs_add))
                 }
             }
 
@@ -466,10 +473,10 @@ fun WorldSettingSection(
                         editingRuleId = rule.id
                         editingRuleContent = rule.content
                     }) {
-                        Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.primary)
                     }
                     IconButton(onClick = { onDeleteWorldRule(rule.id) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -477,7 +484,7 @@ fun WorldSettingSection(
 
             if (worldSetting?.worldRules.isNullOrEmpty()) {
                 Text(
-                    text = "暂无世界观细则",
+                    text = stringResource(R.string.gs_no_rules),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -519,24 +526,24 @@ fun AddWorldRuleDialog(
     var content by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加世界观细则") },
+        title = { Text(stringResource(R.string.gs_add_rule_title)) },
         text = {
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("规则内容") },
+                label = { Text(stringResource(R.string.gs_rule_content)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(content) }, enabled = content.isNotBlank()) {
-                Text("添加")
+                Text(stringResource(R.string.gs_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -551,24 +558,24 @@ fun EditWorldRuleDialog(
     var content by remember { mutableStateOf(initialContent) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑世界观细则") },
+        title = { Text(stringResource(R.string.gs_edit_rule_title)) },
         text = {
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("规则内容") },
+                label = { Text(stringResource(R.string.gs_rule_content)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(content) }, enabled = content.isNotBlank()) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -584,13 +591,13 @@ fun BackgroundSettingSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("背景设定", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.gs_background_section), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = backgroundSetting?.protagonistBackground ?: "",
                 onValueChange = onBackgroundChange,
-                label = { Text("主角背景") },
+                label = { Text(stringResource(R.string.gs_protagonist_background)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 4,
                 maxLines = 8
@@ -611,13 +618,13 @@ fun ProtagonistSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("主角属性", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.gs_protagonist_section), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = protagonist?.name ?: "",
                 onValueChange = onNameChange,
-                label = { Text("主角名称") },
+                label = { Text(stringResource(R.string.gs_protagonist_name)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -626,7 +633,7 @@ fun ProtagonistSection(
             OutlinedTextField(
                 value = protagonist?.location ?: "",
                 onValueChange = onLocationChange,
-                label = { Text("当前位置") },
+                label = { Text(stringResource(R.string.gs_current_location)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -634,7 +641,7 @@ fun ProtagonistSection(
             Divider()
             Spacer(modifier = Modifier.height(8.dp))
 
-            Text("属性", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.gs_attributes), style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
 
             protagonist?.attributes?.forEach { (key, value) ->
@@ -680,9 +687,9 @@ fun NPCSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("NPC: ${npc.name}", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.gs_npc_title, npc.name), style = MaterialTheme.typography.titleMedium)
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除")
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
                 }
             }
 
@@ -691,7 +698,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.name,
                 onValueChange = onNameChange,
-                label = { Text("名称") },
+                label = { Text(stringResource(R.string.gs_name)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -700,7 +707,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.role,
                 onValueChange = onRoleChange,
-                label = { Text("角色定位") },
+                label = { Text(stringResource(R.string.gs_role)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -709,7 +716,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.briefing,
                 onValueChange = onBriefingChange,
-                label = { Text("简介") },
+                label = { Text(stringResource(R.string.gs_brief)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 3
@@ -720,7 +727,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.mood,
                 onValueChange = onMoodChange,
-                label = { Text("当前情绪") },
+                label = { Text(stringResource(R.string.gs_mood)) },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -729,7 +736,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.awareness,
                 onValueChange = onAwarenessChange,
-                label = { Text("对主角的认知") },
+                label = { Text(stringResource(R.string.gs_awareness)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 3
@@ -740,7 +747,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.appearance,
                 onValueChange = onAppearanceChange,
-                label = { Text("外貌描述") },
+                label = { Text(stringResource(R.string.gs_appearance)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 4
@@ -751,7 +758,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.personality,
                 onValueChange = onPersonalityChange,
-                label = { Text("性格特点") },
+                label = { Text(stringResource(R.string.gs_personality)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 maxLines = 3
@@ -762,7 +769,7 @@ fun NPCSection(
             OutlinedTextField(
                 value = npc.backstory,
                 onValueChange = onBackstoryChange,
-                label = { Text("背景故事") },
+                label = { Text(stringResource(R.string.gs_backstory)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3,
                 maxLines = 6

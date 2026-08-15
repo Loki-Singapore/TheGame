@@ -15,6 +15,7 @@ import com.textgame.domain.model.TableColumnChange
 import com.textgame.domain.model.WorldRule
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.repository.GameRepository
+import com.textgame.i18n.Lang
 
 class UpdateStateUseCase(
     private val gameRepository: GameRepository
@@ -55,8 +56,8 @@ class UpdateStateUseCase(
                         val newNpc = NPC(
                             sessionId = sessionId,
                             npcId = npcId,
-                            name = npcChanges.name ?: "未知角色",
-                            role = npcChanges.role ?: "未知",
+                            name = npcChanges.name ?: Lang.text("Unknown Character", "未知角色"),
+                            role = npcChanges.role ?: Lang.text("Unknown", "未知"),
                             briefing = npcChanges.briefing ?: "",
                             attributes = npcChanges.attributes ?: emptyMap(),
                             mood = npcChanges.mood ?: "neutral",

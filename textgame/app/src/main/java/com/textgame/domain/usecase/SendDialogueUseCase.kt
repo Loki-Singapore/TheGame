@@ -8,6 +8,7 @@ import com.textgame.domain.model.DirectorDirective
 import com.textgame.domain.model.StateSnapshot
 import com.textgame.domain.model.StreamingChunk
 import com.textgame.domain.repository.GameRepository
+import com.textgame.i18n.Lang
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
@@ -176,8 +177,8 @@ class SendDialogueUseCase(
     ): List<String> {
         val formatDialogue: (Dialogue) -> String = { dialogue ->
             val prefix = when {
-                dialogue.isNarrative -> "【旁白】"
-                dialogue.isPlayer -> "【玩家】"
+                dialogue.isNarrative -> Lang.text("【Narrator】", "【旁白】")
+                dialogue.isPlayer -> Lang.text("【Player】", "【玩家】")
                 else -> "【${dialogue.speaker}】"
             }
             "$prefix${dialogue.content}"

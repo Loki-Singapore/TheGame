@@ -1,8 +1,11 @@
 package com.textgame.presentation.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.textgame.R
 import com.textgame.di.AppModule
+import com.textgame.i18n.Lang
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.NPC
 import com.textgame.domain.model.WorldSetting
@@ -16,7 +19,7 @@ import kotlinx.coroutines.launch
 
 data class CreatorUiState(
     val gameName: String = "",
-    val protagonistName: String = "主角",
+    val protagonistName: String = Lang.text("Hero", "主角"),
     val worldName: String = "",
     val worldType: String = "",
     val worldDescription: String = "",
@@ -38,26 +41,26 @@ data class CreatorUiState(
     companion object {
         fun defaultAttributes(): List<AttributeCategory> = listOf(
             AttributeCategory(
-                name = "生命值",
+                name = Lang.text("Health", "生命值"),
                 type = com.textgame.domain.model.AttributeType.NUMERIC,
                 minValue = 0.0,
                 maxValue = 100.0,
                 defaultValue = 100.0,
-                description = "角色的生命值"
+                description = Lang.text("The character's health points", "角色的生命值")
             ),
             AttributeCategory(
-                name = "金币",
+                name = Lang.text("Coins", "金币"),
                 type = com.textgame.domain.model.AttributeType.NUMERIC,
                 minValue = 0.0,
                 maxValue = 999999.0,
                 defaultValue = 100.0,
-                description = "游戏货币"
+                description = Lang.text("In-game currency", "游戏货币")
             )
         )
     }
 }
 
-class CreatorViewModel : ViewModel() {
+class CreatorViewModel(application: Application) : AndroidViewModel(application) {
     private val createGameUseCase: CreateGameUseCase = AppModule.getCreateGameUseCase()
     private val aiService = AppModule.getAIService()
 
@@ -173,7 +176,9 @@ class CreatorViewModel : ViewModel() {
     fun generateWorldFromPrompt() {
         val prompt = _uiState.value.generationPrompt
         if (prompt.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "请输入一句话描述")
+            _uiState.value = _uiState.value.copy(
+                error = getApplication<Application>().getString(R.string.error_please_enter_world_prompt)
+            )
             return
         }
 
@@ -184,7 +189,10 @@ class CreatorViewModel : ViewModel() {
                 if (result.error != null) {
                     _uiState.value = _uiState.value.copy(
                         isGenerating = false,
-                        error = "生成失败: ${result.error}"
+                        error = getApplication<Application>().getString(
+                            R.string.error_generate_world_failed,
+                            result.error
+                        )
                     )
                     return@launch
                 }
@@ -209,7 +217,10 @@ class CreatorViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isGenerating = false,
-                    error = "生成失败: ${e.message}"
+                    error = getApplication<Application>().getString(
+                        R.string.error_generate_world_failed,
+                        e.message
+                    )
                 )
             }
         }
@@ -217,7 +228,9 @@ class CreatorViewModel : ViewModel() {
 
     fun createGame() {
         if (_uiState.value.gameName.isBlank()) {
-            _uiState.value = _uiState.value.copy(error = "请输入游戏名称")
+            _uiState.value = _uiState.value.copy(
+                error = getApplication<Application>().getString(R.string.error_please_enter_game_name)
+            )
             return
         }
 
@@ -271,7 +284,10 @@ class CreatorViewModel : ViewModel() {
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isCreating = false,
-                    error = "创建失败: ${e.message}"
+                    error = getApplication<Application>().getString(
+                        R.string.error_create_game_failed,
+                        e.message
+                    )
                 )
             }
         }

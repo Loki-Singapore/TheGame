@@ -1,6 +1,279 @@
 <resources>
-    <string name="app_name">文字游戏引擎</string>
-    <string name="streaming_notification_channel_name">流式响应服务</string>
-    <string name="streaming_notification_channel_desc">AI 流式生成回复期间保持网络连接</string>
-    <string name="streaming_notification_text">AI 正在生成回复…</string>
+    <string name="app_name">Text Game Engine</string>
+    <string name="streaming_notification_channel_name">Streaming response service</string>
+    <string name="streaming_notification_channel_desc">Keeps the network connection alive while the AI streams its response</string>
+    <string name="streaming_notification_text">AI is generating a response…</string>
+
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="add">Add</string>
+    <string name="copy">Copy</string>
+    <string name="collapse">Collapse</string>
+    <string name="expand">Expand</string>
+    <string name="send">Send</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    <!-- Main menu -->
+    <string name="menu_music_on_cd">Turn music on</string>
+    <string name="menu_music_off_cd">Turn music off</string>
+    <string name="menu_tagline">Create your own adventure story</string>
+    <string name="menu_new_game">New Game</string>
+    <string name="menu_continue_game">Continue</string>
+    <string name="menu_no_saves">No saves yet</string>
+    <string name="menu_ai_settings">AI Settings</string>
+    <string name="menu_turn_count">Turn %1$d</string>
+    <string name="menu_delete_confirm_title">Confirm Delete</string>
+    <string name="menu_delete_confirm_message">Delete the save \"%1$s\"? This cannot be undone.</string>
+
+    <!-- Creator -->
+    <string name="creator_title">Create a New World</string>
+    <string name="creator_step_basic">Basics</string>
+    <string name="creator_step_world">World</string>
+    <string name="creator_step_attributes">Attributes</string>
+    <string name="creator_step_npcs">NPCs</string>
+    <string name="creator_step_done">Done</string>
+    <string name="creator_previous">Previous</string>
+    <string name="creator_next">Next</string>
+    <string name="creator_creating">Creating…</string>
+    <string name="creator_create">Create Game</string>
+    <string name="creator_created_title">Creation Succeeded</string>
+    <string name="creator_created_message">Your game world has been created!</string>
+    <string name="creator_start_game">Start Game</string>
+    <string name="creator_add_attribute_title">Add Attribute</string>
+    <string name="creator_edit_attribute_title">Edit Attribute</string>
+    <string name="creator_one_sentence_title">Create a World in One Sentence</string>
+    <string name="creator_one_sentence_desc">Describe the game world you want and the AI will generate every setting automatically</string>
+    <string name="creator_generation_placeholder">e.g. A steampunk detective story where the protagonist is a private investigator</string>
+    <string name="creator_generating">Generating…</string>
+    <string name="creator_ai_generate">AI Generate</string>
+    <string name="creator_or_manual">Or fill in manually</string>
+    <string name="creator_game_name">Game Name</string>
+    <string name="creator_protagonist_name">Protagonist Name</string>
+    <string name="creator_world_name">World Name</string>
+    <string name="creator_world_description">World Description</string>
+    <string name="creator_time_setting">Time Setting</string>
+    <string name="creator_start_location">Starting Location</string>
+    <string name="creator_social_structure">Social Structure</string>
+    <string name="creator_lore">World History / Lore</string>
+    <string name="creator_protagonist_background">Protagonist Background</string>
+    <string name="creator_world_history">World History</string>
+    <string name="creator_world_type">World Type</string>
+    <string-array name="creator_world_types">
+        <item>Fantasy</item>
+        <item>Sci-Fi</item>
+        <item>Modern</item>
+        <item>Post-Apocalyptic</item>
+        <item>Wuxia</item>
+        <item>Urban</item>
+        <item>Historical</item>
+        <item>Other</item>
+    </string-array>
+    <string name="creator_special_rules">Special Rules</string>
+    <string name="creator_add_rule">Add a rule</string>
+    <string name="creator_attribute_categories">Attribute Categories</string>
+    <string name="creator_add_attribute">Add Attribute</string>
+    <string name="creator_no_attributes">No attributes yet. Tap the button above to add one.</string>
+    <string name="creator_attr_type_default">Type: %1$s | Default: %2$s</string>
+    <string name="creator_attr_type_table">Type: TABLE | Columns: %1$s</string>
+    <string name="creator_npc_personality">Personality: %1$s</string>
+    <string name="creator_initial_npcs">Initial NPCs</string>
+    <string name="creator_add_npc">Add NPC</string>
+    <string name="creator_no_npcs">No NPCs yet. Tap the button above to add one.</string>
+    <string name="creator_overview_title">Game Settings Overview</string>
+    <string name="creator_overview_game_name">Game Name: %1$s</string>
+    <string name="creator_overview_protagonist">Protagonist: %1$s</string>
+    <string name="creator_overview_world">World: %1$s</string>
+    <string name="creator_overview_type">Type: %1$s</string>
+    <string name="creator_overview_attr_count">Attributes: %1$d</string>
+    <string name="creator_overview_npc_count">NPCs: %1$d</string>
+    <string name="creator_overview_cta">Tap \"Create Game\" to start your adventure!</string>
+    <string name="creator_attr_name">Attribute Name</string>
+    <string name="creator_attr_min_value">Minimum</string>
+    <string name="creator_attr_max_value">Maximum</string>
+    <string name="creator_attr_default_numeric">Default Value (number)</string>
+    <string name="creator_enum_options_comma">Options (comma-separated)</string>
+    <string name="creator_enum_default_must_be_option">Default must be one of: %1$s</string>
+    <string name="creator_enum_default_from_options">Default (must be one of the options above)</string>
+    <string name="creator_attr_default_value">Default Value</string>
+    <string name="creator_attr_description">Description (how the attribute affects the game)</string>
+    <string name="creator_attr_type">Attribute Type</string>
+    <string name="creator_attr_type_numeric">NUMERIC (number)</string>
+    <string name="creator_attr_type_boolean">BOOLEAN (true/false)</string>
+    <string name="creator_attr_type_enum">ENUM (options)</string>
+    <string name="creator_attr_type_text">TEXT (free text)</string>
+    <string name="creator_attr_type_table">TABLE (structured list)</string>
+    <string name="creator_table_title">Table Column Definitions</string>
+    <string name="creator_table_hint">Each row is one record. Column types can only be NUMERIC/BOOLEAN/ENUM/TEXT.</string>
+    <string name="creator_table_no_columns">No columns yet. Tap the button below to add at least one.</string>
+    <string name="creator_column_name">Column Name</string>
+    <string name="creator_delete_column">Delete column</string>
+    <string name="creator_column_type">Column Type</string>
+    <string name="creator_add_column">Add Column</string>
+    <string name="creator_default_column_name">Column %1$d</string>
+    <string name="creator_npc_name">NPC Name</string>
+    <string name="creator_npc_role">Role / Occupation</string>
+    <string name="creator_npc_brief">Brief (one sentence)</string>
+    <string name="creator_npc_personality_field">Personality</string>
+    <string name="creator_npc_backstory">Backstory</string>
+    <string name="creator_add_npc_title">Add NPC</string>
+    <string name="creator_edit_npc_title">Edit NPC</string>
+
+    <!-- AI settings -->
+    <string name="settings_title">AI Settings</string>
+    <string name="settings_api_connection">API Connection</string>
+    <string name="settings_api_key">API Key</string>
+    <string name="settings_api_address">API Address</string>
+    <string name="settings_model_name">Model Name</string>
+    <string name="settings_choose">Choose</string>
+    <string name="settings_dialogue_params">Dialogue Parameters</string>
+    <string name="settings_thinking_mode">Thinking Mode</string>
+    <string name="settings_thinking_mode_desc">The model thinks before answering, improving quality (temperature is not supported)</string>
+    <string name="settings_thinking_effort">Reasoning Effort: %1$s</string>
+    <string name="settings_thinking_effort_desc">Controls reasoning depth. \"high\" suits most scenes, \"max\" suits complex decisions.</string>
+    <string name="settings_temperature_desc">Controls response randomness. Higher values are more creative.</string>
+    <string name="settings_max_tokens_desc">Maximum length of a single response</string>
+    <string name="settings_limit">Limit: %1$d</string>
+    <string name="settings_summary_params">Summary Parameters</string>
+    <string name="settings_summary_thinking_desc">Summaries use the same reasoning effort for better quality</string>
+    <string name="settings_summary_temperature_desc">A lower value is recommended for accurate summaries</string>
+    <string name="settings_summary_max_tokens_desc">Maximum length of the summary</string>
+    <string name="settings_image_section">Image Generation</string>
+    <string name="settings_image_section_desc">Uses BytePlus Seedream models to generate an image of the current scene. The image API key is separate from the dialogue AI key.</string>
+    <string name="settings_image_api_key">Image API Key</string>
+    <string name="settings_image_api_key_placeholder">Volcengine / BytePlus ARK API Key</string>
+    <string name="settings_image_domain">Image API Domain</string>
+    <string name="settings_image_model">Image Model</string>
+    <string name="settings_save">Save Settings</string>
+    <string name="settings_restore_defaults">Restore Defaults</string>
+    <string name="settings_saved_title">Saved</string>
+    <string name="settings_saved_message">AI settings have been saved and applied.</string>
+    <string name="settings_choose_model">Choose Model</string>
+    <string name="settings_choose_image_model">Choose Image Model</string>
+
+    <!-- Game screen -->
+    <string name="game_title_fallback">In Game</string>
+    <string name="game_turn_count">Turn %1$d</string>
+    <string name="game_status">Status</string>
+    <string name="game_settings">Settings</string>
+    <string name="game_debug_info">Debug Info</string>
+    <string name="game_copy">Copy</string>
+    <string name="game_collapse">Collapse</string>
+    <string name="game_expand">Expand</string>
+    <string name="game_choices_count">You can choose (%1$d)</string>
+    <string name="game_free_input_hint">…or type your own action</string>
+    <string name="game_input_placeholder">Type your action or dialogue…</string>
+    <string name="game_send">Send</string>
+    <string name="game_tokens_line">%1$d tokens · cache hit %2$d</string>
+    <string name="game_regenerate_from_turn">Regenerate from this turn</string>
+    <string name="game_generate_scene_image">Generate scene image</string>
+    <string name="game_status_panel_title">Status Panel</string>
+    <string name="game_turn_scene">Turn %1$d · %2$s</string>
+    <string name="game_section_protagonist">Protagonist</string>
+    <string name="game_section_present_characters">Characters Present (%1$d)</string>
+    <string name="game_section_world_rules">World Rules (%1$d)</string>
+    <string name="game_section_progress_summary">Progress Summary</string>
+    <string name="game_close_panel">Close Panel</string>
+    <string name="game_attributes">Attributes</string>
+    <string name="game_items">Items</string>
+    <string name="game_mood">Mood:</string>
+    <string name="game_no_columns_defined">(no columns defined)</string>
+    <string name="game_empty_table">(empty table)</string>
+    <string name="game_start_narrative">The game begins! You find yourself at %1$s…</string>
+    <string name="speaker_you">You</string>
+    <string name="fallback_npc">NPC</string>
+    <string name="fallback_initial_scene">Initial Scene</string>
+    <string name="fallback_unknown_npc">Unknown Character</string>
+    <string name="fallback_unknown_role">Unknown</string>
+
+    <!-- Game errors -->
+    <string name="error_please_enter_world_prompt">Please enter a one-sentence description</string>
+    <string name="error_generate_world_failed">Generation failed: %1$s</string>
+    <string name="error_please_enter_game_name">Please enter a game name</string>
+    <string name="error_create_game_failed">Creation failed: %1$s</string>
+    <string name="game_error_ai_response">AI response error: %1$s</string>
+    <string name="game_error_delete_failed">Delete failed: %1$s</string>
+    <string name="game_error_edit_failed">Edit failed: %1$s</string>
+    <string name="game_error_cannot_regenerate_turn">This turn cannot be regenerated</string>
+    <string name="game_error_snapshot_missing">No state snapshot found for turn %1$d, cannot regenerate</string>
+    <string name="game_error_regenerate_failed">Regenerate failed: %1$s</string>
+
+    <!-- Image generation -->
+    <string name="img_title_prompt">Image Prompt</string>
+    <string name="img_title_generate">Generate Scene Image</string>
+    <string name="img_style_hint">Choose an art style. The AI generates a prompt from the current scene, which you can regenerate or edit.</string>
+    <string name="img_style_section">Art Style</string>
+    <string name="img_generating">Generating</string>
+    <string name="img_generate_prompt">Generate Prompt</string>
+    <string name="img_regenerate_prompt">Regenerate</string>
+    <string name="img_prompt_label">Image Prompt (editable)</string>
+    <string name="img_prompt_placeholder">Tap the button above to let the AI generate one, or type a prompt here…</string>
+    <string name="img_confirm_prompt">Confirm Prompt &amp; Generate</string>
+    <string name="img_model_label">Model: %1$s</string>
+    <string name="img_prompt_preview">Prompt: %1$s</string>
+    <string name="img_size_section">Image Size</string>
+    <string name="img_generating_image">Generating…</string>
+    <string name="img_generate_image">Generate Image</string>
+    <string name="img_slow_hint">Image is being generated. The 5.0 Pro model may take 3–5 minutes, please be patient…</string>
+    <string name="img_result_title">Result</string>
+    <string name="img_result_hint">Tap the image to view fullscreen with pinch-to-zoom</string>
+    <string name="img_generated_cd">Generated image</string>
+    <string name="img_revised_prompt">AI revised prompt: %1$s</string>
+    <string name="img_saving">Saving…</string>
+    <string name="img_save_local">Save Locally</string>
+    <string name="img_edit_prompt">Edit Prompt</string>
+    <string name="img_regenerate">Regenerate</string>
+    <string name="preview_close">Close preview</string>
+    <string name="preview_fullscreen_cd">Generated image (fullscreen preview)</string>
+    <string name="preview_hint">Pinch to zoom · Double-tap to switch · Tap to close</string>
+    <string name="img_style_realistic">Realistic</string>
+    <string name="img_style_anime">Anime</string>
+    <string name="img_error_prompt_generate_failed">Prompt generation failed: %1$s</string>
+    <string name="img_error_prompt_empty">Prompt cannot be empty</string>
+    <string name="img_error_service_not_configured">Image service is not configured. Fill in the image API key and domain in AI Settings.</string>
+    <string name="img_error_no_image_data">Image response contains no image data</string>
+    <string name="img_error_decode_failed">Failed to decode image: URL=%1$s, base64 length=%2$d</string>
+    <string name="img_error_generate_failed">Image generation failed</string>
+    <string name="img_error_no_saveable_image">No image available to save yet</string>
+    <string name="img_error_no_saveable_data">No image data available to save</string>
+    <string name="img_saved_message">Image saved to gallery Pictures/TextGame/%1$s.png</string>
+    <string name="img_error_save_failed">Save failed: %1$s</string>
+
+    <!-- Game settings -->
+    <string name="gs_title">Game Settings</string>
+    <string name="gs_tab_world">World</string>
+    <string name="gs_tab_background">Background</string>
+    <string name="gs_tab_protagonist">Protagonist</string>
+    <string name="gs_tab_npc">NPC</string>
+    <string name="gs_world_section">World Settings</string>
+    <string name="gs_world_name">World Name</string>
+    <string name="gs_world_type">World Type</string>
+    <string name="gs_world_description">World Description</string>
+    <string name="gs_world_rules">World Rules</string>
+    <string name="gs_add">Add</string>
+    <string name="gs_no_rules">No world rules yet</string>
+    <string name="gs_add_rule_title">Add World Rule</string>
+    <string name="gs_rule_content">Rule Content</string>
+    <string name="gs_edit_rule_title">Edit World Rule</string>
+    <string name="gs_background_section">Background Settings</string>
+    <string name="gs_protagonist_background">Protagonist Background</string>
+    <string name="gs_protagonist_section">Protagonist Attributes</string>
+    <string name="gs_protagonist_name">Protagonist Name</string>
+    <string name="gs_current_location">Current Location</string>
+    <string name="gs_attributes">Attributes</string>
+    <string name="gs_npc_title">NPC: %1$s</string>
+    <string name="gs_name">Name</string>
+    <string name="gs_role">Role</string>
+    <string name="gs_brief">Brief</string>
+    <string name="gs_mood">Current Mood</string>
+    <string name="gs_awareness">Awareness of Protagonist</string>
+    <string name="gs_appearance">Appearance</string>
+    <string name="gs_personality">Personality</string>
+    <string name="gs_backstory">Backstory</string>
 </resources>

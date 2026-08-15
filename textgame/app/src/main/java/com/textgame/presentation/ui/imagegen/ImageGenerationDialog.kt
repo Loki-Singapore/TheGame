@@ -49,10 +49,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.textgame.R
 import com.textgame.data.local.SettingsPreferences
 import com.textgame.data.remote.ai.ImagePromptStyle
 import com.textgame.presentation.viewmodel.ImageGenPhase
@@ -109,12 +111,12 @@ fun ImageGenerationDialog(
                     Icon(Icons.Default.Image, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (uiState.phase == ImageGenPhase.PROMPT_INPUT) "生图提示词" else "生成场景图片",
+                        text = stringResource(if (uiState.phase == ImageGenPhase.PROMPT_INPUT) R.string.img_title_prompt else R.string.img_title_generate),
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "关闭")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -143,6 +145,14 @@ fun ImageGenerationDialog(
     }
 }
 
+@Composable
+private fun imageStyleLabel(style: ImagePromptStyle): String {
+    return when (style) {
+        ImagePromptStyle.REALISTIC -> stringResource(R.string.img_style_realistic)
+        ImagePromptStyle.ANIME -> stringResource(R.string.img_style_anime)
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PromptInputPhase(
@@ -151,13 +161,13 @@ private fun PromptInputPhase(
 ) {
     Spacer(modifier = Modifier.height(8.dp))
     Text(
-        "选择画面风格，由 AI 根据当前场景生成生图提示词，可重新生成或手动编辑后再继续。",
+        stringResource(R.string.img_style_hint),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Spacer(modifier = Modifier.height(12.dp))
 
-    Text("画面风格", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.img_style_section), style = MaterialTheme.typography.titleMedium)
     Spacer(modifier = Modifier.height(8.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -167,7 +177,7 @@ private fun PromptInputPhase(
             FilterChip(
                 selected = uiState.style == style,
                 onClick = { viewModel.updateStyle(style) },
-                label = { Text(style.label) },
+                label = { Text(imageStyleLabel(style)) },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -191,11 +201,11 @@ private fun PromptInputPhase(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("生成中")
+                Text(stringResource(R.string.img_generating))
             } else {
                 Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(if (uiState.prompt.isBlank()) "生成提示词" else "重新生成")
+                Text(stringResource(if (uiState.prompt.isBlank()) R.string.img_generate_prompt else R.string.img_regenerate_prompt))
             }
         }
     }
@@ -205,11 +215,11 @@ private fun PromptInputPhase(
     OutlinedTextField(
         value = uiState.prompt,
         onValueChange = { viewModel.updatePrompt(it) },
-        label = { Text("生图提示词（可编辑）") },
+        label = { Text(stringResource(R.string.img_prompt_label)) },
         modifier = Modifier.fillMaxWidth(),
         minLines = 4,
         maxLines = 8,
-        placeholder = { Text("点击上方按钮由 AI 生成，或在此手动输入提示词...") }
+        placeholder = { Text(stringResource(R.string.img_prompt_placeholder)) }
     )
 
     uiState.error?.let { error ->
@@ -228,7 +238,7 @@ private fun PromptInputPhase(
         enabled = uiState.prompt.isNotBlank() && !uiState.isGeneratingPrompt,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text("确认提示词，进入生图")
+        Text(stringResource(R.string.img_confirm_prompt))
     }
 }
 
@@ -253,13 +263,13 @@ private fun ImageGenerationPhase(
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Text(
-                "模型：$currentModel",
+                stringResource(R.string.img_model_label, currentModel),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                "提示词：${uiState.prompt}",
+                stringResource(R.string.img_prompt_preview, uiState.prompt),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 4
             )
@@ -269,7 +279,7 @@ private fun ImageGenerationPhase(
     Spacer(modifier = Modifier.height(12.dp))
 
     // 尺寸选择
-    Text("图片尺寸", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.img_size_section), style = MaterialTheme.typography.titleMedium)
     Spacer(modifier = Modifier.height(8.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -299,9 +309,9 @@ private fun ImageGenerationPhase(
                 color = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("生图中...")
+            Text(stringResource(R.string.img_generating_image))
         } else {
-            Text("生成图片")
+            Text(stringResource(R.string.img_generate_image))
         }
     }
 
@@ -309,7 +319,7 @@ private fun ImageGenerationPhase(
     if (uiState.isGeneratingImage) {
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "图片生成中，5.0 Pro 模型可能需要 3-5 分钟，请耐心等待…",
+            text = stringResource(R.string.img_slow_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -327,10 +337,10 @@ private fun ImageGenerationPhase(
     // 图片预览块：点击触发全屏预览（由父级 ImageGenerationDialog 管理）
     if (previewModel != null) {
         Spacer(modifier = Modifier.height(12.dp))
-        Text("生成结果", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.img_result_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            "点击图片可全屏查看，支持双指缩放",
+            stringResource(R.string.img_result_hint),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -344,7 +354,7 @@ private fun ImageGenerationPhase(
         ) {
             AsyncImage(
                 model = previewModel,
-                contentDescription = "生成的图片",
+                contentDescription = stringResource(R.string.img_generated_cd),
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -354,7 +364,7 @@ private fun ImageGenerationPhase(
     uiState.revisedPrompt?.let { revised ->
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            "AI 修订后的提示词：$revised",
+            stringResource(R.string.img_revised_prompt, revised),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -374,11 +384,11 @@ private fun ImageGenerationPhase(
                     color = MaterialTheme.colorScheme.onPrimary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("保存中...")
+                Text(stringResource(R.string.img_saving))
             } else {
                 Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("保存到本地")
+                Text(stringResource(R.string.img_save_local))
             }
         }
     }
@@ -403,14 +413,14 @@ private fun ImageGenerationPhase(
         ) {
             Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
-            Text("修改提示词")
+            Text(stringResource(R.string.img_edit_prompt))
         }
         OutlinedButton(
             onClick = { viewModel.generateImage() },
             enabled = !uiState.isGeneratingImage,
             modifier = Modifier.weight(1f)
         ) {
-            Text("重新生成")
+            Text(stringResource(R.string.img_regenerate))
         }
     }
 }

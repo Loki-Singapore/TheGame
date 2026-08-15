@@ -31,10 +31,12 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.textgame.R
 import kotlinx.coroutines.launch
 
 /**
@@ -121,7 +123,7 @@ fun ZoomableImagePreview(
             // 直接用 Bitmap 创建 painter，无网络加载，不会失败
             androidx.compose.foundation.Image(
                 bitmap = bitmap.asImageBitmap(),
-                contentDescription = "生成的图片（全屏预览）",
+                contentDescription = stringResource(R.string.preview_fullscreen_cd),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()
@@ -148,7 +150,7 @@ fun ZoomableImagePreview(
                         contentColor = Color.White
                     )
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "关闭预览")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.preview_close))
                 }
             }
 
@@ -164,7 +166,7 @@ fun ZoomableImagePreview(
                     color = Color.Black.copy(alpha = 0.5f)
                 ) {
                     Text(
-                        text = "双指缩放 · 双击切换 · 单击关闭",
+                        text = stringResource(R.string.preview_hint),
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
