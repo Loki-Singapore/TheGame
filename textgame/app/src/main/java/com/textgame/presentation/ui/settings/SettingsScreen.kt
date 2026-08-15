@@ -40,8 +40,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.textgame.R
 import com.textgame.data.local.SettingsPreferences
 import com.textgame.presentation.viewmodel.SettingsViewModel
 
@@ -66,10 +68,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI 设置") },
+                title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -83,7 +85,7 @@ fun SettingsScreen(
                 .padding(16.dp)
         ) {
             // === API 连接设置 ===
-            Text("API 连接", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_api_connection), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
@@ -100,7 +102,7 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = uiState.baseUrl,
                 onValueChange = viewModel::updateBaseUrl,
-                label = { Text("API 地址") },
+                label = { Text(stringResource(R.string.settings_api_address)) },
                 placeholder = { Text("https://api.deepseek.com/") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -111,14 +113,14 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = uiState.model,
                 onValueChange = viewModel::updateModel,
-                label = { Text("模型名称") },
+                label = { Text(stringResource(R.string.settings_model_name)) },
                 placeholder = { Text("deepseek-v4-flash") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 readOnly = false,
                 trailingIcon = {
                     TextButton(onClick = { showModelPicker = true }) {
-                        Text("选择")
+                        Text(stringResource(R.string.settings_choose))
                     }
                 }
             )
@@ -126,7 +128,7 @@ fun SettingsScreen(
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
             // === 对话参数 ===
-            Text("对话参数", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_dialogue_params), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             // 思考模式开关（仅 v4 模型支持）
@@ -138,9 +140,9 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("思考模式", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.settings_thinking_mode), style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            "启用后模型会先思考再回答，提升回答质量（不支持 temperature）",
+                            stringResource(R.string.settings_thinking_mode_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -163,11 +165,11 @@ fun SettingsScreen(
                     if (uiState.thinkingEnabled && supportsThinking) {
                         // 思考模式：显示思考强度选择
                         Text(
-                            "思考强度: ${uiState.reasoningEffort}",
+                            stringResource(R.string.settings_thinking_effort, uiState.reasoningEffort),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "控制模型思考的深度，high 适合一般场景，max 适合复杂决策",
+                            stringResource(R.string.settings_thinking_effort_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -191,7 +193,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "控制回复的随机性，值越高越有创意",
+                            stringResource(R.string.settings_temperature_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -208,7 +210,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "单次回复的最大长度",
+                        stringResource(R.string.settings_max_tokens_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -219,7 +221,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        text = "上限: ${uiState.dialogueMaxTokensLimit}",
+                        text = stringResource(R.string.settings_limit, uiState.dialogueMaxTokensLimit),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -229,7 +231,7 @@ fun SettingsScreen(
             Divider(modifier = Modifier.padding(vertical = 16.dp))
 
             // === 总结参数 ===
-            Text("总结参数", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_summary_params), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(8.dp))
 
             Card(
@@ -242,11 +244,11 @@ fun SettingsScreen(
                     if (uiState.thinkingEnabled && supportsThinking) {
                         // 思考模式：显示思考强度选择
                         Text(
-                            "思考强度: ${uiState.reasoningEffort}",
+                            stringResource(R.string.settings_thinking_effort, uiState.reasoningEffort),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "总结时使用相同思考强度，提升总结质量",
+                            stringResource(R.string.settings_summary_thinking_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -270,7 +272,7 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "总结生成时建议使用较低值以保持准确性",
+                            stringResource(R.string.settings_summary_temperature_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -287,7 +289,7 @@ fun SettingsScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        "总结内容的最大长度",
+                        stringResource(R.string.settings_summary_max_tokens_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -298,7 +300,7 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text(
-                        text = "上限: ${uiState.summaryMaxTokensLimit}",
+                        text = stringResource(R.string.settings_limit, uiState.summaryMaxTokensLimit),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -308,10 +310,10 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // === 生图设置 ===
-            Text("生图设置", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.settings_image_section), style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                "使用 BytePlus Seedream 系列模型生成当前场景图片。API Key 与对话 AI 的 API Key 相互独立。",
+                stringResource(R.string.settings_image_section_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -320,8 +322,8 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = uiState.imageApiKey,
                 onValueChange = viewModel::updateImageApiKey,
-                label = { Text("生图 API Key") },
-                placeholder = { Text("火山引擎 / BytePlus ARK API Key") },
+                label = { Text(stringResource(R.string.settings_image_api_key)) },
+                placeholder = { Text(stringResource(R.string.settings_image_api_key_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -331,7 +333,7 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = uiState.imageBaseUrl,
                 onValueChange = viewModel::updateImageBaseUrl,
-                label = { Text("生图 API 域名") },
+                label = { Text(stringResource(R.string.settings_image_domain)) },
                 placeholder = { Text("ark.ap-southeast.bytepluses.com") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -342,13 +344,13 @@ fun SettingsScreen(
             OutlinedTextField(
                 value = uiState.imageModel,
                 onValueChange = viewModel::updateImageModel,
-                label = { Text("生图模型") },
+                label = { Text(stringResource(R.string.settings_image_model)) },
                 placeholder = { Text("doubao-seedream-4-0-250828") },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 trailingIcon = {
                     TextButton(onClick = { showImageModelPicker = true }) {
-                        Text("选择")
+                        Text(stringResource(R.string.settings_choose))
                     }
                 }
             )
@@ -362,7 +364,7 @@ fun SettingsScreen(
             ) {
                 Icon(Icons.Default.Save, contentDescription = null)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("保存设置")
+                Text(stringResource(R.string.settings_save))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -373,7 +375,7 @@ fun SettingsScreen(
             ) {
                 Icon(Icons.Default.Restore, contentDescription = null)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("恢复默认值")
+                Text(stringResource(R.string.settings_restore_defaults))
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -386,14 +388,14 @@ fun SettingsScreen(
                 showSavedDialog = false
                 onBack()
             },
-            title = { Text("保存成功") },
-            text = { Text("AI 设置已保存并生效。") },
+            title = { Text(stringResource(R.string.settings_saved_title)) },
+            text = { Text(stringResource(R.string.settings_saved_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     showSavedDialog = false
                     onBack()
                 }) {
-                    Text("确定")
+                    Text(stringResource(R.string.ok))
                 }
             }
         )
@@ -402,7 +404,7 @@ fun SettingsScreen(
     if (showModelPicker) {
         AlertDialog(
             onDismissRequest = { showModelPicker = false },
-            title = { Text("选择模型") },
+            title = { Text(stringResource(R.string.settings_choose_model)) },
             text = {
                 Column {
                     SettingsPreferences.PRESET_MODELS.forEach { model ->
@@ -420,7 +422,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showModelPicker = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -429,7 +431,7 @@ fun SettingsScreen(
     if (showImageModelPicker) {
         AlertDialog(
             onDismissRequest = { showImageModelPicker = false },
-            title = { Text("选择生图模型") },
+            title = { Text(stringResource(R.string.settings_choose_image_model)) },
             text = {
                 Column {
                     SettingsPreferences.IMAGE_PRESET_MODELS.forEach { model ->
@@ -447,7 +449,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showImageModelPicker = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

@@ -39,8 +39,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.textgame.R
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.AttributeType
 import com.textgame.domain.model.NPC
@@ -60,15 +63,15 @@ fun CreatorScreen(
     var showAttributeDialog by remember { mutableStateOf(false) }
     var showNPCDialog by remember { mutableStateOf(false) }
 
-    val steps = listOf("基本信息", "世界观", "角色属性", "NPC设置", "完成")
+    val steps = listOf(stringResource(R.string.creator_step_basic), stringResource(R.string.creator_step_world), stringResource(R.string.creator_step_attributes), stringResource(R.string.creator_step_npcs), stringResource(R.string.creator_step_done))
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("创建新世界") },
+                title = { Text(stringResource(R.string.creator_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 }
             )
@@ -128,7 +131,7 @@ fun CreatorScreen(
                         onClick = { currentStep-- },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("上一步")
+                        Text(stringResource(R.string.creator_previous))
                     }
                 }
                 if (currentStep < steps.size - 1) {
@@ -136,7 +139,7 @@ fun CreatorScreen(
                         onClick = { currentStep++ },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("下一步")
+                        Text(stringResource(R.string.creator_next))
                     }
                 } else {
                     Button(
@@ -144,7 +147,7 @@ fun CreatorScreen(
                         modifier = Modifier.weight(1f),
                         enabled = !uiState.isCreating
                     ) {
-                        Text(if (uiState.isCreating) "创建中..." else "创建游戏")
+                        Text(stringResource(if (uiState.isCreating) R.string.creator_creating else R.string.creator_create))
                     }
                 }
             }
@@ -162,11 +165,11 @@ fun CreatorScreen(
     uiState.createdSessionId?.let { sessionId ->
         AlertDialog(
             onDismissRequest = { },
-            title = { Text("创建成功") },
-            text = { Text("游戏世界已创建完成！") },
+            title = { Text(stringResource(R.string.creator_created_title)) },
+            text = { Text(stringResource(R.string.creator_created_message)) },
             confirmButton = {
                 TextButton(onClick = { onGameCreated(sessionId) }) {
-                    Text("开始游戏")
+                    Text(stringResource(R.string.creator_start_game))
                 }
             }
         )
@@ -175,8 +178,8 @@ fun CreatorScreen(
     if (showAttributeDialog) {
         AttributeDialog(
             initial = null,
-            title = "添加属性",
-            confirmText = "添加",
+            title = stringResource(R.string.creator_add_attribute_title),
+            confirmText = stringResource(R.string.add),
             onDismiss = { showAttributeDialog = false },
             onConfirm = { category ->
                 viewModel.addAttributeCategory(category)
@@ -209,13 +212,13 @@ fun BasicInfoStep(viewModel: CreatorViewModel) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "一句话生成世界",
+                text = stringResource(R.string.creator_one_sentence_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "描述你想要的游戏世界，AI会自动生成所有设定",
+                text = stringResource(R.string.creator_one_sentence_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -223,7 +226,7 @@ fun BasicInfoStep(viewModel: CreatorViewModel) {
             OutlinedTextField(
                 value = uiState.generationPrompt,
                 onValueChange = viewModel::updateGenerationPrompt,
-                label = { Text("例如：一个蒸汽朋克风格的侦探故事，主角是私家侦探") },
+                label = { Text(stringResource(R.string.creator_generation_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -233,20 +236,20 @@ fun BasicInfoStep(viewModel: CreatorViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !uiState.isGenerating && uiState.generationPrompt.isNotBlank()
             ) {
-                Text(if (uiState.isGenerating) "生成中..." else "AI生成")
+                Text(stringResource(if (uiState.isGenerating) R.string.creator_generating else R.string.creator_ai_generate))
             }
         }
     }
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    Text("或手动填写", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.creator_or_manual), style = MaterialTheme.typography.titleSmall)
     Spacer(modifier = Modifier.height(12.dp))
 
     OutlinedTextField(
         value = uiState.gameName,
         onValueChange = viewModel::updateGameName,
-        label = { Text("游戏名称") },
+        label = { Text(stringResource(R.string.creator_game_name)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -256,7 +259,7 @@ fun BasicInfoStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.protagonistName,
         onValueChange = viewModel::updateProtagonistName,
-        label = { Text("主角名称") },
+        label = { Text(stringResource(R.string.creator_protagonist_name)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -269,7 +272,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.worldName,
         onValueChange = viewModel::updateWorldName,
-        label = { Text("世界名称") },
+        label = { Text(stringResource(R.string.creator_world_name)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -283,7 +286,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.worldDescription,
         onValueChange = viewModel::updateWorldDescription,
-        label = { Text("世界描述") },
+        label = { Text(stringResource(R.string.creator_world_description)) },
         modifier = Modifier.fillMaxWidth().height(120.dp),
         maxLines = 5
     )
@@ -293,7 +296,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.timeSetting,
         onValueChange = viewModel::updateTimeSetting,
-        label = { Text("时间设定") },
+        label = { Text(stringResource(R.string.creator_time_setting)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -303,7 +306,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.locationSetting,
         onValueChange = viewModel::updateLocationSetting,
-        label = { Text("起始地点") },
+        label = { Text(stringResource(R.string.creator_start_location)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -313,7 +316,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.socialStructure,
         onValueChange = viewModel::updateSocialStructure,
-        label = { Text("社会结构") },
+        label = { Text(stringResource(R.string.creator_social_structure)) },
         modifier = Modifier.fillMaxWidth(),
         singleLine = true
     )
@@ -327,7 +330,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.lore,
         onValueChange = viewModel::updateLore,
-        label = { Text("世界观历史/Lore") },
+        label = { Text(stringResource(R.string.creator_lore)) },
         modifier = Modifier.fillMaxWidth().height(100.dp),
         maxLines = 4
     )
@@ -337,7 +340,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.protagonistBackground,
         onValueChange = viewModel::updateProtagonistBackground,
-        label = { Text("主角背景故事") },
+        label = { Text(stringResource(R.string.creator_protagonist_background)) },
         modifier = Modifier.fillMaxWidth().height(100.dp),
         maxLines = 4
     )
@@ -347,7 +350,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
     OutlinedTextField(
         value = uiState.worldHistory,
         onValueChange = viewModel::updateWorldHistory,
-        label = { Text("世界历史") },
+        label = { Text(stringResource(R.string.creator_world_history)) },
         modifier = Modifier.fillMaxWidth().height(100.dp),
         maxLines = 4
     )
@@ -358,7 +361,7 @@ fun WorldSettingStep(viewModel: CreatorViewModel) {
 fun WorldTypeDropdown(viewModel: CreatorViewModel) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.CreatorUiState())
     var expanded by remember { mutableStateOf(false) }
-    val worldTypes = listOf("奇幻", "科幻", "现代", "末日", "武侠", "都市", "历史", "其他")
+    val worldTypes = stringArrayResource(R.array.creator_world_types).toList()
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -368,7 +371,7 @@ fun WorldTypeDropdown(viewModel: CreatorViewModel) {
             value = uiState.worldType,
             onValueChange = { },
             readOnly = true,
-            label = { Text("世界类型") },
+            label = { Text(stringResource(R.string.creator_world_type)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor()
         )
@@ -394,7 +397,7 @@ fun SpecialRulesSection(viewModel: CreatorViewModel) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.CreatorUiState())
     var ruleText by remember { mutableStateOf("") }
 
-    Text("特殊规则", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.creator_special_rules), style = MaterialTheme.typography.titleSmall)
 
     Spacer(modifier = Modifier.height(8.dp))
 
@@ -405,7 +408,7 @@ fun SpecialRulesSection(viewModel: CreatorViewModel) {
         ) {
             Text("• $rule", modifier = Modifier.weight(1f))
             IconButton(onClick = { viewModel.removeSpecialRule(index) }) {
-                Icon(Icons.Default.Delete, contentDescription = "删除")
+                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete))
             }
         }
     }
@@ -416,7 +419,7 @@ fun SpecialRulesSection(viewModel: CreatorViewModel) {
         OutlinedTextField(
             value = ruleText,
             onValueChange = { ruleText = it },
-            placeholder = { Text("添加规则") },
+            placeholder = { Text(stringResource(R.string.creator_add_rule)) },
             modifier = Modifier.weight(1f),
             singleLine = true
         )
@@ -427,7 +430,7 @@ fun SpecialRulesSection(viewModel: CreatorViewModel) {
             },
             enabled = ruleText.isNotBlank()
         ) {
-            Icon(Icons.Default.Add, contentDescription = "添加")
+            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add))
         }
     }
 }
@@ -443,11 +446,11 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("角色属性类目", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.creator_attribute_categories), style = MaterialTheme.typography.titleMedium)
         TextButton(onClick = onAddAttribute) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.height(4.dp))
-            Text("添加属性")
+            Text(stringResource(R.string.creator_add_attribute))
         }
     }
 
@@ -455,7 +458,7 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
 
     if (uiState.attributeCategories.isEmpty()) {
         Text(
-            text = "暂无属性，点击上方按钮添加",
+            text = stringResource(R.string.creator_no_attributes),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -472,12 +475,12 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
                     Text(category.name, style = MaterialTheme.typography.titleSmall)
                     if (category.type == AttributeType.TABLE) {
                         Text(
-                            text = "类型: TABLE | 列: ${category.columns.joinToString(", ") { it.name }}",
+                            text = stringResource(R.string.creator_attr_type_table, category.columns.joinToString(", ") { it.name }),
                             style = MaterialTheme.typography.bodySmall
                         )
                     } else {
                         Text(
-                            text = "类型: ${category.type.name} | 默认值: ${category.defaultValue}",
+                            text = stringResource(R.string.creator_attr_type_default, category.type.name, category.defaultValue.toString()),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -493,10 +496,10 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
                     editingAttrIndex = index
                     editingAttr = category
                 }) {
-                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { viewModel.removeAttributeCategory(index) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -505,8 +508,8 @@ fun AttributeStep(viewModel: CreatorViewModel, onAddAttribute: () -> Unit) {
     editingAttr?.let { category ->
         AttributeDialog(
             initial = category,
-            title = "编辑属性",
-            confirmText = "保存",
+            title = stringResource(R.string.creator_edit_attribute_title),
+            confirmText = stringResource(R.string.save),
             onDismiss = {
                 editingAttr = null
                 editingAttrIndex = null
@@ -533,11 +536,11 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("初始NPC", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.creator_initial_npcs), style = MaterialTheme.typography.titleMedium)
         TextButton(onClick = onAddNPC) {
             Icon(Icons.Default.Add, contentDescription = null)
             Spacer(modifier = Modifier.height(4.dp))
-            Text("添加NPC")
+            Text(stringResource(R.string.creator_add_npc))
         }
     }
 
@@ -545,7 +548,7 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
 
     if (uiState.npcs.isEmpty()) {
         Text(
-            text = "暂无NPC，点击上方按钮添加",
+            text = stringResource(R.string.creator_no_npcs),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -567,7 +570,7 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
                     )
                     if (npc.personality.isNotEmpty()) {
                         Text(
-                            text = "性格: ${npc.personality}",
+                            text = stringResource(R.string.creator_npc_personality, npc.personality),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -576,10 +579,10 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
                     editingNpcIndex = index
                     editingNpc = npc
                 }) {
-                    Icon(Icons.Default.Edit, contentDescription = "编辑", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit), tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton(onClick = { viewModel.removeNPC(index) }) {
-                    Icon(Icons.Default.Delete, contentDescription = "删除", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.delete), tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -607,25 +610,25 @@ fun NPCStep(viewModel: CreatorViewModel, onAddNPC: () -> Unit) {
 fun FinalStep(viewModel: CreatorViewModel) {
     val uiState by viewModel.uiState.collectAsState(initial = com.textgame.presentation.viewmodel.CreatorUiState())
 
-    Text("游戏设置概览", style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.creator_overview_title), style = MaterialTheme.typography.titleLarge)
 
     Spacer(modifier = Modifier.height(16.dp))
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("游戏名称: ${uiState.gameName}")
-            Text("主角: ${uiState.protagonistName}")
-            Text("世界: ${uiState.worldName}")
-            Text("类型: ${uiState.worldType}")
-            Text("属性数量: ${uiState.attributeCategories.size}")
-            Text("NPC数量: ${uiState.npcs.size}")
+            Text(stringResource(R.string.creator_overview_game_name, uiState.gameName))
+            Text(stringResource(R.string.creator_overview_protagonist, uiState.protagonistName))
+            Text(stringResource(R.string.creator_overview_world, uiState.worldName))
+            Text(stringResource(R.string.creator_overview_type, uiState.worldType))
+            Text(stringResource(R.string.creator_overview_attr_count, uiState.attributeCategories.size))
+            Text(stringResource(R.string.creator_overview_npc_count, uiState.npcs.size))
         }
     }
 
     Spacer(modifier = Modifier.height(16.dp))
 
     Text(
-        text = "点击「创建游戏」开始你的冒险！",
+        text = stringResource(R.string.creator_overview_cta),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -665,7 +668,7 @@ fun AttributeDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("属性名称") },
+                    label = { Text(stringResource(R.string.creator_attr_name)) },
                     singleLine = true
                 )
 
@@ -681,14 +684,14 @@ fun AttributeDialog(
                             OutlinedTextField(
                                 value = minValue,
                                 onValueChange = { minValue = it },
-                                label = { Text("最小值") },
+                                label = { Text(stringResource(R.string.creator_attr_min_value)) },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
                             OutlinedTextField(
                                 value = maxValue,
                                 onValueChange = { maxValue = it },
-                                label = { Text("最大值") },
+                                label = { Text(stringResource(R.string.creator_attr_max_value)) },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true
                             )
@@ -697,7 +700,7 @@ fun AttributeDialog(
                         OutlinedTextField(
                             value = defaultValue,
                             onValueChange = { defaultValue = it },
-                            label = { Text("默认值（数字）") },
+                            label = { Text(stringResource(R.string.creator_attr_default_numeric)) },
                             singleLine = true
                         )
                     }
@@ -716,14 +719,14 @@ fun AttributeDialog(
                         OutlinedTextField(
                             value = enumOptionsText,
                             onValueChange = { enumOptionsText = it },
-                            label = { Text("可选项（用英文逗号分隔）") },
+                            label = { Text(stringResource(R.string.creator_enum_options_comma)) },
                             singleLine = true
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         val options = enumOptionsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                         if (options.isNotEmpty()) {
                             Text(
-                                text = "当前默认值需为可选项之一：${options.joinToString(" / ")}",
+                                text = stringResource(R.string.creator_enum_default_must_be_option, options.joinToString(" / ")),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -732,7 +735,7 @@ fun AttributeDialog(
                         OutlinedTextField(
                             value = defaultValue,
                             onValueChange = { defaultValue = it },
-                            label = { Text("默认值（需在上面的可选项中）") },
+                            label = { Text(stringResource(R.string.creator_enum_default_from_options)) },
                             singleLine = true
                         )
                     }
@@ -740,7 +743,7 @@ fun AttributeDialog(
                         OutlinedTextField(
                             value = defaultValue,
                             onValueChange = { defaultValue = it },
-                            label = { Text("默认值") },
+                            label = { Text(stringResource(R.string.creator_attr_default_value)) },
                             singleLine = true
                         )
                     }
@@ -757,7 +760,7 @@ fun AttributeDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("描述（属性如何影响游戏）") },
+                    label = { Text(stringResource(R.string.creator_attr_description)) },
                     modifier = Modifier.height(80.dp),
                     maxLines = 3
                 )
@@ -806,7 +809,7 @@ fun AttributeDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -825,7 +828,7 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
             value = attributeTypeLabel(selected),
             onValueChange = { },
             readOnly = true,
-            label = { Text("属性类型") },
+            label = { Text(stringResource(R.string.creator_attr_type)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor()
         )
@@ -846,12 +849,13 @@ fun AttributeTypeDropdown(selected: AttributeType, onSelected: (AttributeType) -
     }
 }
 
+@Composable
 private fun attributeTypeLabel(type: AttributeType): String = when (type) {
-    AttributeType.NUMERIC -> "NUMERIC（数值）"
-    AttributeType.BOOLEAN -> "BOOLEAN（布尔）"
-    AttributeType.ENUM -> "ENUM（枚举）"
-    AttributeType.TEXT -> "TEXT（文本）"
-    AttributeType.TABLE -> "TABLE（表格）"
+    AttributeType.NUMERIC -> stringResource(R.string.creator_attr_type_numeric)
+    AttributeType.BOOLEAN -> stringResource(R.string.creator_attr_type_boolean)
+    AttributeType.ENUM -> stringResource(R.string.creator_attr_type_enum)
+    AttributeType.TEXT -> stringResource(R.string.creator_attr_type_text)
+    AttributeType.TABLE -> stringResource(R.string.creator_attr_type_table)
 }
 
 /**
@@ -863,10 +867,10 @@ fun TableColumnsEditor(
     columns: List<TableColumn>,
     onColumnsChange: (List<TableColumn>) -> Unit
 ) {
-    Text("表格列定义", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.creator_table_title), style = MaterialTheme.typography.titleSmall)
     Spacer(modifier = Modifier.height(4.dp))
     Text(
-        text = "每行属性即一条记录，列类型只能是 NUMERIC/BOOLEAN/ENUM/TEXT",
+        text = stringResource(R.string.creator_table_hint),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
@@ -874,7 +878,7 @@ fun TableColumnsEditor(
 
     if (columns.isEmpty()) {
         Text(
-            text = "暂无列，点击下方按钮添加至少一列",
+            text = stringResource(R.string.creator_table_no_columns),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -892,14 +896,14 @@ fun TableColumnsEditor(
                                 it[index] = col.copy(name = newName)
                             })
                         },
-                        label = { Text("列名") },
+                        label = { Text(stringResource(R.string.creator_column_name)) },
                         modifier = Modifier.weight(1f),
                         singleLine = true
                     )
                     IconButton(onClick = {
                         onColumnsChange(columns.toMutableList().also { it.removeAt(index) })
                     }) {
-                        Icon(Icons.Default.Delete, contentDescription = "删除列", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.creator_delete_column), tint = MaterialTheme.colorScheme.error)
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
@@ -914,7 +918,7 @@ fun TableColumnsEditor(
                         value = col.type.name,
                         onValueChange = { },
                         readOnly = true,
-                        label = { Text("列类型") },
+                        label = { Text(stringResource(R.string.creator_column_type)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = colTypeExpanded) },
                         modifier = Modifier.fillMaxWidth().menuAnchor()
                     )
@@ -949,7 +953,7 @@ fun TableColumnsEditor(
                                 list[index] = col.copy(enumOptions = opts)
                             })
                         },
-                        label = { Text("可选项（英文逗号分隔）") },
+                        label = { Text(stringResource(R.string.creator_enum_options_comma)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -959,15 +963,16 @@ fun TableColumnsEditor(
     }
 
     Spacer(modifier = Modifier.height(4.dp))
+    val newColumnName = stringResource(R.string.creator_default_column_name, columns.size + 1)
     Button(
         onClick = {
-            onColumnsChange(columns + TableColumn(name = "列${columns.size + 1}", type = AttributeType.TEXT))
+            onColumnsChange(columns + TableColumn(name = newColumnName, type = AttributeType.TEXT))
         },
         modifier = Modifier.fillMaxWidth()
     ) {
         Icon(Icons.Default.Add, contentDescription = null)
         Spacer(modifier = Modifier.width(4.dp))
-        Text("添加列")
+        Text(stringResource(R.string.creator_add_column))
     }
 }
 
@@ -981,13 +986,13 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("添加NPC") },
+        title = { Text(stringResource(R.string.creator_add_npc_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("NPC名称") },
+                    label = { Text(stringResource(R.string.creator_npc_name)) },
                     singleLine = true
                 )
 
@@ -996,7 +1001,7 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = role,
                     onValueChange = { role = it },
-                    label = { Text("身份/职业") },
+                    label = { Text(stringResource(R.string.creator_npc_role)) },
                     singleLine = true
                 )
 
@@ -1005,7 +1010,7 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = briefing,
                     onValueChange = { briefing = it },
-                    label = { Text("简介（一句话描述）") },
+                    label = { Text(stringResource(R.string.creator_npc_brief)) },
                     singleLine = true
                 )
 
@@ -1014,7 +1019,7 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = personality,
                     onValueChange = { personality = it },
-                    label = { Text("性格特点") },
+                    label = { Text(stringResource(R.string.creator_npc_personality_field)) },
                     singleLine = true
                 )
 
@@ -1023,7 +1028,7 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = backstory,
                     onValueChange = { backstory = it },
-                    label = { Text("背景故事") },
+                    label = { Text(stringResource(R.string.creator_npc_backstory)) },
                     modifier = Modifier.height(100.dp),
                     maxLines = 4
                 )
@@ -1045,12 +1050,12 @@ fun AddNPCDialog(onDismiss: () -> Unit, onAdd: (NPC) -> Unit) {
                 },
                 enabled = name.isNotBlank() && role.isNotBlank()
             ) {
-                Text("添加")
+                Text(stringResource(R.string.add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
@@ -1066,13 +1071,13 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("编辑NPC") },
+        title = { Text(stringResource(R.string.creator_edit_npc_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("NPC名称") },
+                    label = { Text(stringResource(R.string.creator_npc_name)) },
                     singleLine = true
                 )
 
@@ -1081,7 +1086,7 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = role,
                     onValueChange = { role = it },
-                    label = { Text("身份/职业") },
+                    label = { Text(stringResource(R.string.creator_npc_role)) },
                     singleLine = true
                 )
 
@@ -1090,7 +1095,7 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = briefing,
                     onValueChange = { briefing = it },
-                    label = { Text("简介（一句话描述）") },
+                    label = { Text(stringResource(R.string.creator_npc_brief)) },
                     singleLine = true
                 )
 
@@ -1099,7 +1104,7 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = personality,
                     onValueChange = { personality = it },
-                    label = { Text("性格特点") },
+                    label = { Text(stringResource(R.string.creator_npc_personality_field)) },
                     singleLine = true
                 )
 
@@ -1108,7 +1113,7 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
                 OutlinedTextField(
                     value = backstory,
                     onValueChange = { backstory = it },
-                    label = { Text("背景故事") },
+                    label = { Text(stringResource(R.string.creator_npc_backstory)) },
                     modifier = Modifier.height(100.dp),
                     maxLines = 4
                 )
@@ -1129,12 +1134,12 @@ fun EditNPCDialog(npc: NPC, onDismiss: () -> Unit, onSave: (NPC) -> Unit) {
                 },
                 enabled = name.isNotBlank() && role.isNotBlank()
             ) {
-                Text("保存")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

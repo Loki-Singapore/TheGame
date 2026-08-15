@@ -1,5 +1,6 @@
 package com.textgame.domain.model
 
+import com.textgame.i18n.Lang
 import kotlin.random.Random
 
 /**
@@ -142,6 +143,31 @@ object DirectorDirective {
     private const val MAX_PENDING = 3
     private const val PAYOFF_DELAY = 3
 
+    /**
+     * English translations of [templates]. Order must match exactly: indices are shared
+     * by [recentIndices] and the weighted picker.
+     */
+    private val templatesEn: List<String> = listOf(
+        "This turn, have {npc} do something the player did not ask for but that fits the character, so the player feels this person has a life of their own.",
+        "This turn, let {npc}\'s hidden agenda begin to quietly influence their words and actions (without revealing the agenda itself).",
+        "This turn, have {npc} tell the protagonist a lie or conceal a key piece of information. The player may notice and ask about it later.",
+        "This turn, let {npc} take one step toward their hidden agenda on their own initiative. The protagonist is only a bystander or is affected, not the initiator.",
+        "This turn, introduce time pressure or a countdown (someone is about to arrive, someone is about to die, something is about to happen) without resolving it yet.",
+        "This turn, make some resource, item, or relationship scarce or costly so the protagonist feels the world pushing back.",
+        "This turn, create a dilemma: if the protagonist chooses A, they sacrifice B. There is no perfect option.",
+        "This turn, let something from {npc}\'s past suddenly catch up with them (an old acquaintance, enemy, creditor, or relative) and disrupt the current rhythm.",
+        "This turn, let a major event happen somewhere the player cannot see; reveal it afterwards through {npc}\'s reaction or changes in the environment, leaving the player to piece it together.",
+        "This turn, plant a foreshadowing: hide a seemingly irrelevant detail that will only become meaningful 3-5 turns later. Do not explain it this turn.",
+        "This turn, have {npc} make a decision that surprises the protagonist but feels reasonable in hindsight, creating an \"of course\" moment.",
+        "This turn, have two NPCs talk privately while the player is absent. The player only sees the result (mood shifts, changed stances) without knowing what happened.",
+        "This turn, let the world push back against the protagonist\'s actions: something they did earlier brings an unexpected consequence, neither simply good nor bad.",
+        "This turn, make something previously reliable become unreliable (an ally wavers, a tool malfunctions, a rule has an exception, a safe place is no longer safe).",
+        "This turn, let a foreshadowing you planted earlier begin to show meaning — do not explain it; let the player piece it together from the details and feel that it was hinted at long ago.",
+        "This turn, have {npc} proactively ask the protagonist for a favor or commission with personal emotional weight (not a quest-board style task), hard to refuse and not easy to accept.",
+        "This turn, let a seemingly unrelated sensory detail (a smell, sound, light, or temperature) keep recurring, creating subconscious unease or an omen. Do not explain its meaning this turn.",
+        "This turn, have {npc} misspeak or show a fleeting slip; an attentive player may ask and uncover hidden information, but ignoring it does no harm. Leave the choice to the player."
+    )
+
     // ponytail: 全局可变状态，单 session 复用。多 session 改 Map<sessionId, Mem>。
     private val recentIndices = ArrayDeque<Int>()
     private var pendingForeshadowings = 0
@@ -183,10 +209,12 @@ object DirectorDirective {
         remember(pickedIdx, picked.tag, ctx.turnCount)
 
         return if ("{npc}" in picked.text) {
-            val name = pickNpc(picked, ctx)?.name?.ifBlank { "在场某位NPC" } ?: "在场某位NPC"
-            picked.text.replace("{npc}", name)
+            val fallback = Lang.text("an NPC present", "在场某位NPC")
+            val name = pickNpc(picked, ctx)?.name?.ifBlank { fallback } ?: fallback
+            val text = if (Lang.isEnglish()) templatesEn[pickedIdx] else picked.text
+            text.replace("{npc}", name)
         } else {
-            picked.text
+            if (Lang.isEnglish()) templatesEn[pickedIdx] else picked.text
         }
     }
 

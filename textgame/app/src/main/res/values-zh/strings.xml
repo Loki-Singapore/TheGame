@@ -1,0 +1,279 @@
+<resources>
+    <string name="app_name">文字游戏引擎</string>
+    <string name="streaming_notification_channel_name">流式响应服务</string>
+    <string name="streaming_notification_channel_desc">AI 流式生成回复期间保持网络连接</string>
+    <string name="streaming_notification_text">AI 正在生成回复…</string>
+
+    <!-- 通用 -->
+    <string name="back">返回</string>
+    <string name="close">关闭</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="ok">确定</string>
+    <string name="save">保存</string>
+    <string name="edit">编辑</string>
+    <string name="add">添加</string>
+    <string name="copy">复制</string>
+    <string name="collapse">收起</string>
+    <string name="expand">展开</string>
+    <string name="send">发送</string>
+    <string name="yes">是</string>
+    <string name="no">否</string>
+
+    <!-- 主菜单 -->
+    <string name="menu_music_on_cd">开启音乐</string>
+    <string name="menu_music_off_cd">关闭音乐</string>
+    <string name="menu_tagline">创建属于你的冒险故事</string>
+    <string name="menu_new_game">新建游戏</string>
+    <string name="menu_continue_game">继续游戏</string>
+    <string name="menu_no_saves">暂无存档</string>
+    <string name="menu_ai_settings">AI 设置</string>
+    <string name="menu_turn_count">第 %1$d 轮</string>
+    <string name="menu_delete_confirm_title">确认删除</string>
+    <string name="menu_delete_confirm_message">确定要删除存档「%1$s」吗？此操作不可恢复。</string>
+
+    <!-- 创建世界 -->
+    <string name="creator_title">创建新世界</string>
+    <string name="creator_step_basic">基本信息</string>
+    <string name="creator_step_world">世界观</string>
+    <string name="creator_step_attributes">角色属性</string>
+    <string name="creator_step_npcs">NPC设置</string>
+    <string name="creator_step_done">完成</string>
+    <string name="creator_previous">上一步</string>
+    <string name="creator_next">下一步</string>
+    <string name="creator_creating">创建中...</string>
+    <string name="creator_create">创建游戏</string>
+    <string name="creator_created_title">创建成功</string>
+    <string name="creator_created_message">游戏世界已创建完成！</string>
+    <string name="creator_start_game">开始游戏</string>
+    <string name="creator_add_attribute_title">添加属性</string>
+    <string name="creator_edit_attribute_title">编辑属性</string>
+    <string name="creator_one_sentence_title">一句话生成世界</string>
+    <string name="creator_one_sentence_desc">描述你想要的游戏世界，AI会自动生成所有设定</string>
+    <string name="creator_generation_placeholder">例如：一个蒸汽朋克风格的侦探故事，主角是私家侦探</string>
+    <string name="creator_generating">生成中...</string>
+    <string name="creator_ai_generate">AI生成</string>
+    <string name="creator_or_manual">或手动填写</string>
+    <string name="creator_game_name">游戏名称</string>
+    <string name="creator_protagonist_name">主角名称</string>
+    <string name="creator_world_name">世界名称</string>
+    <string name="creator_world_description">世界描述</string>
+    <string name="creator_time_setting">时间设定</string>
+    <string name="creator_start_location">起始地点</string>
+    <string name="creator_social_structure">社会结构</string>
+    <string name="creator_lore">世界观历史/Lore</string>
+    <string name="creator_protagonist_background">主角背景故事</string>
+    <string name="creator_world_history">世界历史</string>
+    <string name="creator_world_type">世界类型</string>
+    <string-array name="creator_world_types">
+        <item>奇幻</item>
+        <item>科幻</item>
+        <item>现代</item>
+        <item>末日</item>
+        <item>武侠</item>
+        <item>都市</item>
+        <item>历史</item>
+        <item>其他</item>
+    </string-array>
+    <string name="creator_special_rules">特殊规则</string>
+    <string name="creator_add_rule">添加规则</string>
+    <string name="creator_attribute_categories">角色属性类目</string>
+    <string name="creator_add_attribute">添加属性</string>
+    <string name="creator_no_attributes">暂无属性，点击上方按钮添加</string>
+    <string name="creator_attr_type_default">类型: %1$s | 默认值: %2$s</string>
+    <string name="creator_attr_type_table">类型: TABLE | 列: %1$s</string>
+    <string name="creator_npc_personality">性格: %1$s</string>
+    <string name="creator_initial_npcs">初始NPC</string>
+    <string name="creator_add_npc">添加NPC</string>
+    <string name="creator_no_npcs">暂无NPC，点击上方按钮添加</string>
+    <string name="creator_overview_title">游戏设置概览</string>
+    <string name="creator_overview_game_name">游戏名称: %1$s</string>
+    <string name="creator_overview_protagonist">主角: %1$s</string>
+    <string name="creator_overview_world">世界: %1$s</string>
+    <string name="creator_overview_type">类型: %1$s</string>
+    <string name="creator_overview_attr_count">属性数量: %1$d</string>
+    <string name="creator_overview_npc_count">NPC数量: %1$d</string>
+    <string name="creator_overview_cta">点击「创建游戏」开始你的冒险！</string>
+    <string name="creator_attr_name">属性名称</string>
+    <string name="creator_attr_min_value">最小值</string>
+    <string name="creator_attr_max_value">最大值</string>
+    <string name="creator_attr_default_numeric">默认值（数字）</string>
+    <string name="creator_enum_options_comma">可选项（用英文逗号分隔）</string>
+    <string name="creator_enum_default_must_be_option">当前默认值需为可选项之一：%1$s</string>
+    <string name="creator_enum_default_from_options">默认值（需在上面的可选项中）</string>
+    <string name="creator_attr_default_value">默认值</string>
+    <string name="creator_attr_description">描述（属性如何影响游戏）</string>
+    <string name="creator_attr_type">属性类型</string>
+    <string name="creator_attr_type_numeric">NUMERIC（数值）</string>
+    <string name="creator_attr_type_boolean">BOOLEAN（布尔）</string>
+    <string name="creator_attr_type_enum">ENUM（枚举）</string>
+    <string name="creator_attr_type_text">TEXT（文本）</string>
+    <string name="creator_attr_type_table">TABLE（表格）</string>
+    <string name="creator_table_title">表格列定义</string>
+    <string name="creator_table_hint">每行属性即一条记录，列类型只能是 NUMERIC/BOOLEAN/ENUM/TEXT</string>
+    <string name="creator_table_no_columns">暂无列，点击下方按钮添加至少一列</string>
+    <string name="creator_column_name">列名</string>
+    <string name="creator_delete_column">删除列</string>
+    <string name="creator_column_type">列类型</string>
+    <string name="creator_add_column">添加列</string>
+    <string name="creator_default_column_name">列%1$d</string>
+    <string name="creator_npc_name">NPC名称</string>
+    <string name="creator_npc_role">身份/职业</string>
+    <string name="creator_npc_brief">简介（一句话描述）</string>
+    <string name="creator_npc_personality_field">性格特点</string>
+    <string name="creator_npc_backstory">背景故事</string>
+    <string name="creator_add_npc_title">添加NPC</string>
+    <string name="creator_edit_npc_title">编辑NPC</string>
+
+    <!-- AI 设置 -->
+    <string name="settings_title">AI 设置</string>
+    <string name="settings_api_connection">API 连接</string>
+    <string name="settings_api_key">API Key</string>
+    <string name="settings_api_address">API 地址</string>
+    <string name="settings_model_name">模型名称</string>
+    <string name="settings_choose">选择</string>
+    <string name="settings_dialogue_params">对话参数</string>
+    <string name="settings_thinking_mode">思考模式</string>
+    <string name="settings_thinking_mode_desc">启用后模型会先思考再回答，提升回答质量（不支持 temperature）</string>
+    <string name="settings_thinking_effort">思考强度: %1$s</string>
+    <string name="settings_thinking_effort_desc">控制模型思考的深度，high 适合一般场景，max 适合复杂决策</string>
+    <string name="settings_temperature_desc">控制回复的随机性，值越高越有创意</string>
+    <string name="settings_max_tokens_desc">单次回复的最大长度</string>
+    <string name="settings_limit">上限: %1$d</string>
+    <string name="settings_summary_params">总结参数</string>
+    <string name="settings_summary_thinking_desc">总结时使用相同思考强度，提升总结质量</string>
+    <string name="settings_summary_temperature_desc">总结生成时建议使用较低值以保持准确性</string>
+    <string name="settings_summary_max_tokens_desc">总结内容的最大长度</string>
+    <string name="settings_image_section">生图设置</string>
+    <string name="settings_image_section_desc">使用 BytePlus Seedream 系列模型生成当前场景图片。API Key 与对话 AI 的 API Key 相互独立。</string>
+    <string name="settings_image_api_key">生图 API Key</string>
+    <string name="settings_image_api_key_placeholder">火山引擎 / BytePlus ARK API Key</string>
+    <string name="settings_image_domain">生图 API 域名</string>
+    <string name="settings_image_model">生图模型</string>
+    <string name="settings_save">保存设置</string>
+    <string name="settings_restore_defaults">恢复默认值</string>
+    <string name="settings_saved_title">保存成功</string>
+    <string name="settings_saved_message">AI 设置已保存并生效。</string>
+    <string name="settings_choose_model">选择模型</string>
+    <string name="settings_choose_image_model">选择生图模型</string>
+
+    <!-- 游戏页 -->
+    <string name="game_title_fallback">游戏中</string>
+    <string name="game_turn_count">第 %1$d 轮</string>
+    <string name="game_status">状态</string>
+    <string name="game_settings">设定</string>
+    <string name="game_debug_info">调试信息</string>
+    <string name="game_copy">复制</string>
+    <string name="game_collapse">收起</string>
+    <string name="game_expand">展开</string>
+    <string name="game_choices_count">你可以选择 (%1$d)</string>
+    <string name="game_free_input_hint">...或者自由输入你的行动</string>
+    <string name="game_input_placeholder">输入你的行动或对话...</string>
+    <string name="game_send">发送</string>
+    <string name="game_tokens_line">%1$d tokens · 缓存命中 %2$d</string>
+    <string name="game_regenerate_from_turn">从此轮重新生成</string>
+    <string name="game_generate_scene_image">生成当前场景图片</string>
+    <string name="game_status_panel_title">状态面板</string>
+    <string name="game_turn_scene">第 %1$d 轮 · %2$s</string>
+    <string name="game_section_protagonist">主角</string>
+    <string name="game_section_present_characters">在场角色 (%1$d)</string>
+    <string name="game_section_world_rules">世界观细则 (%1$d)</string>
+    <string name="game_section_progress_summary">进度总结</string>
+    <string name="game_close_panel">关闭面板</string>
+    <string name="game_attributes">属性</string>
+    <string name="game_items">物品</string>
+    <string name="game_mood">情绪：</string>
+    <string name="game_no_columns_defined">（未定义列）</string>
+    <string name="game_empty_table">（空表）</string>
+    <string name="game_start_narrative">游戏开始！你发现自己身处%1$s...</string>
+    <string name="speaker_you">你</string>
+    <string name="fallback_npc">NPC</string>
+    <string name="fallback_initial_scene">初始场景</string>
+    <string name="fallback_unknown_npc">未知角色</string>
+    <string name="fallback_unknown_role">未知</string>
+
+    <!-- 游戏错误 -->
+    <string name="error_please_enter_world_prompt">请输入一句话描述</string>
+    <string name="error_generate_world_failed">生成失败: %1$s</string>
+    <string name="error_please_enter_game_name">请输入游戏名称</string>
+    <string name="error_create_game_failed">创建失败: %1$s</string>
+    <string name="game_error_ai_response">AI响应错误: %1$s</string>
+    <string name="game_error_delete_failed">删除失败: %1$s</string>
+    <string name="game_error_edit_failed">修改失败: %1$s</string>
+    <string name="game_error_cannot_regenerate_turn">该轮次无法重新生成</string>
+    <string name="game_error_snapshot_missing">找不到轮次 %1$d 的状态快照，无法重新生成</string>
+    <string name="game_error_regenerate_failed">重新生成失败: %1$s</string>
+
+    <!-- 生图 -->
+    <string name="img_title_prompt">生图提示词</string>
+    <string name="img_title_generate">生成场景图片</string>
+    <string name="img_style_hint">选择画面风格，由 AI 根据当前场景生成生图提示词，可重新生成或手动编辑后再继续。</string>
+    <string name="img_style_section">画面风格</string>
+    <string name="img_generating">生成中</string>
+    <string name="img_generate_prompt">生成提示词</string>
+    <string name="img_regenerate_prompt">重新生成</string>
+    <string name="img_prompt_label">生图提示词（可编辑）</string>
+    <string name="img_prompt_placeholder">点击上方按钮由 AI 生成，或在此手动输入提示词...</string>
+    <string name="img_confirm_prompt">确认提示词，进入生图</string>
+    <string name="img_model_label">模型：%1$s</string>
+    <string name="img_prompt_preview">提示词：%1$s</string>
+    <string name="img_size_section">图片尺寸</string>
+    <string name="img_generating_image">生图中...</string>
+    <string name="img_generate_image">生成图片</string>
+    <string name="img_slow_hint">图片生成中，5.0 Pro 模型可能需要 3-5 分钟，请耐心等待…</string>
+    <string name="img_result_title">生成结果</string>
+    <string name="img_result_hint">点击图片可全屏查看，支持双指缩放</string>
+    <string name="img_generated_cd">生成的图片</string>
+    <string name="img_revised_prompt">AI 修订后的提示词：%1$s</string>
+    <string name="img_saving">保存中...</string>
+    <string name="img_save_local">保存到本地</string>
+    <string name="img_edit_prompt">修改提示词</string>
+    <string name="img_regenerate">重新生成</string>
+    <string name="preview_close">关闭预览</string>
+    <string name="preview_fullscreen_cd">生成的图片（全屏预览）</string>
+    <string name="preview_hint">双指缩放 · 双击切换 · 单击关闭</string>
+    <string name="img_style_realistic">高真实感</string>
+    <string name="img_style_anime">动漫化</string>
+    <string name="img_error_prompt_generate_failed">提示词生成失败：%1$s</string>
+    <string name="img_error_prompt_empty">提示词不能为空</string>
+    <string name="img_error_service_not_configured">生图服务未配置，请在 AI 设置中填写生图 API Key 与域名</string>
+    <string name="img_error_no_image_data">生图响应中未包含图片数据</string>
+    <string name="img_error_decode_failed">图片解码失败：URL=%1$s, base64长度=%2$d</string>
+    <string name="img_error_generate_failed">生图失败</string>
+    <string name="img_error_no_saveable_image">还没有可保存的图片</string>
+    <string name="img_error_no_saveable_data">无可保存的图片数据</string>
+    <string name="img_saved_message">图片已保存到相册 Pictures/TextGame/%1$s.png</string>
+    <string name="img_error_save_failed">保存失败：%1$s</string>
+
+    <!-- 游戏设定 -->
+    <string name="gs_title">游戏设定</string>
+    <string name="gs_tab_world">世界观</string>
+    <string name="gs_tab_background">背景</string>
+    <string name="gs_tab_protagonist">主角</string>
+    <string name="gs_tab_npc">NPC</string>
+    <string name="gs_world_section">世界观设定</string>
+    <string name="gs_world_name">世界名称</string>
+    <string name="gs_world_type">世界类型</string>
+    <string name="gs_world_description">世界描述</string>
+    <string name="gs_world_rules">世界观细则</string>
+    <string name="gs_add">添加</string>
+    <string name="gs_no_rules">暂无世界观细则</string>
+    <string name="gs_add_rule_title">添加世界观细则</string>
+    <string name="gs_rule_content">规则内容</string>
+    <string name="gs_edit_rule_title">编辑世界观细则</string>
+    <string name="gs_background_section">背景设定</string>
+    <string name="gs_protagonist_background">主角背景</string>
+    <string name="gs_protagonist_section">主角属性</string>
+    <string name="gs_protagonist_name">主角名称</string>
+    <string name="gs_current_location">当前位置</string>
+    <string name="gs_attributes">属性</string>
+    <string name="gs_npc_title">NPC: %1$s</string>
+    <string name="gs_name">名称</string>
+    <string name="gs_role">角色定位</string>
+    <string name="gs_brief">简介</string>
+    <string name="gs_mood">当前情绪</string>
+    <string name="gs_awareness">对主角的认知</string>
+    <string name="gs_appearance">外貌描述</string>
+    <string name="gs_personality">性格特点</string>
+    <string name="gs_backstory">背景故事</string>
+</resources>

@@ -37,8 +37,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.textgame.R
 import com.textgame.data.audio.BgmManager
 import com.textgame.data.audio.BgmTrack
 import com.textgame.data.local.SettingsManager
@@ -106,20 +108,20 @@ fun MainMenuScreen(
             IconButton(onClick = { toggleMusic() }) {
                 Icon(
                     if (musicEnabled) Icons.Default.MusicNote else Icons.Default.MusicOff,
-                    contentDescription = if (musicEnabled) "关闭音乐" else "开启音乐"
+                    contentDescription = stringResource(if (musicEnabled) R.string.menu_music_off_cd else R.string.menu_music_on_cd)
                 )
             }
         }
 
         Text(
-            text = "文字游戏引擎",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineLarge
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "创建属于你的冒险故事",
+            text = stringResource(R.string.menu_tagline),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -130,13 +132,13 @@ fun MainMenuScreen(
             onClick = onNewGame,
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) {
-            Text("新建游戏", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.menu_new_game), style = MaterialTheme.typography.titleMedium)
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "继续游戏",
+            text = stringResource(R.string.menu_continue_game),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.align(Alignment.Start)
         )
@@ -145,7 +147,7 @@ fun MainMenuScreen(
 
         if (sessions.isEmpty()) {
             Text(
-                text = "暂无存档",
+                text = stringResource(R.string.menu_no_saves),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -172,7 +174,7 @@ fun MainMenuScreen(
         ) {
             Icon(Icons.Default.Settings, contentDescription = null)
             Spacer(modifier = Modifier.height(4.dp))
-            Text("AI 设置")
+            Text(stringResource(R.string.menu_ai_settings))
         }
     }
 }
@@ -210,7 +212,7 @@ fun SessionCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "第 ${session.currentTurn} 轮",
+                        text = stringResource(R.string.menu_turn_count, session.currentTurn),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -225,7 +227,7 @@ fun SessionCard(
             IconButton(onClick = { showDeleteDialog = true }) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "删除",
+                    contentDescription = stringResource(R.string.delete),
                     tint = MaterialTheme.colorScheme.error
                 )
             }
@@ -235,8 +237,8 @@ fun SessionCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("确认删除") },
-            text = { Text("确定要删除存档「${session.name}」吗？此操作不可恢复。") },
+            title = { Text(stringResource(R.string.menu_delete_confirm_title)) },
+            text = { Text(stringResource(R.string.menu_delete_confirm_message, session.name)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -244,12 +246,12 @@ fun SessionCard(
                         onDelete()
                     }
                 ) {
-                    Text("删除", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("取消")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )

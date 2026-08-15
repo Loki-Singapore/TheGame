@@ -68,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -75,6 +76,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.halilibo.richtext.markdown.Markdown
 import com.halilibo.richtext.ui.RichText
 import com.textgame.BuildConfig
+import com.textgame.R
 import com.textgame.domain.model.AttributeCategory
 import com.textgame.domain.model.AttributeType
 import com.textgame.domain.model.NPC
@@ -176,24 +178,24 @@ fun GameScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text(uiState.gameState?.currentScene ?: "游戏中")
+                        Text(uiState.gameState?.currentScene ?: stringResource(R.string.game_title_fallback))
                         Text(
-                            text = "第 ${uiState.gameState?.turnCount ?: 0} 轮",
+                            text = stringResource(R.string.game_turn_count, uiState.gameState?.turnCount ?: 0),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
                 actions = {
                     TextButton(onClick = { showStatusPanel = true }) {
-                        Text("状态")
+                        Text(stringResource(R.string.game_status))
                     }
                     TextButton(onClick = onOpenSettings) {
-                        Text("设定")
+                        Text(stringResource(R.string.game_settings))
                     }
                 }
             )
@@ -261,7 +263,7 @@ fun GameScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "调试信息",
+                                    text = stringResource(R.string.game_debug_info),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
@@ -270,9 +272,9 @@ fun GameScreen(
                                         // 复制到剪贴板
                                         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                                         clipboard.setPrimaryClip(android.content.ClipData.newPlainText("debug", debugLog))
-                                    }) { Text("复制") }
+                                    }) { Text(stringResource(R.string.game_copy)) }
                                     TextButton(onClick = { expanded = !expanded }) {
-                                        Text(if (expanded) "收起" else "展开")
+                                        Text(stringResource(if (expanded) R.string.game_collapse else R.string.game_expand))
                                     }
                                 }
                             }
@@ -311,12 +313,12 @@ fun GameScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "你可以选择 (${uiState.choices.size})",
+                                text = stringResource(R.string.game_choices_count, uiState.choices.size),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             TextButton(onClick = { choicesExpanded = !choicesExpanded }) {
-                                Text(if (choicesExpanded) "收起" else "展开")
+                                Text(stringResource(if (choicesExpanded) R.string.game_collapse else R.string.game_expand))
                             }
                         }
                         if (choicesExpanded) {
@@ -344,7 +346,7 @@ fun GameScreen(
                                 onClick = { },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text("...或者自由输入你的行动")
+                                Text(stringResource(R.string.game_free_input_hint))
                             }
                         }
                     }
@@ -362,7 +364,7 @@ fun GameScreen(
                 OutlinedTextField(
                     value = inputText,
                     onValueChange = { inputText = it },
-                    placeholder = { Text("输入你的行动或对话...") },
+                    placeholder = { Text(stringResource(R.string.game_input_placeholder)) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(24.dp)
                 )
@@ -379,7 +381,7 @@ fun GameScreen(
                     },
                     enabled = inputText.isNotBlank() && !uiState.isLoading && !uiState.isStreaming
                 ) {
-                    Text("发送")
+                    Text(stringResource(R.string.game_send))
                 }
             }
         }
@@ -432,7 +434,7 @@ fun DialogueItem(
                             horizontalArrangement = Arrangement.End
                         ) {
                             Text(
-                                text = "${usage.totalTokens} tokens · 缓存命中 ${usage.promptCacheHitTokens}",
+                                text = stringResource(R.string.game_tokens_line, usage.totalTokens, usage.promptCacheHitTokens),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
@@ -445,7 +447,7 @@ fun DialogueItem(
                         ) {
                             if (dialogue.turnNumber > 0) {
                                 DropdownMenuItem(
-                                    text = { Text("从此轮重新生成") },
+                                    text = { Text(stringResource(R.string.game_regenerate_from_turn)) },
                                     onClick = {
                                         showMenu = false
                                         onRegenerate(dialogue.turnNumber)
@@ -453,7 +455,7 @@ fun DialogueItem(
                                 )
                             }
                             DropdownMenuItem(
-                                text = { Text("生成当前场景图片") },
+                                text = { Text(stringResource(R.string.game_generate_scene_image)) },
                                 onClick = {
                                     showMenu = false
                                     onGenerateSceneImage()
@@ -492,14 +494,14 @@ fun DialogueItem(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("从此轮重新生成") },
+                            text = { Text(stringResource(R.string.game_regenerate_from_turn)) },
                             onClick = {
                                 showMenu = false
                                 onRegenerate(dialogue.turnNumber)
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("生成当前场景图片") },
+                            text = { Text(stringResource(R.string.game_generate_scene_image)) },
                             onClick = {
                                 showMenu = false
                                 onGenerateSceneImage()
@@ -528,14 +530,14 @@ fun DialogueItem(
                             onDismissRequest = { showMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("从此轮重新生成") },
+                                text = { Text(stringResource(R.string.game_regenerate_from_turn)) },
                                 onClick = {
                                     showMenu = false
                                     onRegenerate(dialogue.turnNumber)
                                 }
                             )
                             DropdownMenuItem(
-                                text = { Text("生成当前场景图片") },
+                                text = { Text(stringResource(R.string.game_generate_scene_image)) },
                                 onClick = {
                                     showMenu = false
                                     onGenerateSceneImage()
@@ -587,17 +589,17 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "状态面板",
+                    text = stringResource(R.string.game_status_panel_title),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.weight(1f)
                 )
                 IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "关闭")
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                 }
             }
             uiState.gameState?.let { gs ->
                 Text(
-                    text = "第 ${gs.turnCount} 轮 · ${gs.currentScene}",
+                    text = stringResource(R.string.game_turn_scene, gs.turnCount, gs.currentScene),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -608,7 +610,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
             // 主角卡片
             uiState.protagonist?.let { protag ->
                 SectionCard(
-                    title = "主角",
+                    title = stringResource(R.string.game_section_protagonist),
                     icon = { Icon(Icons.Default.Person, contentDescription = null) }
                 ) {
                     ProtagonistContent(
@@ -622,7 +624,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
             if (uiState.npcs.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
                 SectionCard(
-                    title = "在场角色 (${uiState.npcs.size})",
+                    title = stringResource(R.string.game_section_present_characters, uiState.npcs.size),
                     icon = { Icon(Icons.Default.Group, contentDescription = null) }
                 ) {
                     uiState.npcs.forEachIndexed { index, npc ->
@@ -637,7 +639,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                 if (world.worldRules.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     SectionCard(
-                        title = "世界观细则 (${world.worldRules.size})",
+                        title = stringResource(R.string.game_section_world_rules, world.worldRules.size),
                         icon = { Icon(Icons.Default.Public, contentDescription = null) }
                     ) {
                         world.worldRules.forEach { rule ->
@@ -666,7 +668,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                 if (summary.summaryText.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
                     SectionCard(
-                        title = "进度总结",
+                        title = stringResource(R.string.game_section_progress_summary),
                         icon = { Icon(Icons.Default.AutoStories, contentDescription = null) }
                     ) {
                         RichText {
@@ -685,7 +687,7 @@ fun StatusPanelDialog(viewModel: GameViewModel, onDismiss: () -> Unit) {
                     .height(48.dp),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Text("关闭面板")
+                Text(stringResource(R.string.game_close_panel))
             }
         }
     }
@@ -764,7 +766,7 @@ private fun ProtagonistContent(
     if (protagonist.attributes.isNotEmpty()) {
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "属性",
+            text = stringResource(R.string.game_attributes),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -787,7 +789,7 @@ private fun ProtagonistContent(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "物品",
+                text = stringResource(R.string.game_items),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -832,7 +834,7 @@ private fun NpcContent(npc: NPC) {
         Spacer(modifier = Modifier.height(4.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "情绪：",
+                text = stringResource(R.string.game_mood),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -885,7 +887,7 @@ private fun AttributeRow(
                     val checked = value?.toString()?.equals("true", ignoreCase = true) == true
                     AssistChip(
                         onClick = {},
-                        label = { Text(if (checked) "是" else "否", style = MaterialTheme.typography.labelSmall) },
+                        label = { Text(stringResource(if (checked) R.string.yes else R.string.no), style = MaterialTheme.typography.labelSmall) },
                         colors = AssistChipDefaults.assistChipColors(
                             containerColor = if (checked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = if (checked) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
@@ -972,7 +974,7 @@ private fun TableAttributeView(
     val rows = extractTableRowsForUi(value)
     if (columns.isEmpty()) {
         Text(
-            text = "（未定义列）",
+            text = stringResource(R.string.game_no_columns_defined),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -980,7 +982,7 @@ private fun TableAttributeView(
     }
     if (rows.isEmpty()) {
         Text(
-            text = "（空表）",
+            text = stringResource(R.string.game_empty_table),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

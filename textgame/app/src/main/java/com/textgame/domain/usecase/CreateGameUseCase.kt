@@ -7,6 +7,7 @@ import com.textgame.domain.model.GameState
 import com.textgame.domain.model.WorldSetting
 import com.textgame.domain.model.BackgroundSetting
 import com.textgame.domain.repository.GameRepository
+import com.textgame.i18n.Lang
 
 class CreateGameUseCase(
     private val gameRepository: GameRepository
@@ -48,7 +49,8 @@ class CreateGameUseCase(
 
         val gameState = GameState(
             sessionId = sessionId,
-            currentScene = worldSetting.locations.firstOrNull() ?: "初始场景",
+            currentScene = worldSetting.locations.firstOrNull()
+                ?: Lang.text("Initial Scene", "初始场景"),
             turnCount = 0,
             updatedAt = now
         )
